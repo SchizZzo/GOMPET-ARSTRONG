@@ -60,6 +60,47 @@ class AnimalParentSerializer(serializers.ModelSerializer):
         )
 
 
+<<<<<<< HEAD
+=======
+class GrandparentSerializer(serializers.ModelSerializer):
+    """Serialize a grandparent relationship for a given parent."""
+
+    name = serializers.CharField(source="parent.name", read_only=True)
+    photos = serializers.SerializerMethodField()
+    parentsOfWho = serializers.CharField(
+        source="get_relation_display", read_only=True
+    )
+
+    class Meta:
+        model = AnimalParent
+        fields = ("name", "photos", "parentsOfWho")
+
+    def get_photos(self, obj):
+        image = getattr(obj.parent, "image", None)
+        return image.url if image else None
+
+
+class ParentWithGrandparentsSerializer(serializers.ModelSerializer):
+    """Serialize a parent along with its own parents (grandparents)."""
+
+    name = serializers.CharField(source="parent.name", read_only=True)
+    gender = serializers.CharField(source="parent.gender", read_only=True)
+    photos = serializers.SerializerMethodField()
+    grandparents = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AnimalParent
+        fields = ("name", "gender", "photos", "grandparents")
+
+    def get_photos(self, obj):
+        image = getattr(obj.parent, "image", None)
+        return image.url if image else None
+
+    def get_grandparents(self, obj):
+        qs = AnimalParent.objects.filter(animal=obj.parent)
+        serializer = GrandparentSerializer(qs, many=True)
+        return serializer.data
+>>>>>>> 8684526b945908d82df16335ff512bb947b2d8c1
 
 
 class AnimalSerializer(serializers.ModelSerializer):
@@ -70,6 +111,7 @@ class AnimalSerializer(serializers.ModelSerializer):
         source="characteristics_values", many=True, read_only=True
     )
     gallery = AnimalGallerySerializer(many=True, read_only=True)
+    parents = serializers.SerializerMethodField(read_only=True)
     parentships = AnimalParentSerializer(many=True, read_only=True)
     offsprings = AnimalParentSerializer(many=True, read_only=True)
     comments = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
@@ -110,6 +152,7 @@ class AnimalSerializer(serializers.ModelSerializer):
             "age",
             "characteristics",
             "gallery",
+            "parents",
             "parentships",
 
 
@@ -146,6 +189,11 @@ class AnimalSerializer(serializers.ModelSerializer):
         if not membership:
             return None
         return OrganizationSerializer(membership.organization).data
+
+    def get_parents(self, obj):
+        qs = AnimalParent.objects.filter(animal=obj)
+        serializer = ParentWithGrandparentsSerializer(qs, many=True)
+        return serializer.data
     
     
 
