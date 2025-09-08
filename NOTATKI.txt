@@ -1,0 +1,56 @@
+// {
+//   "name": "string", T
+//   "images": {
+//     "http://example1.com/",
+//     "http://example2.com/",
+//     "http://example3.com/",
+//   }, T
+//   "species": "string", T
+//   "breed": "string", T
+//   "gender": "MALE", T
+//   "size": "SMALL", T
+//   "birth_date": "2019-08-24", T
+//   "status": "AVAILABLE", T
+//   "price": "^-?\(?:\.\)?$", T
+//   "city": "string", T
+//   "location": {
+//     "type": "Point",
+//     "coordinates": []
+//   }, T
+//   "parents": [
+//     {
+//       "name": "string",
+//       "gender": "male"
+//       "photos": "http://example.com/",
+//       "grandparents": [
+//           {
+//             "name": "string",
+//             "photos": "http://example.com/",
+//             "parentsOfWho": "string"
+//           },
+//           {
+//             "name": "string",
+//             "photos": "http://example.com/",
+//             "parentsOfWho": "string"
+//           }
+//       ]
+//     },
+//     {
+//       "name": "string",
+//       "gender": "male"
+//       "photos": "http://example.com/",
+//       "grandparents": [
+//           {
+//             "name": "string",
+//             "photos": "http://example.com/",
+//             "parentsOfWho": "string"
+//           },
+//           {
+//             "name": "string",
+//             "photos": "http://example.com/",
+//             "parentsOfWho": "string"
+//           }
+//       ]
+//     },
+//   ]
+//   }

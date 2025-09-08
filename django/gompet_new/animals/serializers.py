@@ -60,6 +60,8 @@ class AnimalParentSerializer(serializers.ModelSerializer):
         )
 
 
+
+
 class AnimalSerializer(serializers.ModelSerializer):
     owner = serializers.PrimaryKeyRelatedField(read_only=True)
     age = serializers.IntegerField(read_only=True)
@@ -78,35 +80,43 @@ class AnimalSerializer(serializers.ModelSerializer):
     organization = serializers.SerializerMethodField(read_only=True)
     
 
-   
-    
-   
 
-    
+
+    parents = AnimalParentSerializer(many=True, read_only=True)
+
+
     
     class Meta:
         model = Animal
         fields = (
-            "id",
-            "name",
-            "image",
-            "species",
-            "breed",
-            "gender",
-            "size",
-            "birth_date",
-            "owner",
-            "status",
-            "price",
-            "city",
-            "location",
+            "id", #ok 
+            "name", #ok
+            "image", #ok
+            "species", #ok
+            "breed", #ok
+            "gender", #ok
+            "size", #ok
+            "birth_date", #ok
+            "owner", 
+            "status", #ok
+            "price", #ok
+            "city", #ok
+            "location", #ok
+            "parents", #ok
+
+
+
             "distance",
             "age",
             "characteristics",
             "gallery",
             "parentships",
+
+
             "offsprings",
             "comments",
+
+
 
 
             "reactions",
@@ -114,6 +124,9 @@ class AnimalSerializer(serializers.ModelSerializer):
             "organization",
             "created_at",
             "updated_at",
+
+
+            
         )
         read_only_fields = (
             "created_at",
