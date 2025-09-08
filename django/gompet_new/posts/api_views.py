@@ -1,0 +1,68 @@
+from rest_framework import viewsets
+from .models import Post
+from .serializers import PostSerializer
+
+# posts/api_views.py
+
+from drf_spectacular.utils import extend_schema
+
+@extend_schema(
+    tags=["posts", "posts_organizations", "posts_animals"],
+    description="API endpoint to list and create posts."
+)
+class PostViewSet(viewsets.ModelViewSet):
+    """
+    PostViewSet
+    ===========
+
+    Endpoint REST do pobierania i zarządzania postami (obiekty **Post**).
+
+    Dostępne metody HTTP
+    --------------------
+    - **GET /posts/** – lista postów z możliwością filtrowania  
+    - **POST /posts/** – utworzenie nowego postu  
+    - **GET /posts/{id}/** – szczegóły pojedynczego postu  
+    - **PUT /posts/{id}/**, **PATCH /posts/{id}/** – aktualizacja  
+    - **DELETE /posts/{id}/** – usunięcie
+
+    Parametry zapytania (lista)
+    ---------------------------
+    - **animal-id** (int, opcjonalny)  
+      ID zwierzęcia; zwraca posty powiązane z danym zwierzęciem
+      (`Post.animal_id`).
+
+    - **organization-id** (int, opcjonalny)  
+      ID organizacji; zwraca posty dotyczące wskazanej organizacji
+      (`Post.organization_id`).
+
+    Zasady filtrowania
+    ------------------
+    - Jeżeli podasz **oba** parametry, rezultaty muszą spełniać *oba*
+      warunki (operator AND).  
+    - Brak parametrów → zwracane są wszystkie posty.
+
+    Przykłady
+    ---------
+    ```http
+    # Posty dla zwierzęcia o ID 17
+    GET /posts/?animal-id=17
+
+    # Posty organizacji 5
+    GET /posts/?organization-id=5
+
+    # Posty zwierzęcia 17 w organizacji 5
+    GET /posts/?animal-id=17&organization-id=5
+    ```
+    """
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        animal_id = self.request.query_params.get("animal-id")
+        organization_id = self.request.query_params.get("organization-id")
+        if animal_id:
+            qs = qs.filter(animal_id=animal_id)
+        if organization_id:
+            qs = qs.filter(organization_id=organization_id)
+        return qs

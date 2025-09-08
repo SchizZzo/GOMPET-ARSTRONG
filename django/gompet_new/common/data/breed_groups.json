@@ -1,0 +1,488 @@
+[
+  {
+    "group_name": "Miniaturowy owczarek amerykański",
+    "min_weight": 8.0,
+    "max_weight": 14.0,
+    "min_size_male": 35.5,
+    "max_size_male": 46.0,
+    "min_size_famale": 33.0,
+    "max_size_famale": 46.0
+  },
+  {
+    "group_name": "Australian Cattle Dog",
+    "min_weight": 14.0,
+    "max_weight": 16.0,
+    "min_size_male": 46.0,
+    "max_size_male": 51.0,
+    "min_size_famale": 43.0,
+    "max_size_famale": 48.0
+  },
+  {
+    "group_name": "Australian Stumpy Tail Cattle Dog",
+    "min_weight": 16.0,
+    "max_weight": 23.0,
+    "min_size_male": 46.0,
+    "max_size_male": 51.0,
+    "min_size_famale": 43.0,
+    "max_size_famale": 48.0
+  },
+  {
+    "group_name": "Bearded Collie",
+    "min_weight": 18.0,
+    "max_weight": 27.0,
+    "min_size_male": 53.0,
+    "max_size_male": 56.0,
+    "min_size_famale": 51.0,
+    "max_size_famale": 53.0
+  },
+  {
+    "group_name": "Bergamasco",
+    "min_weight": 26.0,
+    "max_weight": 38.0,
+    "min_size_male": 58.0,
+    "max_size_male": 62.0,
+    "min_size_famale": 54.0,
+    "max_size_famale": 58.0
+  },
+  {
+    "group_name": "Biały Owczarek Szwajcarski",
+    "min_weight": 25.0,
+    "max_weight": 40.0,
+    "min_size_male": 58.0,
+    "max_size_male": 66.0,
+    "min_size_famale": 53.0,
+    "max_size_famale": 61.0
+  },
+  {
+    "group_name": "Border Collie",
+    "min_weight": 12.0,
+    "max_weight": 20.0,
+    "min_size_male": 48.0,
+    "max_size_male": 56.0,
+    "min_size_famale": 46.0,
+    "max_size_famale": 53.0
+  },
+  {
+    "group_name": "Bouvier des Ardennes",
+    "min_weight": 22.0,
+    "max_weight": 35.0,
+    "min_size_male": 56.0,
+    "max_size_male": 62.0,
+    "min_size_famale": 52.0,
+    "max_size_famale": 56.0
+  },
+  {
+    "group_name": "Bouvier des Flandres/ Vlaamse Koehond",
+    "min_weight": 27.0,
+    "max_weight": 40.0,
+    "min_size_male": 62.0,
+    "max_size_male": 68.0,
+    "min_size_famale": 59.0,
+    "max_size_famale": 65.0
+  },
+  {
+    "group_name": "Ceskoslovensky Vlcak",
+    "min_weight": 20.0,
+    "max_weight": 26.0,
+    "min_size_male": 65.0,
+    "max_size_male": 65.0,
+    "min_size_famale": 60.0,
+    "max_size_famale": 60.0
+  },
+  {
+    "group_name": "Chodsky Pes",
+    "min_weight": 17.0,
+    "max_weight": 27.0,
+    "min_size_male": 52.0,
+    "max_size_male": 55.0,
+    "min_size_famale": 49.0,
+    "max_size_famale": 52.0
+  },
+  {
+    "group_name": "Ciobanesc Romanesc Carpatin",
+    "min_weight": 0,
+    "max_weight": 0,
+    "min_size_male": 65.0,
+    "max_size_male": 73.0,
+    "min_size_famale": 59.0,
+    "max_size_famale": 67.0
+  },
+  {
+    "group_name": "Ciobanesc Romanesc Mioritic",
+    "min_weight": 0,
+    "max_weight": 0,
+    "min_size_male": 70.0,
+    "max_size_male": 75.0,
+    "min_size_famale": 65.0,
+    "max_size_famale": 70.0
+  },
+  {
+    "group_name": "Czuwacz słowacki",
+    "min_weight": 31.0,
+    "max_weight": 44.0,
+    "min_size_male": 62.0,
+    "max_size_male": 70.0,
+    "min_size_famale": 59.0,
+    "max_size_famale": 65.0
+  },
+  {
+    "group_name": "Komondor",
+    "min_weight": 40.0,
+    "max_weight": 60.0,
+    "min_size_male": 70.0,
+    "max_size_male": 70.0,
+    "min_size_famale": 65.0,
+    "max_size_famale": 65.0
+  },
+  {
+    "group_name": "Kuvasz",
+    "min_weight": 37.0,
+    "max_weight": 62.0,
+    "min_size_male": 71.0,
+    "max_size_male": 76.0,
+    "min_size_famale": 66.0,
+    "max_size_famale": 70.0
+  },
+  {
+    "group_name": "Lancashire Heeler",
+    "min_weight": 6.0,
+    "max_weight": 8.0,
+    "min_size_male": 25.0,
+    "max_size_male": 30.0,
+    "min_size_famale": 25.0,
+    "max_size_famale": 30.0
+  },
+  {
+    "group_name": "Maremmano-Abruzzese",
+    "min_weight": 30.0,
+    "max_weight": 45.0,
+    "min_size_male": 65.0,
+    "max_size_male": 73.0,
+    "min_size_famale": 60.0,
+    "max_size_famale": 68.0
+  },
+  {
+    "group_name": "Mudi",
+    "min_weight": 8.0,
+    "max_weight": 13.0,
+    "min_size_male": 41.0,
+    "max_size_male": 47.0,
+    "min_size_famale": 38.0,
+    "max_size_famale": 44.0
+  },
+  {
+    "group_name": "Nederlandse Schapendoes",
+    "min_weight": 12.0,
+    "max_weight": 25.0,
+    "min_size_male": 43.0,
+    "max_size_male": 50.0,
+    "min_size_famale": 40.0,
+    "max_size_famale": 47.0
+  },
+  {
+    "group_name": "Owczarek australijski- Kelpie",
+    "min_weight": 14.0,
+    "max_weight": 21.0,
+    "min_size_male": 46.0,
+    "max_size_male": 51.0,
+    "min_size_famale": 43.0,
+    "max_size_famale": 48.0
+  },
+  {
+    "group_name": "Owczarek australijski (typ amerykański)",
+    "min_weight": 16.0,
+    "max_weight": 32.0,
+    "min_size_male": 51.0,
+    "max_size_male": 58.0,
+    "min_size_famale": 46.0,
+    "max_size_famale": 53.0
+  },
+  {
+    "group_name": "Owczarek belgijski- Groenendael",
+    "min_weight": 20.0,
+    "max_weight": 30.0,
+    "min_size_male": 60.0,
+    "max_size_male": 66.0,
+    "min_size_famale": 56.0,
+    "max_size_famale": 62.0
+  },
+  {
+    "group_name": "Owczarek belgijski- Malinois",
+    "min_weight": 20.0,
+    "max_weight": 30.0,
+    "min_size_male": 60.0,
+    "max_size_male": 66.0,
+    "min_size_famale": 56.0,
+    "max_size_famale": 62.0
+  },
+  {
+    "group_name": "Owczarek belgijski- Tervueren",
+    "min_weight": 20.0,
+    "max_weight": 30.0,
+    "min_size_male": 60.0,
+    "max_size_male": 66.0,
+    "min_size_famale": 56.0,
+    "max_size_famale": 62.0
+  },
+  {
+    "group_name": "Owczarek chorwacki",
+    "min_weight": 13.0,
+    "max_weight": 20.0,
+    "min_size_male": 40.0,
+    "max_size_male": 50.0,
+    "min_size_famale": 40.0,
+    "max_size_famale": 50.0
+  },
+  {
+    "group_name": "Owczarek francuski- Beauceron",
+    "min_weight": 30.0,
+    "max_weight": 45.0,
+    "min_size_male": 65.0,
+    "max_size_male": 70.0,
+    "min_size_famale": 61.0,
+    "max_size_famale": 68.0
+  },
+  {
+    "group_name": "Owczarek francuski- Briard",
+    "min_weight": 25.0,
+    "max_weight": 40.0,
+    "min_size_male": 62.0,
+    "max_size_male": 68.0,
+    "min_size_famale": 56.0,
+    "max_size_famale": 64.0
+  },
+  {
+    "group_name": "Owczarek holenderski długowłosy",
+    "min_weight": 25.0,
+    "max_weight": 40.0,
+    "min_size_male": 57.0,
+    "max_size_male": 62.0,
+    "min_size_famale": 55.0,
+    "max_size_famale": 60.0
+  },
+  {
+    "group_name": "Owczarek holenderski krótkowłosy",
+    "min_weight": 25.0,
+    "max_weight": 40.0,
+    "min_size_male": 57.0,
+    "max_size_male": 62.0,
+    "min_size_famale": 55.0,
+    "max_size_famale": 60.0
+  },
+  {
+    "group_name": "Owczarek holenderski szorstkowłosy",
+    "min_weight": 25.0,
+    "max_weight": 40.0,
+    "min_size_male": 57.0,
+    "max_size_male": 62.0,
+    "min_size_famale": 55.0,
+    "max_size_famale": 60.0
+  },
+  {
+    "group_name": "Owczarek kataloński",
+    "min_weight": 16.0,
+    "max_weight": 27.0,
+    "min_size_male": 47.0,
+    "max_size_male": 55.0,
+    "min_size_famale": 45.0,
+    "max_size_famale": 53.0
+  },
+  {
+    "group_name": "Owczarek niemiecki długowłosy",
+    "min_weight": 22.0,
+    "max_weight": 40.0,
+    "min_size_male": 60.0,
+    "max_size_male": 65.0,
+    "min_size_famale": 55.0,
+    "max_size_famale": 60.0
+  },
+  {
+    "group_name": "Owczarek niemiecki krótkowłosy",
+    "min_weight": 22.0,
+    "max_weight": 40.0,
+    "min_size_male": 60.0,
+    "max_size_male": 65.0,
+    "min_size_famale": 55.0,
+    "max_size_famale": 60.0
+  },
+  {
+    "group_name": "Owczarek pikardyjski",
+    "min_weight": 23.0,
+    "max_weight": 32.0,
+    "min_size_male": 60.0,
+    "max_size_male": 65.0,
+    "min_size_famale": 55.0,
+    "max_size_famale": 60.0
+  },
+  {
+    "group_name": "Owczarek pirenejski (a face rase)",
+    "min_weight": 7.0,
+    "max_weight": 15.0,
+    "min_size_male": 40.0,
+    "max_size_male": 50.0,
+    "min_size_famale": 40.0,
+    "max_size_famale": 50.0
+  },
+  {
+    "group_name": "Owczarek pirenejski (a poil long)",
+    "min_weight": 8.0,
+    "max_weight": 15.0,
+    "min_size_male": 40.0,
+    "max_size_male": 50.0,
+    "min_size_famale": 40.0,
+    "max_size_famale": 50.0
+  },
+  {
+    "group_name": "Owczarek południoworosyjski- Jużak",
+    "min_weight": 30.0,
+    "max_weight": 50.0,
+    "min_size_male": 65.0,
+    "max_size_male": 70.0,
+    "min_size_famale": 62.0,
+    "max_size_famale": 68.0
+  },
+  {
+    "group_name": "Owczarek portugalski",
+    "min_weight": 17.0,
+    "max_weight": 27.0,
+    "min_size_male": 55.0,
+    "max_size_male": 60.0,
+    "min_size_famale": 52.0,
+    "max_size_famale": 57.0
+  },
+  {
+    "group_name": "Owczarek staroangielski- Bobtail",
+    "min_weight": 27.0,
+    "max_weight": 45.0,
+    "min_size_male": 61.0,
+    "max_size_male": null,
+    "min_size_famale": 56.0,
+    "max_size_famale": null
+  },
+  {
+    "group_name": "Owczarek szetlandzki",
+    "min_weight": 6.0,
+    "max_weight": 12.0,
+    "min_size_male": 35.0,
+    "max_size_male": 37.0,
+    "min_size_famale": 33.0,
+    "max_size_famale": 35.0
+  },
+  {
+    "group_name": "Owczarek szkocki długowłosy",
+    "min_weight": 18.0,
+    "max_weight": 34.0,
+    "min_size_male": 56.0,
+    "max_size_male": 61.0,
+    "min_size_famale": 51.0,
+    "max_size_famale": 56.0
+  },
+  {
+    "group_name": "Owczarek szkocki krótkowłosy",
+    "min_weight": 18.0,
+    "max_weight": 34.0,
+    "min_size_male": 56.0,
+    "max_size_male": 61.0,
+    "min_size_famale": 51.0,
+    "max_size_famale": 56.0
+  },
+  {
+    "group_name": "Owczarek z Majorki długowłosy",
+    "min_weight": 30.0,
+    "max_weight": 40.0,
+    "min_size_male": 60.0,
+    "max_size_male": 70.0,
+    "min_size_famale": 55.0,
+    "max_size_famale": 65.0
+  },
+  {
+    "group_name": "Owczarek z Majorki krótkowłosy",
+    "min_weight": 30.0,
+    "max_weight": 40.0,
+    "min_size_male": 60.0,
+    "max_size_male": 70.0,
+    "min_size_famale": 55.0,
+    "max_size_famale": 65.0
+  },
+  {
+    "group_name": "Polski owczarek nizinny",
+    "min_weight": 13.0,
+    "max_weight": 20.0,
+    "min_size_male": 45.0,
+    "max_size_male": 50.0,
+    "min_size_famale": 42.0,
+    "max_size_famale": 47.0
+  },
+  {
+    "group_name": "Polski owczarek podhalański",
+    "min_weight": 35.0,
+    "max_weight": 60.0,
+    "min_size_male": 65.0,
+    "max_size_male": 70.0,
+    "min_size_famale": 60.0,
+    "max_size_famale": 65.0
+  },
+  {
+    "group_name": "Puli biały",
+    "min_weight": 10.0,
+    "max_weight": 15.0,
+    "min_size_male": 40.0,
+    "max_size_male": 44.0,
+    "min_size_famale": 37.0,
+    "max_size_famale": 41.0
+  },
+  {
+    "group_name": "Puli kolorowy",
+    "min_weight": 10.0,
+    "max_weight": 15.0,
+    "min_size_male": 40.0,
+    "max_size_male": 44.0,
+    "min_size_famale": 37.0,
+    "max_size_famale": 41.0
+  },
+  {
+    "group_name": "Pumi",
+    "min_weight": 8.0,
+    "max_weight": 15.0,
+    "min_size_male": 41.0,
+    "max_size_male": 47.0,
+    "min_size_famale": 38.0,
+    "max_size_famale": 44.0
+  },
+  {
+    "group_name": "Saarlooswolfhond",
+    "min_weight": 36.0,
+    "max_weight": 41.0,
+    "min_size_male": 65.0,
+    "max_size_male": 75.0,
+    "min_size_famale": 60.0,
+    "max_size_famale": 70.0
+  },
+  {
+    "group_name": "Schipperke",
+    "min_weight": 3.0,
+    "max_weight": 9.0,
+    "min_size_male": 24.0,
+    "max_size_male": 33.0,
+    "min_size_famale": 21.0,
+    "max_size_famale": 31.0
+  },
+  {
+    "group_name": "Welsh Corgi Cardigan",
+    "min_weight": 11.0,
+    "max_weight": 17.0,
+    "min_size_male": 25.0,
+    "max_size_male": 33.0,
+    "min_size_famale": 25.0,
+    "max_size_famale": 33.0
+  },
+  {
+    "group_name": "Welsh Corgi Pembroke",
+    "min_weight": 10.0,
+    "max_weight": 14.0,
+    "min_size_male": 25.0,
+    "max_size_male": 30.0,
+    "min_size_famale": 25.0,
+    "max_size_famale": 30.0
+  }
+]
