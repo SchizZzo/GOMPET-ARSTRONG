@@ -16,8 +16,4 @@ __pycache__
 *.idea
 *.vscode
 *.egg-info
-FRONTEND
-DANE
-20250713_django.zip
-gompet_new.zip
-flutter
+settings.py
