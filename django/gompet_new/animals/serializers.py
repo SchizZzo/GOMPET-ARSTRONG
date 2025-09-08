@@ -114,59 +114,38 @@ class AnimalSerializer(serializers.ModelSerializer):
     comments = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     reactions = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     distance = serializers.SerializerMethodField(read_only=True)
-
-
     organization = serializers.SerializerMethodField(read_only=True)
-    
-
-
-
-    parents = AnimalParentSerializer(many=True, read_only=True)
 
 
     
     class Meta:
         model = Animal
         fields = (
-            "id", #ok 
-            "name", #ok
-            "image", #ok
-            "species", #ok
-            "breed", #ok
-            "gender", #ok
-            "size", #ok
-            "birth_date", #ok
-            "owner", 
-            "status", #ok
-            "price", #ok
-            "city", #ok
-            "location", #ok
-            "parents", #ok
-
-
-
+            "id",
+            "name",
+            "image",
+            "species",
+            "breed",
+            "gender",
+            "size",
+            "birth_date",
+            "owner",
+            "status",
+            "price",
+            "city",
+            "location",
+            "parents",
             "distance",
             "age",
             "characteristics",
             "gallery",
-            "parents",
             "parentships",
-
-
             "offsprings",
             "comments",
-
-
-
-
             "reactions",
-
             "organization",
             "created_at",
             "updated_at",
-
-
-            
         )
         read_only_fields = (
             "created_at",
