@@ -60,8 +60,6 @@ class AnimalParentSerializer(serializers.ModelSerializer):
         )
 
 
-<<<<<<< HEAD
-=======
 class GrandparentSerializer(serializers.ModelSerializer):
     """Serialize a grandparent relationship for a given parent."""
 
@@ -100,7 +98,6 @@ class ParentWithGrandparentsSerializer(serializers.ModelSerializer):
         qs = AnimalParent.objects.filter(animal=obj.parent)
         serializer = GrandparentSerializer(qs, many=True)
         return serializer.data
->>>>>>> 8684526b945908d82df16335ff512bb947b2d8c1
 
 
 class AnimalSerializer(serializers.ModelSerializer):
