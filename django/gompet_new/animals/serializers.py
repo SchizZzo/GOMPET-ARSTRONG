@@ -75,7 +75,11 @@ class GrandparentSerializer(serializers.ModelSerializer):
 
     def get_photos(self, obj):
         image = getattr(obj.parent, "image", None)
-        return image.url if image else None
+        if not image:
+            return None
+        request = self.context.get("request") if hasattr(self, 'context') else None
+        url = image.url
+        return request.build_absolute_uri(url) if request else url
 
 
 class ParentWithGrandparentsSerializer(serializers.ModelSerializer):
@@ -92,11 +96,15 @@ class ParentWithGrandparentsSerializer(serializers.ModelSerializer):
 
     def get_photos(self, obj):
         image = getattr(obj.parent, "image", None)
-        return image.url if image else None
+        if not image:
+            return None
+        request = self.context.get("request") if hasattr(self, 'context') else None
+        url = image.url
+        return request.build_absolute_uri(url) if request else url
 
     def get_grandparents(self, obj):
         qs = AnimalParent.objects.filter(animal=obj.parent)
-        serializer = GrandparentSerializer(qs, many=True)
+        serializer = GrandparentSerializer(qs, many=True, context=self.context)
         return serializer.data
 
 
@@ -168,7 +176,7 @@ class AnimalSerializer(serializers.ModelSerializer):
 
     def get_parents(self, obj):
         qs = AnimalParent.objects.filter(animal=obj)
-        serializer = ParentWithGrandparentsSerializer(qs, many=True)
+        serializer = ParentWithGrandparentsSerializer(qs, many=True, context=self.context)
         return serializer.data
     
     
