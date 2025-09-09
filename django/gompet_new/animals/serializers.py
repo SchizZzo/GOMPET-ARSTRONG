@@ -108,6 +108,10 @@ class ParentWithGrandparentsSerializer(serializers.ModelSerializer):
         qs = AnimalParent.objects.filter(animal=obj.parent)
         serializer = GrandparentSerializer(qs, many=True, context=self.context)
         return serializer.data
+    
+class CharacterItemSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=64)
+    bool = serializers.BooleanField()
 
 
 class AnimalSerializer(serializers.ModelSerializer):
@@ -125,6 +129,8 @@ class AnimalSerializer(serializers.ModelSerializer):
     reactions = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     distance = serializers.SerializerMethodField(read_only=True)
     organization = serializers.SerializerMethodField(read_only=True)
+
+    characteristicBoard = CharacterItemSerializer(many=True, source='characteristic_board')
 
 
     
@@ -147,7 +153,7 @@ class AnimalSerializer(serializers.ModelSerializer):
             "parents",
             "distance",
             "age",
-            "characteristics",
+            "characteristicBoard",
             "gallery",
             "parentships",
             "offsprings",

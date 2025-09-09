@@ -13,6 +13,8 @@ from django.core.exceptions import ValidationError
 
 from django.contrib.postgres.fields import ArrayField
 
+from django.contrib.postgres.indexes import GinIndex
+
 # ────────────────────────────────────────────────────────────────────
 #  Enums / Choices
 # ────────────────────────────────────────────────────────────────────
@@ -82,11 +84,7 @@ class Animal(models.Model):
     city       = models.CharField(max_length=100, blank=True)
     location    = gis_models.PointField(null=True, blank=True, geography=True)
 
-    characteristics = ArrayField(
-        models.CharField(max_length=50, blank=True),
-        size=20,  # opcjonalne ograniczenie rozmiaru tablicy
-        default=list,
-    )
+    characteristic_board = models.JSONField(default=list, blank=True)
 
     
     
@@ -127,6 +125,7 @@ class Animal(models.Model):
     class Meta:
         db_table = "animals"
         ordering = ("-created_at",)
+        indexes = [GinIndex(fields=['characteristic_board'])]
 
     def __str__(self) -> str:
         return self.name
