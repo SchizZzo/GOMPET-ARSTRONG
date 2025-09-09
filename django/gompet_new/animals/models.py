@@ -11,6 +11,8 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.gis.db import models as gis_models
 from django.core.exceptions import ValidationError
 
+from django.contrib.postgres.fields import ArrayField
+
 # ────────────────────────────────────────────────────────────────────
 #  Enums / Choices
 # ────────────────────────────────────────────────────────────────────
@@ -79,6 +81,12 @@ class Animal(models.Model):
     price       = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     city       = models.CharField(max_length=100, blank=True)
     location    = gis_models.PointField(null=True, blank=True, geography=True)
+
+    characteristics = ArrayField(
+        models.CharField(max_length=50, blank=True),
+        size=20,  # opcjonalne ograniczenie rozmiaru tablicy
+        default=list,
+    )
 
     
     

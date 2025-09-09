@@ -33,7 +33,7 @@ class AnimalAdmin(admin.ModelAdmin):
             'fields': (
                 'name', 'image', 'species', 'breed',
                 'gender', 'size', 'birth_date', 'age',
-                'animal_breed_groups'
+                'animal_breed_groups',
             )
         }),
         ('Ownership & Status', {
@@ -43,6 +43,13 @@ class AnimalAdmin(admin.ModelAdmin):
             'fields': ('created_at', 'updated_at', 'deleted_at')
         }),
     )
+
+
+@admin.register(AnimalParent)
+class AnimalParentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'animal', 'parent')
+    search_fields = ('animal__name', 'parent__name')
+    raw_id_fields = ('animal', 'parent')
 
 
 @admin.register(AnimalCharacteristic)

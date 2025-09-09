@@ -4,6 +4,10 @@ DC=docker-compose
 MANAGE=$(DC) run --rm web python manage.py
 
 
+
+
+
+
 .PHONY: help makemigrations migrate
 
 
@@ -50,6 +54,9 @@ populatedb:
 	$(MANAGE) populatedb
 
 
+	
+
+
 all:
 	$(MAKE) makemigrations
 	$(MAKE) migrate
@@ -58,3 +65,9 @@ all:
 	$(MAKE) createsuperuser
 	$(MAKE) run
 	
+
+nginx:
+	$(DC) exec nginx nginx -s reload
+
+build-no-cache:
+	$(DC) build --no-cache

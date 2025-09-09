@@ -19,6 +19,9 @@ from django.urls import path
 from django.urls import include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
+from django.conf import settings
+from django.conf.urls.static import static
+
 from .settings import SPECTACULAR_SETTINGS_V1, SPECTACULAR_SETTINGS_V2
 
 
@@ -87,3 +90,5 @@ urlpatterns += [
     path('articles/', include('articles.urls')),
 
 ]
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

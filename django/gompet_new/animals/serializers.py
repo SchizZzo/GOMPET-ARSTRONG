@@ -63,6 +63,7 @@ class AnimalParentSerializer(serializers.ModelSerializer):
 class GrandparentSerializer(serializers.ModelSerializer):
     """Serialize a grandparent relationship for a given parent."""
 
+    id = serializers.IntegerField(source="parent.id", read_only=True)
     name = serializers.CharField(source="parent.name", read_only=True)
     photos = serializers.SerializerMethodField()
     parentsOfWho = serializers.CharField(
@@ -71,7 +72,7 @@ class GrandparentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AnimalParent
-        fields = ("name", "photos", "parentsOfWho")
+        fields = ("id", "name", "photos", "parentsOfWho")
 
     def get_photos(self, obj):
         image = getattr(obj.parent, "image", None)
@@ -85,6 +86,7 @@ class GrandparentSerializer(serializers.ModelSerializer):
 class ParentWithGrandparentsSerializer(serializers.ModelSerializer):
     """Serialize a parent along with its own parents (grandparents)."""
 
+    id = serializers.IntegerField(source="parent.id", read_only=True)
     name = serializers.CharField(source="parent.name", read_only=True)
     gender = serializers.CharField(source="parent.gender", read_only=True)
     photos = serializers.SerializerMethodField()
@@ -92,7 +94,7 @@ class ParentWithGrandparentsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AnimalParent
-        fields = ("name", "gender", "photos", "grandparents")
+        fields = ("id", "name", "gender", "photos", "grandparents")
 
     def get_photos(self, obj):
         image = getattr(obj.parent, "image", None)
@@ -112,9 +114,9 @@ class AnimalSerializer(serializers.ModelSerializer):
     owner = serializers.PrimaryKeyRelatedField(read_only=True)
     age = serializers.IntegerField(read_only=True)
     # use the correct related name to retrieve characteristic values
-    characteristics = AnimalCharacteristicSerializer(
-        source="characteristics_values", many=True, read_only=True
-    )
+    # characteristics = AnimalCharacteristicSerializer(
+    #     source="characteristics_values", many=True, read_only=True
+    # )
     gallery = AnimalGallerySerializer(many=True, read_only=True)
     parents = serializers.SerializerMethodField(read_only=True)
     parentships = AnimalParentSerializer(many=True, read_only=True)
