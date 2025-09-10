@@ -52,6 +52,8 @@ class AnimalCharacteristicSerializer(serializers.ModelSerializer):
 
 
 class AnimalGallerySerializer(serializers.ModelSerializer):
+    image = Base64ImageField(required=False, allow_null=True)
+
     class Meta:
         model = AnimalGallery
         fields = (
