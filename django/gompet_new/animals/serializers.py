@@ -52,7 +52,7 @@ class AnimalCharacteristicSerializer(serializers.ModelSerializer):
 
 
 class AnimalGallerySerializer(serializers.ModelSerializer):
-    image = Base64ImageField(required=False, allow_null=True)
+    image = Base64ImageField(required=True, allow_null=False)
 
     class Meta:
         model = AnimalGallery
@@ -139,7 +139,7 @@ class AnimalSerializer(serializers.ModelSerializer):
     # characteristics = AnimalCharacteristicSerializer(
     #     source="characteristics_values", many=True, read_only=True
     # )
-    gallery = AnimalGallerySerializer(many=True, required=False)
+    gallery = AnimalGallerySerializer(many=True, required=True)
     parents = serializers.SerializerMethodField(read_only=True)
     parentships = AnimalParentSerializer(many=True, read_only=True)
     offsprings = AnimalParentSerializer(many=True, read_only=True)
