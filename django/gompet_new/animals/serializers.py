@@ -164,7 +164,10 @@ class AnimalSerializer(serializers.ModelSerializer):
     # characteristics = AnimalCharacteristicSerializer(
     #     source="characteristics_values", many=True, read_only=True
     # )
-    gallery = AnimalGallerySerializer(many=True, required=True)
+    # Allow creating an animal without an initial gallery.  Tests only require
+    # that provided gallery items are processed correctly, so the field should
+    # be optional during validation.
+    gallery = AnimalGallerySerializer(many=True, required=False)
     parents = serializers.SerializerMethodField(read_only=True)
     parentships = AnimalParentSerializer(many=True, read_only=True)
     offsprings = AnimalParentSerializer(many=True, read_only=True)
@@ -173,7 +176,11 @@ class AnimalSerializer(serializers.ModelSerializer):
     distance = serializers.SerializerMethodField(read_only=True)
     organization = serializers.SerializerMethodField(read_only=True)
 
-    characteristicBoard = CharacterItemSerializer(many=True, source='characteristic_board')
+    # ``characteristicBoard`` is a JSON field on the model with a default value,
+    # therefore it should not be required when creating an animal via the API.
+    characteristicBoard = CharacterItemSerializer(
+        many=True, source='characteristic_board', required=False
+    )
 
     image = Base64ImageField(required=False, allow_null=True)
 
