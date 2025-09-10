@@ -2,6 +2,12 @@ from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
 
 from .models import Animal, AnimalParent, ParentRelation, Gender, Size, AnimalGallery
+from ..users.models import (
+    Organization,
+    OrganizationMember,
+    Address,
+    OrganizationType,
+)
 
 
 class AnimalParentsFieldTest(APITestCase):
@@ -124,3 +130,119 @@ class AnimalGalleryMultipleUploadTest(APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("animal", response.data)
         self.assertEqual(AnimalGallery.objects.count(), 0)
+
+
+class AnimalCreateWithoutOptionalFieldsTest(APITestCase):
+    """Ensure optional serializer fields can be omitted when creating."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            email="nogallery@example.com",
+            password="password",
+            first_name="No",
+            last_name="Gallery",
+        )
+        self.client.force_authenticate(user=self.user)
+
+    def test_create_without_gallery_and_characteristic_board(self):
+        payload = {
+            "name": "NoGallery",
+            "species": "dog",
+            "gender": Gender.MALE,
+            "size": Size.SMALL,
+        }
+        response = self.client.post("/animals/animals/", payload, format="json")
+        self.assertEqual(response.status_code, 201)
+        animal_id = response.data["id"]
+        self.assertEqual(
+            AnimalGallery.objects.filter(animal_id=animal_id).count(),
+            0,
+        )
+        self.assertEqual(response.data["characteristicBoard"], [])
+
+
+class AnimalGalleryUpdateReplaceTest(APITestCase):
+    """Uploading new gallery images replaces the previous ones."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            email="galleryupdate@example.com",
+            password="password",
+            first_name="Gallery",
+            last_name="Updater",
+        )
+        self.client.force_authenticate(user=self.user)
+        self.image_data = (
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII="
+        )
+        create_payload = {
+            "name": "Initial",
+            "species": "dog",
+            "gender": Gender.MALE,
+            "size": Size.SMALL,
+            "gallery": [
+                {"image": f"data:image/png;base64,{self.image_data}"}
+            ],
+        }
+        response = self.client.post("/animals/animals/", create_payload, format="json")
+        self.animal_id = response.data["id"]
+
+    def test_update_replaces_gallery(self):
+        update_payload = {
+            "gallery": [
+                {"image": f"data:image/png;base64,{self.image_data}"},
+                {"image": f"data:image/png;base64,{self.image_data}"},
+            ]
+        }
+        url = f"/animals/animals/{self.animal_id}/"
+        response = self.client.patch(url, update_payload, format="json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            AnimalGallery.objects.filter(animal_id=self.animal_id).count(),
+            2,
+        )
+
+
+class AnimalOrganizationFieldTest(APITestCase):
+    """Ensure organization info is returned for animals with memberships."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            email="member@example.com",
+            password="password",
+            first_name="Member",
+            last_name="User",
+        )
+        self.client.force_authenticate(user=self.user)
+        self.organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Test Org",
+            email="org@example.com",
+        )
+        Address.objects.create(
+            organization=self.organization,
+            city="City",
+            street="Street",
+            house_number="1",
+            zip_code="00-000",
+        )
+        OrganizationMember.objects.create(
+            user=self.user,
+            organization=self.organization,
+        )
+        self.animal = Animal.objects.create(
+            name="OrgDog",
+            species="dog",
+            gender=Gender.MALE,
+            size=Size.SMALL,
+            owner=self.user,
+        )
+
+    def test_organization_field_present(self):
+        url = f"/animals/animals/{self.animal.id}/"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        org_data = response.data.get("organization")
+        self.assertIsNotNone(org_data)
+        self.assertEqual(org_data["id"], self.organization.id)
+        self.assertEqual(org_data["address"]["city"], "City")
