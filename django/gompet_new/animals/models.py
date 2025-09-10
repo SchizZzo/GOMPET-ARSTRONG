@@ -202,17 +202,16 @@ class AnimalGallery(models.Model):
         upload_to="animals/gallery/",
         help_text="Zalecany rozmiar: 800x600px"
     )
-    ordering    = models.PositiveIntegerField(default=0)
+    #ordering    = models.PositiveIntegerField(default=0)
 
     updated_at  = models.DateTimeField(auto_now=True)
     deleted_at  = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = "animal_gallery"
-        ordering = ("ordering",)
+        #ordering = ("ordering",)
 
-    def __str__(self) -> str:
-        return f"{self.animal_id} img #{self.ordering}"
+    
 
 
 # ────────────────────────────────────────────────────────────────────

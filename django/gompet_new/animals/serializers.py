@@ -59,7 +59,7 @@ class AnimalGallerySerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "image",
-            "ordering",
+            #"ordering",
         )
 
 
