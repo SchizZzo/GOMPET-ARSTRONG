@@ -1,5 +1,6 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from .models import (
     Animal,
@@ -53,6 +54,7 @@ class AnimalViewSet(viewsets.ModelViewSet):
     queryset = Animal.objects.all()
     serializer_class = AnimalSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
 
     def perform_create(self, serializer):
         # automatycznie ustawia właściciela na zalogowanego użytkownika

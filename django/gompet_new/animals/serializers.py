@@ -52,21 +52,17 @@ class AnimalCharacteristicSerializer(serializers.ModelSerializer):
 
 
 class AnimalGallerySerializer(serializers.ModelSerializer):
-    #image = Base64ImageField(required=False, allow_null=True)
-    
-    # animal = serializers.PrimaryKeyRelatedField(
-    #     queryset=Animal.objects.all(), write_only=True, required=False
-    # )
+    """Simple serializer for gallery images.
+
+    Only the ``image`` field is required when creating gallery items – the
+    associated ``Animal`` instance is supplied by ``AnimalSerializer`` during
+    creation.  The ``id`` field is read‑only and returned only in responses.
+    """
 
     class Meta:
         model = AnimalGallery
-        fields = (
-            "id",
-            "image",
-            
-            
-            #"ordering",
-        )
+        fields = ("id", "image")
+        read_only_fields = ("id",)
 
    
 
