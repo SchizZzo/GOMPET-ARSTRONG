@@ -108,3 +108,19 @@ class AnimalGalleryMultipleUploadTest(APITestCase):
         self.assertEqual(
             AnimalGallery.objects.filter(animal=self.animal).count(), 2
         )
+
+    def test_upload_multiple_images_without_animal(self):
+        """Uploading images without specifying the animal should fail."""
+        image_data = (
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII="
+        )
+        payload = {
+            "images": [
+                f"data:image/png;base64,{image_data}",
+                f"data:image/png;base64,{image_data}",
+            ]
+        }
+        response = self.client.post("/animals/galleries/", payload, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("animal", response.data)
+        self.assertEqual(AnimalGallery.objects.count(), 0)
