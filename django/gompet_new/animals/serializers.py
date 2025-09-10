@@ -53,14 +53,39 @@ class AnimalCharacteristicSerializer(serializers.ModelSerializer):
 
 class AnimalGallerySerializer(serializers.ModelSerializer):
     image = Base64ImageField(required=False, allow_null=True)
+    images = serializers.ListField(
+        child=Base64ImageField(), write_only=True, required=False
+    )
+    animal = serializers.PrimaryKeyRelatedField(
+        queryset=Animal.objects.all(), write_only=True, required=False
+    )
 
     class Meta:
         model = AnimalGallery
         fields = (
             "id",
             "image",
+            "images",
+            "animal",
             #"ordering",
         )
+
+    def create(self, validated_data):
+        images = validated_data.pop("images", None)
+        animal = validated_data.pop("animal", None)
+        if images:
+            if animal is None:
+                raise serializers.ValidationError(
+                    {"animal": "This field is required when uploading multiple images."}
+                )
+            instances = [
+                AnimalGallery(animal=animal, image=image) for image in images
+            ]
+            AnimalGallery.objects.bulk_create(instances)
+            return instances[0]
+        if animal is not None:
+            validated_data["animal"] = animal
+        return super().create(validated_data)
 
 
 class AnimalParentSerializer(serializers.ModelSerializer):
