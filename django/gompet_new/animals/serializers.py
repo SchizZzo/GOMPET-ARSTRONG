@@ -139,7 +139,7 @@ class AnimalSerializer(serializers.ModelSerializer):
     # characteristics = AnimalCharacteristicSerializer(
     #     source="characteristics_values", many=True, read_only=True
     # )
-    gallery = AnimalGallerySerializer(many=True, read_only=True)
+    gallery = AnimalGallerySerializer(many=True, required=False)
     parents = serializers.SerializerMethodField(read_only=True)
     parentships = AnimalParentSerializer(many=True, read_only=True)
     offsprings = AnimalParentSerializer(many=True, read_only=True)

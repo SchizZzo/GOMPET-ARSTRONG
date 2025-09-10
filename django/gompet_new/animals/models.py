@@ -203,6 +203,7 @@ class AnimalGallery(models.Model):
         help_text="Zalecany rozmiar: 800x600px"
     )
     #ordering    = models.PositiveIntegerField(default=0)
+    created_at  = models.DateTimeField(auto_now_add=True)
 
     updated_at  = models.DateTimeField(auto_now=True)
     deleted_at  = models.DateTimeField(null=True, blank=True)

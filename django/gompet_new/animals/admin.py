@@ -71,3 +71,9 @@ class AnimalsBreedGroupsAdmin(admin.ModelAdmin):
     list_display = ('id', 'group_name', 'description', 'created_at', 'updated_at')
     search_fields = ('group_name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
+
+@admin.register(AnimalGallery)
+class AnimalGalleryAdmin(admin.ModelAdmin):
+    list_display = ('id', 'animal', 'image', 'created_at', 'updated_at')
+    search_fields = ('animal__name',)
+    readonly_fields = ('created_at', 'updated_at', 'deleted_at')
