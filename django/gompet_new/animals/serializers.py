@@ -208,6 +208,22 @@ class AnimalSerializer(serializers.ModelSerializer):
         qs = AnimalParent.objects.filter(animal=obj)
         serializer = ParentWithGrandparentsSerializer(qs, many=True, context=self.context)
         return serializer.data
+
+    def create(self, validated_data):
+        gallery_data = validated_data.pop("gallery", [])
+        animal = super().create(validated_data)
+        for image_data in gallery_data:
+            AnimalGallery.objects.create(animal=animal, **image_data)
+        return animal
+
+    def update(self, instance, validated_data):
+        gallery_data = validated_data.pop("gallery", None)
+        animal = super().update(instance, validated_data)
+        if gallery_data is not None:
+            instance.gallery.all().delete()
+            for image_data in gallery_data:
+                AnimalGallery.objects.create(animal=animal, **image_data)
+        return animal
     
     
 

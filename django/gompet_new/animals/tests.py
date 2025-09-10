@@ -1,6 +1,7 @@
 from rest_framework.test import APITestCase
+from django.contrib.auth import get_user_model
 
-from .models import Animal, AnimalParent, ParentRelation, Gender, Size
+from .models import Animal, AnimalParent, ParentRelation, Gender, Size, AnimalGallery
 
 
 class AnimalParentsFieldTest(APITestCase):
@@ -44,3 +45,32 @@ class AnimalParentsFieldTest(APITestCase):
         self.assertIn("parents", data)
         parent_names = {p["name"] for p in data["parents"]}
         self.assertSetEqual(parent_names, {"Mother", "Father"})
+
+
+class AnimalGalleryCreateTest(APITestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            email="user@example.com",
+            password="password",
+            first_name="Test",
+            last_name="User",
+        )
+        self.client.force_authenticate(user=self.user)
+
+    def test_create_animal_with_gallery(self):
+        image_data = (
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII="
+        )
+        payload = {
+            "name": "Doggie",
+            "species": "dog",
+            "gender": Gender.MALE,
+            "size": Size.SMALL,
+            "gallery": [
+                {"image": f"data:image/png;base64,{image_data}"}
+            ],
+        }
+        response = self.client.post("/animals/animals/", payload, format="json")
+        self.assertEqual(response.status_code, 201)
+        animal_id = response.data["id"]
+        self.assertEqual(AnimalGallery.objects.filter(animal_id=animal_id).count(), 1)
