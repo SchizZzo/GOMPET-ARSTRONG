@@ -76,51 +76,43 @@ class AnimalGalleryCreateTest(APITestCase):
         self.assertEqual(AnimalGallery.objects.filter(animal_id=animal_id).count(), 1)
 
 
-class AnimalGalleryMultipleUploadTest(APITestCase):
+class AnimalGalleryUpdateTest(APITestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(
-            email="user2@example.com",
+            email="user@example.com",
             password="password",
             first_name="Test",
             last_name="User",
         )
         self.client.force_authenticate(user=self.user)
         self.animal = Animal.objects.create(
-            name="Multi",
+            name="Doggie",
             species="dog",
             gender=Gender.MALE,
             size=Size.SMALL,
         )
+        self.gallery_item = AnimalGallery.objects.create(
+            animal=self.animal,
+            image="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII="
+        )
 
-    def test_upload_multiple_images(self):
-        image_data = (
+    def test_update_animal_gallery(self):
+        new_image_data = (
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII="
         )
         payload = {
-            "animal": self.animal.id,
-            "images": [
-                f"data:image/png;base64,{image_data}",
-                f"data:image/png;base64,{image_data}",
+            "name": "Doggie Updated",
+            "species": "dog",
+            "gender": Gender.MALE.value,
+            "size": Size.SMALL.value,
+            "gallery": [
+                {"image": f"data:image/png;base64,{new_image_data}"}
             ],
         }
-        response = self.client.post("/animals/galleries/", payload, format="json")
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(
-            AnimalGallery.objects.filter(animal=self.animal).count(), 2
-        )
+        response = self.client.put(f"/animals/animals/{self.animal.id}/", payload, format="json")
+        self.assertEqual(response.status_code, 200)
+        self.animal.refresh_from_db()
+        self.assertEqual(self.animal.name, "Doggie Updated")
+        # gallery should be replaced with the new list (one item)
+        self.assertEqual(AnimalGallery.objects.filter(animal=self.animal).count(), 1)
 
-    def test_upload_multiple_images_without_animal(self):
-        """Uploading images without specifying the animal should fail."""
-        image_data = (
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII="
-        )
-        payload = {
-            "images": [
-                f"data:image/png;base64,{image_data}",
-                f"data:image/png;base64,{image_data}",
-            ]
-        }
-        response = self.client.post("/animals/galleries/", payload, format="json")
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("animal", response.data)
-        self.assertEqual(AnimalGallery.objects.count(), 0)

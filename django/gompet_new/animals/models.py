@@ -202,12 +202,7 @@ class AnimalGallery(models.Model):
         upload_to="animals/gallery/",
         help_text="Zalecany rozmiar: 800x600px"
     )
-    images   = ArrayField(
-        models.ImageField(upload_to="animals/gallery/", blank=True, null=True),
-        size=5,
-        blank=True,
-        null=True
-    )
+   
     #ordering    = models.PositiveIntegerField(default=0)
     created_at  = models.DateTimeField(auto_now_add=True)
 
