@@ -14,6 +14,22 @@ from django.contrib.gis.db.models.functions import Distance
 from users.serializers import OrganizationSerializer
 
 
+class Base64ImageField(serializers.ImageField):
+    """
+    Przyjmuje data URI lub czysty base‑64 i konwertuje na ContentFile.
+    """
+    def to_internal_value(self, data):
+        import base64, imghdr, uuid
+        from django.core.files.base import ContentFile
+
+        if isinstance(data, str) and data.startswith("data:image"):
+            fmt, imgstr = data.split(";base64,")
+            ext = imghdr.what(None, base64.b64decode(imgstr))
+            file_name = f"{uuid.uuid4()}.{ext}"
+            data = ContentFile(base64.b64decode(imgstr), name=file_name)
+        return super().to_internal_value(data)
+
+
 class CharacteristicsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Characteristics
@@ -132,6 +148,9 @@ class AnimalSerializer(serializers.ModelSerializer):
 
     characteristicBoard = CharacterItemSerializer(many=True, source='characteristic_board')
 
+    image = Base64ImageField(required=False, allow_null=True)
+
+
 
     
     class Meta:
@@ -140,6 +159,7 @@ class AnimalSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "image",
+            "descriptions",
             "species",
             "breed",
             "gender",

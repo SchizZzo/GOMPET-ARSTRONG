@@ -57,7 +57,8 @@ class Animal(models.Model):
 
     # podstawowe pola
     name        = models.CharField(max_length=150)
-    description = models.TextField(blank=True, null=True)
+    descriptions = models.JSONField(blank=True, null=True, help_text="Opis zwierzęcia")
+
     image       = models.ImageField(
         upload_to="animals/images/",
         blank=True,
