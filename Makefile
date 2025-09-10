@@ -71,3 +71,6 @@ nginx:
 
 build-no-cache:
 	$(DC) build --no-cache
+
+test:
+	$(MANAGE) test animals

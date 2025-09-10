@@ -52,9 +52,6 @@ class AnimalCharacteristicSerializer(serializers.ModelSerializer):
 
 
 class AnimalGallerySerializer(serializers.ModelSerializer):
-<<<<<<< HEAD
-    image = Base64ImageField(required=True, allow_null=False)
-=======
     image = Base64ImageField(required=False, allow_null=True)
     images = serializers.ListField(
         child=Base64ImageField(), write_only=True, required=False
@@ -62,7 +59,6 @@ class AnimalGallerySerializer(serializers.ModelSerializer):
     animal = serializers.PrimaryKeyRelatedField(
         queryset=Animal.objects.all(), write_only=True, required=False
     )
->>>>>>> 2739ad6e6716a59f02094b5640fa86ec2617843c
 
     class Meta:
         model = AnimalGallery
