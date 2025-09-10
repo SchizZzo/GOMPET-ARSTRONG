@@ -54,9 +54,9 @@ class AnimalCharacteristicSerializer(serializers.ModelSerializer):
 class AnimalGallerySerializer(serializers.ModelSerializer):
     #image = Base64ImageField(required=False, allow_null=True)
     
-    animal = serializers.PrimaryKeyRelatedField(
-        queryset=Animal.objects.all(), write_only=True, required=False
-    )
+    # animal = serializers.PrimaryKeyRelatedField(
+    #     queryset=Animal.objects.all(), write_only=True, required=False
+    # )
 
     class Meta:
         model = AnimalGallery
@@ -225,19 +225,27 @@ class AnimalSerializer(serializers.ModelSerializer):
         return serializer.data
 
     def create(self, validated_data):
-        gallery_data = validated_data.pop("gallery", [])
+        gallery = validated_data.pop("gallery", [])
         animal = super().create(validated_data)
-        for image_data in gallery_data:
-            AnimalGallery.objects.create(animal=animal, **image_data)
+        for i, item in enumerate(gallery):
+            AnimalGallery.objects.create(
+                animal=animal,
+                image=item.get("image"),
+                
+            )
         return animal
 
     def update(self, instance, validated_data):
-        gallery_data = validated_data.pop("gallery", None)
+        gallery = validated_data.pop("gallery", None)
         animal = super().update(instance, validated_data)
-        if gallery_data is not None:
+        if gallery is not None:
             instance.gallery.all().delete()
-            for image_data in gallery_data:
-                AnimalGallery.objects.create(animal=animal, **image_data)
+            for i, item in enumerate(gallery):
+                AnimalGallery.objects.create(
+                    animal=animal,
+                    image=item.get("image"),
+                    
+                )
         return animal
     
     
