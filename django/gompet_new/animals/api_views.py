@@ -261,6 +261,13 @@ class AnimalFilterViewSet(viewsets.ReadOnlyModelViewSet):
     Zwraca przyjazne, zaszczepione psy lub koty znajdujące się w promieniu
     5 km od użytkownika, należące do schronisk lub fundacji, ograniczone do
     podanych rozmiarów.
+
+
+
+    29250911
+    Inny przykład (filtrowanie po grupach rasowych i rasie):
+
+    http://localhost/animals/filtering/?breed=Mixed
     """
 
 
@@ -335,6 +342,11 @@ class AnimalFilterViewSet(viewsets.ReadOnlyModelViewSet):
         if breed_groups_param:
             group_list = [g.strip() for g in breed_groups_param.split(',') if g.strip()]
             qs = qs.filter(animal_breed_groups__group_name__in=group_list)
+
+        breed_param = params.get('breed')
+        if breed_param:
+            breed_list = [b.strip() for b in breed_param.split(',') if b.strip()]
+            qs = qs.filter(breed__in=breed_list)
 
         
         # sortowanie po wielkości (parametr size: "asc" lub "desc")
