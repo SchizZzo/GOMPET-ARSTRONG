@@ -54,6 +54,12 @@ class AgeCategory(models.TextChoices):
     SENIOR       = "SENIOR",       "Senior"
 
 
+class LifePeriod(models.TextChoices):
+    PUPPY = "PUPPY", "Puppy"
+    ADULT = "ADULT", "Adult"
+    SENIOR = "SENIOR", "Senior"
+
+
 # ────────────────────────────────────────────────────────────────────
 #  Core Animal model
 # ────────────────────────────────────────────────────────────────────
@@ -127,10 +133,18 @@ class Animal(models.Model):
         null=True,
         blank=True
     )
-    age = models.CharField(
-        max_length=15,
-        choices=AgeCategory.choices,
-        default=AgeCategory.PUPPY_JUNIOR
+
+    
+    age = models.IntegerField(
+        null=True, blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Wiek w latach"
+    )
+
+    life_period = models.CharField(
+        max_length=50,
+        choices=LifePeriod.choices,
+        default=LifePeriod.PUPPY
     )
 
     class Meta:
