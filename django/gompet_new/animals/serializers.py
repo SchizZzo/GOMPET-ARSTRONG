@@ -151,7 +151,7 @@ class CharacterItemSerializer(serializers.Serializer):
 
 class AnimalSerializer(serializers.ModelSerializer):
     owner = serializers.PrimaryKeyRelatedField(read_only=True)
-    #age = serializers.IntegerField(read_only=True)
+    age = serializers.IntegerField(read_only=True)
     image = Base64ImageField(required=False, allow_null=True)
     # use the correct related name to retrieve characteristic values
     # characteristics = AnimalCharacteristicSerializer(
@@ -351,7 +351,8 @@ class RecentlyAddedAnimalSerializer(serializers.ModelSerializer):
         many=True, source='characteristic_board', required=False
     )
     gender = serializers.CharField(read_only=True)
-    
+    age = serializers.IntegerField(read_only=True)
+
 
     size = serializers.CharField(read_only=True)
 

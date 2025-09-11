@@ -55,6 +55,22 @@ class AnimalModelTests(TestCase):
         self.assertIsNotNone(animal.deleted_at)
 
 
+class AnimalSerializerAgeTests(TestCase):
+    """Tests for age field serialization."""
+
+    def test_serializer_returns_computed_age(self):
+        birth_date = timezone.now().date() - timedelta(days=3 * 365)
+        animal = Animal.objects.create(
+            name="Toby",
+            species="Dog",
+            gender=Gender.MALE,
+            size=Size.SMALL,
+            birth_date=birth_date,
+        )
+        data = AnimalSerializer(animal).data
+        self.assertEqual(data["age"], 3)
+
+
 class AnimalParentModelTests(TestCase):
     """Validations for AnimalParent relations."""
 
