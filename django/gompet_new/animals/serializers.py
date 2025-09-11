@@ -151,7 +151,7 @@ class CharacterItemSerializer(serializers.Serializer):
 
 class AnimalSerializer(serializers.ModelSerializer):
     owner = serializers.PrimaryKeyRelatedField(read_only=True)
-    age = serializers.IntegerField(read_only=True)
+    #age = serializers.IntegerField(read_only=True)
     image = Base64ImageField(required=False, allow_null=True)
     # use the correct related name to retrieve characteristic values
     # characteristics = AnimalCharacteristicSerializer(
@@ -345,17 +345,28 @@ class RecentlyAddedAnimalSerializer(serializers.ModelSerializer):
     Serializer for listing recently added animals with minimal fields.
     """
     
-    characteristics = serializers.SerializerMethodField()
+    #characteristics = serializers.SerializerMethodField()
+
+    characteristicBoard = CharacterItemSerializer(
+        many=True, source='characteristic_board', required=False
+    )
+    gender = serializers.CharField(read_only=True)
+    
+
+    size = serializers.CharField(read_only=True)
+
     distance = serializers.SerializerMethodField(read_only=True)
 
-    def get_characteristics(self, obj):
-        return [
-            {   "id": ac.id,
-                "name": ac.characteristics.characteristic,
-                "value": ac.value,
-            }
-            for ac in obj.characteristics_values.all()
-        ]
+    
+
+    # def get_characteristics(self, obj):
+    #     return [
+    #         {   "id": ac.id,
+    #             "name": ac.characteristics.characteristic,
+    #             "value": ac.value,
+    #         }
+    #         for ac in obj.characteristics_values.all()
+    #     ]
     def get_distance(self, obj):
         # Jeśli w queryset było .annotate(distance=...), to obj.distance to GEOSDistance
         dist = getattr(obj, "distance", None)
@@ -366,10 +377,11 @@ class RecentlyAddedAnimalSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "species",
-            "characteristics",
+            "characteristicBoard",
             "age",
             "city",
-            
+            "gender",
+            "size",
             "breed",
             "image",
             "location",
@@ -377,6 +389,8 @@ class RecentlyAddedAnimalSerializer(serializers.ModelSerializer):
             "created_at",
         )
         read_only_fields = ("id", "created_at")
+
+
 
 
 class AnimalsBreedGroupsSerializer(serializers.ModelSerializer):

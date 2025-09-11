@@ -188,18 +188,19 @@ class AnimalSerializerGalleryTests(TestCase):
             b"\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\n\x00\x01\x00,"
             b"\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
         )
-        img_str = "data:image/gif;base64," + base64.b64encode(image_bytes).decode()
+        img_str1 = "data:image/gif;base64," + base64.b64encode(image_bytes).decode()
+        img_str2 = "data:image/gif;base64," + base64.b64encode(image_bytes).decode()
         data = {
             "name": "Base64",
             "species": "Cat",
             "gender": Gender.FEMALE,
             "size": Size.SMALL,
-            "gallery": [{"image": img_str}],
+            "gallery": [{"image": img_str1}, {"image": img_str2}],
         }
         serializer = AnimalSerializer(data=data)
         self.assertTrue(serializer.is_valid(), serializer.errors)
         animal = serializer.save()
-        self.assertEqual(animal.gallery.count(), 1)
+        self.assertEqual(animal.gallery.count(), 2)
 
     def test_requires_image_for_each_gallery_item(self):
         """Serializer should error if gallery entries lack images."""

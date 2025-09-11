@@ -48,6 +48,11 @@ class LitterStatus(models.TextChoices):
     CLOSED   = "CLOSED",   "Closed"
     DRAFT    = "DRAFT",    "Draft"
 
+class AgeCategory(models.TextChoices):
+    PUPPY_JUNIOR = "PUPPY_JUNIOR", "Puppy/Junior"
+    ADULT        = "ADULT",        "Adult"
+    SENIOR       = "SENIOR",       "Senior"
+
 
 # ────────────────────────────────────────────────────────────────────
 #  Core Animal model
@@ -122,6 +127,11 @@ class Animal(models.Model):
         null=True,
         blank=True
     )
+    age = models.CharField(
+        max_length=15,
+        choices=AgeCategory.choices,
+        default=AgeCategory.PUPPY_JUNIOR
+    )
 
     class Meta:
         db_table = "animals"
@@ -131,12 +141,7 @@ class Animal(models.Model):
     def __str__(self) -> str:
         return self.name
 
-    # wygodniczek
-    @property
-    def age(self) -> int | None:
-        if self.birth_date:
-            return (timezone.now().date() - self.birth_date).days // 365
-        return None
+    
 
     def soft_delete(self):
         self.deleted_at = timezone.now()
