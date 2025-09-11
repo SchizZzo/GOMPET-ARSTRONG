@@ -161,6 +161,17 @@ class Animal(models.Model):
         self.deleted_at = timezone.now()
         self.save(update_fields=["deleted_at"])
 
+    def save(self, *args, **kwargs):
+        """Calculate age from birth_date before saving."""
+        if self.birth_date:
+            today = timezone.now().date()
+            self.age = today.year - self.birth_date.year - (
+                (today.month, today.day) < (self.birth_date.month, self.birth_date.day)
+            )
+        else:
+            self.age = None
+        super().save(*args, **kwargs)
+
 
 # ────────────────────────────────────────────────────────────────────
 #  Charakterystyki / cechy boolowskie
