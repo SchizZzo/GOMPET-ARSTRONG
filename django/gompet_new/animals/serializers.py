@@ -14,20 +14,31 @@ from django.contrib.gis.db.models.functions import Distance
 from users.serializers import OrganizationSerializer
 
 
-# class Base64ImageField(serializers.ImageField):
-#     """
-#     Przyjmuje data URI lub czysty base‑64 i konwertuje na ContentFile.
-#     """
-#     def to_internal_value(self, data):
-#         import base64, imghdr, uuid
-#         from django.core.files.base import ContentFile
+class Base64ImageField(serializers.ImageField):
+    """Accept a base64 string and convert it into an uploaded image.
 
-#         if isinstance(data, str) and data.startswith("data:image"):
-#             fmt, imgstr = data.split(";base64,")
-#             ext = imghdr.what(None, base64.b64decode(imgstr))
-#             file_name = f"{uuid.uuid4()}.{ext}"
-#             data = ContentFile(base64.b64decode(imgstr), name=file_name)
-#         return super().to_internal_value(data)
+    The field supports both plain base64 strings and ``data:image/...`` URIs.
+    In both cases the decoded content is wrapped in a ``ContentFile`` so Django
+    treats it like a regular uploaded file.
+    """
+
+    def to_internal_value(self, data):
+        import base64
+        import imghdr
+        import uuid
+        from django.core.files.base import ContentFile
+
+        if isinstance(data, str):
+            if data.startswith("data:image"):
+                fmt, imgstr = data.split(";base64,")
+                ext = imghdr.what(None, base64.b64decode(imgstr))
+                file_name = f"{uuid.uuid4()}.{ext}"
+                data = ContentFile(base64.b64decode(imgstr), name=file_name)
+            else:
+                ext = imghdr.what(None, base64.b64decode(data)) or "png"
+                file_name = f"{uuid.uuid4()}.{ext}"
+                data = ContentFile(base64.b64decode(data), name=file_name)
+        return super().to_internal_value(data)
 
 
 class CharacteristicsSerializer(serializers.ModelSerializer):
@@ -58,6 +69,8 @@ class AnimalGallerySerializer(serializers.ModelSerializer):
     associated ``Animal`` instance is supplied by ``AnimalSerializer`` during
     creation.  The ``id`` field is read‑only and returned only in responses.
     """
+
+    image = Base64ImageField()
 
     class Meta:
         model = AnimalGallery
@@ -139,6 +152,7 @@ class CharacterItemSerializer(serializers.Serializer):
 class AnimalSerializer(serializers.ModelSerializer):
     owner = serializers.PrimaryKeyRelatedField(read_only=True)
     age = serializers.IntegerField(read_only=True)
+    image = Base64ImageField(required=False, allow_null=True)
     # use the correct related name to retrieve characteristic values
     # characteristics = AnimalCharacteristicSerializer(
     #     source="characteristics_values", many=True, read_only=True
@@ -161,11 +175,6 @@ class AnimalSerializer(serializers.ModelSerializer):
         many=True, source='characteristic_board', required=False
     )
 
-    #image = Base64ImageField(required=False, allow_null=True)
-
-
-
-    
     class Meta:
         model = Animal
         fields = (
@@ -219,6 +228,25 @@ class AnimalSerializer(serializers.ModelSerializer):
         qs = AnimalParent.objects.filter(animal=obj)
         serializer = ParentWithGrandparentsSerializer(qs, many=True, context=self.context)
         return serializer.data
+
+    def validate_gallery(self, value):
+        """Ensure every provided gallery item includes an image.
+
+        The ``gallery`` field is optional, but if it is supplied we expect
+        each nested item to contain an ``image``.  Without this check the
+        serializer could quietly accept empty objects, later failing during
+        ``AnimalGallery`` creation or producing unclear responses.  Raising a
+        validation error here results in a clean ``400`` response that lists
+        the offending entries.
+        """
+
+        missing = []
+        for item in value:
+            if not item.get("image"):
+                missing.append({"image": ["No file was submitted."]})
+        if missing:
+            raise serializers.ValidationError(missing)
+        return value
 
     def create(self, validated_data):
         gallery = validated_data.pop("gallery", [])

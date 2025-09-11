@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import base64
 import tempfile
 
 from django.core.exceptions import ValidationError
@@ -179,4 +180,41 @@ class AnimalSerializerGalleryTests(TestCase):
         self.assertEqual(animal.gallery.count(), 2)
         for item in animal.gallery.all():
             self.assertTrue(item.image.name.startswith("animals/gallery/"))
+
+    @override_settings(MEDIA_ROOT=tempfile.gettempdir())
+    def test_accepts_base64_encoded_gallery_image(self):
+        image_bytes = (
+            b"\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x00\x00"
+            b"\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\n\x00\x01\x00,"
+            b"\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
+        )
+        img_str = "data:image/gif;base64," + base64.b64encode(image_bytes).decode()
+        data = {
+            "name": "Base64",
+            "species": "Cat",
+            "gender": Gender.FEMALE,
+            "size": Size.SMALL,
+            "gallery": [{"image": img_str}],
+        }
+        serializer = AnimalSerializer(data=data)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        animal = serializer.save()
+        self.assertEqual(animal.gallery.count(), 1)
+
+    def test_requires_image_for_each_gallery_item(self):
+        """Serializer should error if gallery entries lack images."""
+
+        data = {
+            "name": "NoPics",
+            "species": "Cat",
+            "gender": Gender.FEMALE,
+            "size": Size.SMALL,
+            "gallery": [{}, {}],
+        }
+        serializer = AnimalSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        errors = serializer.errors.get("gallery")
+        self.assertEqual(len(errors), 2)
+        for err in errors:
+            self.assertIn("image", err)
 

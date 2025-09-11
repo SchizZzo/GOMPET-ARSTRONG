@@ -308,9 +308,12 @@ class AnimalsBreedGroups(models.Model):
         help_text="Minimum size male"
     )
     max_size_male = models.DecimalField(
-        max_digits=5, decimal_places=2, validators=[MinValueValidator(0)],\
-        null=True, blank=True,
-        help_text="Maximum size male"
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        null=True,
+        blank=True,
+        help_text="Maximum size male",
     )
 
     min_size_famale = models.DecimalField(
