@@ -7,6 +7,10 @@ from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.utils import timezone
+from django.contrib.auth import get_user_model
+from django.contrib.gis.geos import Point
+from django.urls import reverse
+from rest_framework.test import APIClient
 
 from .models import (
     Animal,
@@ -290,4 +294,68 @@ class AnimalSerializerGalleryTests(TestCase):
         self.assertEqual(len(errors), 2)
         for err in errors:
             self.assertIn("image", err)
+
+
+class AnimalViewSetGeoFilteringTests(TestCase):
+    """Tests for location and range filtering in AnimalViewSet."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = get_user_model().objects.create_user(
+            email="geo@example.com",
+            password="testpass",
+            first_name="Geo",
+            last_name="User",
+            location=Point(0, 0),
+        )
+        self.list_url = reverse("animal-list")
+
+    def test_filter_animals_by_location(self):
+        """Only animals matching the provided location should be returned."""
+        target = Animal.objects.create(
+            name="Target",
+            species="Dog",
+            gender=Gender.MALE,
+            size=Size.SMALL,
+            owner=self.user,
+            location=Point(1, 1),
+        )
+        Animal.objects.create(
+            name="Other",
+            species="Dog",
+            gender=Gender.MALE,
+            size=Size.SMALL,
+            owner=self.user,
+            location=Point(2, 2),
+        )
+
+        response = self.client.get(self.list_url, {"location": "POINT(1 1)"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([item["id"] for item in response.data], [target.id])
+
+    def test_filter_animals_by_range(self):
+        """Animals outside the given range from user location are excluded."""
+        near = Animal.objects.create(
+            name="Near",
+            species="Dog",
+            gender=Gender.MALE,
+            size=Size.SMALL,
+            owner=self.user,
+            location=Point(0.01, 0.01),
+        )
+        far = Animal.objects.create(
+            name="Far",
+            species="Dog",
+            gender=Gender.MALE,
+            size=Size.SMALL,
+            owner=self.user,
+            location=Point(2, 2),
+        )
+
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(self.list_url, {"range": 2000})
+        self.assertEqual(response.status_code, 200)
+        ids = [item["id"] for item in response.data]
+        self.assertIn(near.id, ids)
+        self.assertNotIn(far.id, ids)
 
