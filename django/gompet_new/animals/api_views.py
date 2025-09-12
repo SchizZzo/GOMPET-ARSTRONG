@@ -84,6 +84,12 @@ wykluczenie wpisów bez lokalizacji (exclude(location__isnull=True)),
 filtr odległości location__distance_lte=(user_location, D(m=max_distance)),
 annotate distance annotate(distance=Distance("location", user_location)),
 sortowanie po odległości order_by("distance").
+
+
+Przykład użycia (filtrowanie po lokalizacji i zasięgu):
+http://localhost/animals/animals/?location=SRID=4326;POINT (17 51)&range=1000000
+
+
 Wymaga importów i konfiguracji GeoDjango: from django.contrib.gis.measure import D i from django.contrib.gis.db.models.functions import Distance.
 
     """
@@ -92,15 +98,15 @@ Wymaga importów i konfiguracji GeoDjango: from django.contrib.gis.measure impor
     permission_classes = [IsAuthenticatedOrReadOnly]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
     # Disable pagination so list endpoints return plain arrays.
-    pagination_class = None
+    #pagination_class = None
     # DEFAULT_LIMIT = 10
     # MAX_LIMIT = 50
 
-    def list(self, request, *args, **kwargs):
-        """Return a plain list of serialized animals without pagination."""
-        queryset = self.filter_queryset(self.get_queryset())
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+    # def list(self, request, *args, **kwargs):
+    #     """Return a plain list of serialized animals without pagination."""
+    #     queryset = self.filter_queryset(self.get_queryset())
+    #     serializer = self.get_serializer(queryset, many=True)
+    #     return Response(serializer.data)
 
     def perform_create(self, serializer):
         # automatycznie ustawia właściciela na zalogowanego użytkownika
@@ -184,6 +190,8 @@ Wymaga importów i konfiguracji GeoDjango: from django.contrib.gis.measure impor
         zasieg_param = params.get('range')
         if zasieg_param:
             try:
+                if location_point is None:
+                    user_location = getattr(self.request.user, "location", None)
                 max_distance = float(zasieg_param)
                 point = location_point or user_location
                 if point:
