@@ -16,7 +16,7 @@ from .models import (
     ParentRelation,
     Size,
 )
-from .serializers import AnimalSerializer
+from .serializers import AnimalSerializer, AnimalParentSerializer
 
 
 class AnimalModelTests(TestCase):
@@ -130,6 +130,36 @@ class AnimalParentModelTests(TestCase):
                 parent=self.other,
                 relation=ParentRelation.MOTHER,
             )
+
+
+class AnimalParentSerializerTests(TestCase):
+    """Tests for AnimalParentSerializer validation and saving."""
+
+    def setUp(self):
+        self.child = Animal.objects.create(
+            name="Junior",
+            species="Dog",
+            gender=Gender.MALE,
+            size=Size.SMALL,
+        )
+        self.mother = Animal.objects.create(
+            name="Mom",
+            species="Dog",
+            gender=Gender.FEMALE,
+            size=Size.MEDIUM,
+        )
+
+    def test_serializer_creates_relation_with_both_ids(self):
+        data = {
+            "animal": self.child.id,
+            "parent": self.mother.id,
+            "relation": ParentRelation.MOTHER,
+        }
+        serializer = AnimalParentSerializer(data=data)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        relation = serializer.save()
+        self.assertEqual(relation.animal, self.child)
+        self.assertEqual(relation.parent, self.mother)
 
 
 class AnimalGalleryModelTests(TestCase):
