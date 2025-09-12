@@ -134,7 +134,7 @@ Wymaga importów i konfiguracji GeoDjango: from django.contrib.gis.measure impor
         # limit = max(1, min(limit, self.MAX_LIMIT))
 
 
-        user_location = getattr(self.request.user, "location", None)
+        #user_location = getattr(self.request.user, "location", None)
 
         # filtrowanie po płci (parametr gender: wartości wielokrotne rozdzielone przecinkami)
         gender_param = params.get('gender')
