@@ -462,6 +462,7 @@ class AnimalParentViewSet(viewsets.ModelViewSet):
     queryset = AnimalParent.objects.all()
     serializer_class = AnimalParentSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
 
 @extend_schema(
     tags=["animal_family_tree"],
