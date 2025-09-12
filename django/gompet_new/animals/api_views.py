@@ -35,6 +35,7 @@ from datetime import date
 from dateutil.relativedelta import relativedelta
 from django.contrib.gis.db.models.functions import Distance
 from django.contrib.gis.measure import D
+from django.contrib.gis.geos import GEOSGeometry, GEOSException
 from django.db.models import Q
 
 class FamilyTreeNodeSerializer(serializers.Serializer):
@@ -155,9 +156,15 @@ Wymaga importów i konfiguracji GeoDjango: from django.contrib.gis.measure impor
 
         # multi-value filtering for location
         location_param = params.get('location')
+        location_point = None
         if location_param:
             locations = [loc.strip() for loc in location_param.split(',') if loc.strip()]
-            qs = qs.filter(location__in=locations)
+            try:
+                location_point = GEOSGeometry(locations[0])
+            except (ValueError, GEOSException, IndexError):
+                location_point = None
+            if location_point and not params.get('range'):
+                qs = qs.filter(location=location_point)
 
 
         # wyszukiwanie po nazwie (niewrażliwe na wielkość liter) — spacje w parametrach URL koduj jako %20 lub "+"
@@ -173,20 +180,18 @@ Wymaga importów i konfiguracji GeoDjango: from django.contrib.gis.measure impor
             qs = qs.filter(q)
 
         # filtrowanie po zasięgu (parametr "zasieg" – wartość w metrach)
-        
-        
+
         zasieg_param = params.get('range')
         if zasieg_param:
             try:
                 max_distance = float(zasieg_param)
-                user_location = getattr(self.request.user, "location", None)
-                print(f"User location: {user_location}, Max distance: {max_distance}")
-                if user_location:
+                point = location_point or user_location
+                if point:
                     qs = (
-                    qs.exclude(location__isnull=True)
-                    .filter(location__distance_lte=(user_location, D(m=max_distance)))
-                    .annotate(distance=Distance("location", user_location))
-                    .order_by("distance")
+                        qs.exclude(location__isnull=True)
+                        .filter(location__distance_lte=(point, D(m=max_distance)))
+                        .annotate(distance=Distance("location", point))
+                        .order_by("distance")
                     )
             except (TypeError, ValueError):
                 pass
