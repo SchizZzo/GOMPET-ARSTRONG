@@ -35,6 +35,7 @@ from datetime import date
 from dateutil.relativedelta import relativedelta
 from django.contrib.gis.db.models.functions import Distance
 from django.contrib.gis.measure import D
+from django.db.models import Q
 
 class FamilyTreeNodeSerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -50,25 +51,164 @@ class FamilyTreeNodeSerializer(serializers.Serializer):
 class AnimalViewSet(viewsets.ModelViewSet):
     """
     list, retrieve, create, update, partial_update, destroy dla modelu Animal
+Opis filtrów
+
+organization-type
+
+Odczytuje parametr query organization-type (np. ?organization-type=ngo,private) i dzieli go po przecinkach.
+Filtruje zwierzęta powiązane przez właściciela -> membership -> organization, porównując pole type organizacji (owner__memberships__organization__type__in=org_list).
+organization-id
+
+Parametr organization-id (np. ?organization-id=1,2) rozdzielany po przecinkach.
+Filtruje po identyfikatorze organizacji (owner__memberships__organization__id__in=org_ids).
+gender
+
+?gender=male,female — multi-value, dzieli i używa gender__in=gender_list.
+species
+
+?species=dog,cat — multi-value, filtr species__in=species_list.
+breed
+
+?breed=husky,labrador — multi-value, filtr breed__in=breed_list.
+location
+
+?location=tokyo,warsaw — traktuje każdy element jako wartość pola location i robi location__in=locations. Uwaga: działa poprawnie tylko jeśli typ pola location jest zgodny z wartościami (stringy vs geometrias).
+name
+
+?name=rex — search case-insensitive przez name__icontains=search_param.
+range (zasieg) — geodjango
+
+?range=5000 (wartość w metrach) konwertowana do float. Pobierany jest user.location. Jeżeli istnieje, wykonywane jest:
+wykluczenie wpisów bez lokalizacji (exclude(location__isnull=True)),
+filtr odległości location__distance_lte=(user_location, D(m=max_distance)),
+annotate distance annotate(distance=Distance("location", user_location)),
+sortowanie po odległości order_by("distance").
+Wymaga importów i konfiguracji GeoDjango: from django.contrib.gis.measure import D i from django.contrib.gis.db.models.functions import Distance.
+
     """
     queryset = Animal.objects.all()
     serializer_class = AnimalSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
+    # DEFAULT_LIMIT = 10
+    # MAX_LIMIT = 50
 
     def perform_create(self, serializer):
         # automatycznie ustawia właściciela na zalogowanego użytkownika
         serializer.save(owner=self.request.user)
 
     def get_queryset(self):
+        qs = Animal.objects.all().order_by('-created_at')
+        params = self.request.query_params
+
+
+
+        # multi-value filtering for organization types
+        org_param = params.get('organization-type')
+        if org_param:
+            org_list = [t.strip() for t in org_param.split(',') if t.strip()]
+            qs = qs.filter(owner__memberships__organization__type__in=org_list)
+
+        # filtrowanie zwierząt należących do podanych organizacji
+        org_id_param = params.get('organization-id')
+        if org_id_param:
+            org_ids = [oid.strip() for oid in org_id_param.split(',') if oid.strip()]
+            qs = qs.filter(owner__memberships__organization__id__in=org_ids)
+
+
+       
+
+        # # limit pagination
+        # try:
+        #     limit = int(params.get('limit', self.DEFAULT_LIMIT))
+        # except (TypeError, ValueError):
+        #     limit = self.DEFAULT_LIMIT
+        # limit = max(1, min(limit, self.MAX_LIMIT))
+
+
         user_location = getattr(self.request.user, "location", None)
-        if user_location is None:
-            return super().get_queryset().all()
-        # sortuje zwierzęta według odległości od użytkownika
-        return super().get_queryset() \
-            .annotate(distance=Distance("location", user_location)) \
-            .order_by("distance")
+
+        # filtrowanie po płci (parametr gender: wartości wielokrotne rozdzielone przecinkami)
+        gender_param = params.get('gender')
+        if gender_param:
+            gender_list = [g.strip() for g in gender_param.split(',') if g.strip()]
+            qs = qs.filter(gender__in=gender_list)
         
+        # multi-value filtering for species (e.g. ?species=dog,cat)
+        species_param = params.get('species')
+        if species_param:
+            species_list = [s.strip() for s in species_param.split(',') if s.strip()]
+            qs = qs.filter(species__in=species_list)
+
+        breed_param = params.get('breed')
+        if breed_param:
+            breed_list = [b.strip() for b in breed_param.split(',') if b.strip()]
+            qs = qs.filter(breed__in=breed_list)
+
+        # multi-value filtering for location
+        location_param = params.get('location')
+        if location_param:
+            locations = [loc.strip() for loc in location_param.split(',') if loc.strip()]
+            qs = qs.filter(location__in=locations)
+
+
+        # wyszukiwanie po nazwie (niewrażliwe na wielkość liter) — spacje w parametrach URL koduj jako %20 lub "+"
+        # np. GET /animals/?name=Animal%201 lub /animals/?name=Animal+1
+        search_param = params.get('name')
+        if search_param:
+            # support multiple comma-separated search terms, e.g. ?name=Animal 1,Animal 2
+            terms = [t.strip() for t in search_param.split(',') if t.strip()]
+            if terms:
+                q = Q()
+            for t in terms:
+                q |= Q(name__icontains=t)
+            qs = qs.filter(q)
+
+        # filtrowanie po zasięgu (parametr "zasieg" – wartość w metrach)
+        
+        
+        zasieg_param = params.get('range')
+        if zasieg_param:
+            try:
+                max_distance = float(zasieg_param)
+                user_location = getattr(self.request.user, "location", None)
+                print(f"User location: {user_location}, Max distance: {max_distance}")
+                if user_location:
+                    qs = (
+                    qs.exclude(location__isnull=True)
+                    .filter(location__distance_lte=(user_location, D(m=max_distance)))
+                    .annotate(distance=Distance("location", user_location))
+                    .order_by("distance")
+                    )
+            except (TypeError, ValueError):
+                pass
+
+        age_param = params.get('age')
+        if age_param:
+            try:
+                age = int(age_param)
+
+                today = date.today()
+                # Animals whose birth_date makes them exactly `age` years old
+                max_birth = today - relativedelta(years=age)
+                min_birth = today - relativedelta(years=age + 1)
+
+                qs = qs.filter(
+                    birth_date__gt=min_birth,
+                    birth_date__lte=max_birth
+                )
+            except (TypeError, ValueError):
+                pass
+
+        
+        return qs
+        # if user_location is None:
+        #     return super().get_queryset().all()
+        # # sortuje zwierzęta według odległości od użytkownika
+        # return super().get_queryset() \
+        #     .annotate(distance=Distance("location", user_location)) \
+        #     .order_by("distance")
+    
 
     
     
@@ -463,11 +603,15 @@ class AnimalGalleryViewSet(viewsets.ModelViewSet):
 class AnimalParentViewSet(viewsets.ModelViewSet):
     """
     CRUD for AnimalParent (parent–child relationships)
+
+    OPTIONS /animals/parent/  ->  list of available HTTP methods
+
+    actions -> POST -> relation -> choices
     """
     queryset = AnimalParent.objects.all()
     serializer_class = AnimalParentSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
-    http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
+    #http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
 
 
 
