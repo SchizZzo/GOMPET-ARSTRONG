@@ -82,8 +82,8 @@ class AnimalGallerySerializer(serializers.ModelSerializer):
 
 class AnimalParentSerializer(serializers.ModelSerializer):
     # both sides: `parent` if used under `parentships`, `animal` if under `offsprings`
-    parent = serializers.PrimaryKeyRelatedField(read_only=True)
-    animal = serializers.PrimaryKeyRelatedField(read_only=True)
+    parent = serializers.PrimaryKeyRelatedField(queryset=Animal.objects.all())
+    animal = serializers.PrimaryKeyRelatedField(queryset=Animal.objects.all())
 
     class Meta:
         model = AnimalParent
