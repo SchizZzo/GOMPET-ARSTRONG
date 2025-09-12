@@ -272,19 +272,28 @@ class AnimalParent(models.Model):
 
     def clean(self):
         super().clean()
+        if self.parent.gender == Gender.FEMALE:
+            expected_relation = ParentRelation.MOTHER
+        elif self.parent.gender == Gender.MALE:
+            expected_relation = ParentRelation.FATHER
+        else:
+            raise ValidationError(
+                "Rodzic musi mieć płeć MALE lub FEMALE, aby określić relację."
+            )
+        if self.relation != expected_relation:
+            raise ValidationError(
+                f"Relacja '{self.relation}' nie pasuje do płci rodzica '{self.parent.gender}'."
+            )
         qs = self.__class__.objects.filter(animal=self.animal)
         if self.pk:
             qs = qs.exclude(pk=self.pk)
-        # max two parents per animal
         if qs.count() >= 2:
             raise ValidationError("Zwierzę może mieć maksymalnie dwóch rodziców.")
-        # only one mother or father per animal (guardians can be multiple)
-        # only one parent of each relation (guardians allowed multiple)
-        if self.relation in (ParentRelation.MOTHER, ParentRelation.FATHER):
-            if qs.filter(relation=self.relation).exists():
-                raise ValidationError(
+        if qs.filter(relation=self.relation).exists():
+            raise ValidationError(
                 f"Zwierzę {self.animal} już ma relację {self.relation}."
             )
+
 
     def save(self, *args, **kwargs):
         self.full_clean()

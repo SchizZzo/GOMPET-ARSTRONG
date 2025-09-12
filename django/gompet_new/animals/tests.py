@@ -131,6 +131,20 @@ class AnimalParentModelTests(TestCase):
                 relation=ParentRelation.MOTHER,
             )
 
+    def test_relation_matches_parent_gender(self):
+        with self.assertRaises(ValidationError):
+            AnimalParent.objects.create(
+                animal=self.child,
+                parent=self.mother,
+                relation=ParentRelation.FATHER,
+            )
+        with self.assertRaises(ValidationError):
+            AnimalParent.objects.create(
+                animal=self.child,
+                parent=self.father,
+                relation=ParentRelation.MOTHER,
+            )
+
 
 class AnimalParentSerializerTests(TestCase):
     """Tests for AnimalParentSerializer validation and saving."""
