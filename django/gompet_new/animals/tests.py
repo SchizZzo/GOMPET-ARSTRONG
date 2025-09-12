@@ -359,3 +359,29 @@ class AnimalViewSetGeoFilteringTests(TestCase):
         self.assertIn(near.id, ids)
         self.assertNotIn(far.id, ids)
 
+    def test_filter_animals_by_range_with_location_param(self):
+        """Range filtering uses provided location when supplied."""
+        near = Animal.objects.create(
+            name="NearLoc",
+            species="Dog",
+            gender=Gender.MALE,
+            size=Size.SMALL,
+            owner=self.user,
+            location=Point(1.01, 1.01),
+        )
+        far = Animal.objects.create(
+            name="FarLoc",
+            species="Dog",
+            gender=Gender.MALE,
+            size=Size.SMALL,
+            owner=self.user,
+            location=Point(2, 2),
+        )
+
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(self.list_url, {"location": "POINT(1 1)", "range": 2000})
+        self.assertEqual(response.status_code, 200)
+        ids = [item["id"] for item in response.data]
+        self.assertIn(near.id, ids)
+        self.assertNotIn(far.id, ids)
+
