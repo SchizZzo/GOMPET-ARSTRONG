@@ -13,6 +13,8 @@ from django.contrib.gis.db.models.functions import Distance
 
 from users.serializers import OrganizationSerializer
 
+from .models import ParentRelation
+
 
 class Base64ImageField(serializers.ImageField):
     """Accept a base64 string and convert it into an uploaded image.
@@ -84,6 +86,7 @@ class AnimalParentSerializer(serializers.ModelSerializer):
     # both sides: `parent` if used under `parentships`, `animal` if under `offsprings`
     parent = serializers.PrimaryKeyRelatedField(queryset=Animal.objects.all())
     animal = serializers.PrimaryKeyRelatedField(queryset=Animal.objects.all())
+    relation = serializers.ChoiceField(choices=ParentRelation.choices)
 
     class Meta:
         model = AnimalParent

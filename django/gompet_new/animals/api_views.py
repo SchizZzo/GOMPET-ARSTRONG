@@ -468,7 +468,7 @@ class AnimalParentViewSet(viewsets.ModelViewSet):
     serializer_class = AnimalParentSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
-    
+
 
 
 @extend_schema(
