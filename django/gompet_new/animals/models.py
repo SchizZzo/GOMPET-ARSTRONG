@@ -284,6 +284,11 @@ class AnimalParent(models.Model):
             raise ValidationError(
                 f"Relacja '{self.relation}' nie pasuje do płci rodzica '{self.parent.gender}'."
             )
+        if self.parent.birth_date and self.animal.birth_date:
+            if self.parent.birth_date >= self.animal.birth_date:
+                raise ValidationError(
+                    "Rodzic musi być starszy od zwierzęcia."
+                )
         qs = self.__class__.objects.filter(animal=self.animal)
         if self.pk:
             qs = qs.exclude(pk=self.pk)

@@ -145,6 +145,18 @@ class AnimalParentModelTests(TestCase):
                 relation=ParentRelation.MOTHER,
             )
 
+    def test_parent_must_be_older_than_child(self):
+        self.child.birth_date = timezone.now().date()
+        self.child.save()
+        self.mother.birth_date = self.child.birth_date + timedelta(days=1)
+        self.mother.save()
+        with self.assertRaises(ValidationError):
+            AnimalParent.objects.create(
+                animal=self.child,
+                parent=self.mother,
+                relation=ParentRelation.MOTHER,
+            )
+
 
 class AnimalParentSerializerTests(TestCase):
     """Tests for AnimalParentSerializer validation and saving."""
