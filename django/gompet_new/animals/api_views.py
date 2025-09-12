@@ -90,8 +90,16 @@ Wymaga importów i konfiguracji GeoDjango: from django.contrib.gis.measure impor
     serializer_class = AnimalSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
+    # Disable pagination so list endpoints return plain arrays.
+    pagination_class = None
     # DEFAULT_LIMIT = 10
     # MAX_LIMIT = 50
+
+    def list(self, request, *args, **kwargs):
+        """Return a plain list of serialized animals without pagination."""
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     def perform_create(self, serializer):
         # automatycznie ustawia właściciela na zalogowanego użytkownika
