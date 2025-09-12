@@ -134,7 +134,7 @@ class Animal(models.Model):
         blank=True
     )
 
-    
+
     age = models.IntegerField(
         null=True, blank=True,
         validators=[MinValueValidator(0), MaxValueValidator(100)],

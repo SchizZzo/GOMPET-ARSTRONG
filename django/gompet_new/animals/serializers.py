@@ -162,8 +162,8 @@ class AnimalSerializer(serializers.ModelSerializer):
     # be optional during validation.
     gallery = AnimalGallerySerializer(many=True, required=False)
     parents = serializers.SerializerMethodField(read_only=True)
-    parentships = AnimalParentSerializer(many=True, read_only=True)
-    offsprings = AnimalParentSerializer(many=True, read_only=True)
+    #parentships = AnimalParentSerializer(many=True, read_only=True)
+    #offsprings = AnimalParentSerializer(many=True, read_only=True)
     comments = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     reactions = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     distance = serializers.SerializerMethodField(read_only=True)
@@ -195,10 +195,11 @@ class AnimalSerializer(serializers.ModelSerializer):
             "parents",
             "distance",
             "age",
+            "life_period",
             "characteristicBoard",
             "gallery",
-            "parentships",
-            "offsprings",
+            #"parentships",
+            #"offsprings",
             "comments",
             "reactions",
             "organization",

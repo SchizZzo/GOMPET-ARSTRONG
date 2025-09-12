@@ -32,7 +32,7 @@ class AnimalAdmin(admin.ModelAdmin):
         (None, {
             'fields': (
                 'name', 'image', 'species', 'breed',
-                'gender', 'size', 'birth_date', 'age',
+                'gender', 'size', 'birth_date', 'age', 'life_period',
                 'animal_breed_groups',
             )
         }),

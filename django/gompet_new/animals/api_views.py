@@ -146,6 +146,11 @@ class AnimalRecentlyAddedViewSet(viewsets.ReadOnlyModelViewSet):
             species_list = [s.strip() for s in species_param.split(',') if s.strip()]
             qs = qs.filter(species__in=species_list)
 
+        breed_param = params.get('breed')
+        if breed_param:
+            breed_list = [b.strip() for b in breed_param.split(',') if b.strip()]
+            qs = qs.filter(breed__in=breed_list)
+
         # multi-value filtering for organization types
         org_param = params.get('organization-type')
         if org_param:
@@ -462,6 +467,9 @@ class AnimalParentViewSet(viewsets.ModelViewSet):
     queryset = AnimalParent.objects.all()
     serializer_class = AnimalParentSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+    
+
 
 @extend_schema(
     tags=["animal_family_tree"],
