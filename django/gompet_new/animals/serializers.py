@@ -7,6 +7,7 @@ from .models import (
     AnimalParent,
     Characteristics,
     AnimalsBreedGroups,
+    Size,
 )
 from django.contrib.gis.measure import Distance as D
 from django.contrib.gis.db.models.functions import Distance
@@ -178,6 +179,10 @@ class AnimalSerializer(serializers.ModelSerializer):
         many=True, source='characteristic_board', required=False
     )
 
+    size = serializers.ChoiceField(choices=Size.choices)
+
+   
+
     class Meta:
         model = Animal
         fields = (
@@ -203,6 +208,8 @@ class AnimalSerializer(serializers.ModelSerializer):
             "gallery",
             #"parentships",
             #"offsprings",
+            
+           
             "comments",
             "reactions",
             "organization",
