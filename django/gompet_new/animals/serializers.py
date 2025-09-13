@@ -15,7 +15,6 @@ from django.contrib.gis.db.models.functions import Distance
 from users.serializers import OrganizationSerializer
 
 from .models import ParentRelation
-from django.db import transaction
 
 
 class Base64ImageField(serializers.ImageField):
@@ -87,9 +86,7 @@ class AnimalGallerySerializer(serializers.ModelSerializer):
 class AnimalParentSerializer(serializers.ModelSerializer):
     # both sides: `parent` if used under `parentships`, `animal` if under `offsprings`
     parent = serializers.PrimaryKeyRelatedField(queryset=Animal.objects.all())
-    animal = serializers.PrimaryKeyRelatedField(
-        queryset=Animal.objects.all(), required=False, write_only=True
-    )
+    animal = serializers.PrimaryKeyRelatedField(queryset=Animal.objects.all())
     relation = serializers.ChoiceField(choices=ParentRelation.choices)
 
     class Meta:
@@ -169,7 +166,7 @@ class AnimalSerializer(serializers.ModelSerializer):
     # be optional during validation.
     gallery = AnimalGallerySerializer(many=True, required=False)
     parents = serializers.SerializerMethodField(read_only=True)
-    parentships = AnimalParentSerializer(many=True, required=False)
+    #parentships = AnimalParentSerializer(many=True, read_only=True)
     #offsprings = AnimalParentSerializer(many=True, read_only=True)
     comments = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     reactions = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
@@ -209,10 +206,10 @@ class AnimalSerializer(serializers.ModelSerializer):
             "life_period",
             "characteristicBoard",
             "gallery",
-            "parentships",
+            #"parentships",
             #"offsprings",
-
-
+            
+           
             "comments",
             "reactions",
             "organization",
@@ -243,14 +240,6 @@ class AnimalSerializer(serializers.ModelSerializer):
         serializer = ParentWithGrandparentsSerializer(qs, many=True, context=self.context)
         return serializer.data
 
-    def validate_parentships(self, value):
-        if len(value) > 2:
-            raise serializers.ValidationError("Zwierzę może mieć maksymalnie dwóch rodziców.")
-        relations = [item["relation"] for item in value]
-        if len(relations) != len(set(relations)):
-            raise serializers.ValidationError("Relacje rodziców muszą być unikalne.")
-        return value
-
     def validate_gallery(self, value):
         """Ensure every provided gallery item includes an image.
 
@@ -270,48 +259,28 @@ class AnimalSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(missing)
         return value
 
-    @transaction.atomic
     def create(self, validated_data):
         gallery = validated_data.pop("gallery", [])
-        parentships = validated_data.pop("parentships", [])
         animal = super().create(validated_data)
-        for item in gallery:
+        for i, item in enumerate(gallery):
             AnimalGallery.objects.create(
                 animal=animal,
                 image=item.get("image"),
-
+                
             )
-        for item in parentships:
-            data = dict(item)
-            data["parent"] = data["parent"].id
-            data["animal"] = animal.id
-            serializer = AnimalParentSerializer(data=data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
         return animal
 
-    @transaction.atomic
     def update(self, instance, validated_data):
         gallery = validated_data.pop("gallery", None)
-        parentships = validated_data.pop("parentships", None)
         animal = super().update(instance, validated_data)
         if gallery is not None:
             instance.gallery.all().delete()
-            for item in gallery:
+            for i, item in enumerate(gallery):
                 AnimalGallery.objects.create(
                     animal=animal,
                     image=item.get("image"),
-
+                    
                 )
-        if parentships is not None:
-            instance.parentships.all().delete()
-            for item in parentships:
-                data = dict(item)
-                data["parent"] = data["parent"].id
-                data["animal"] = animal.id
-                serializer = AnimalParentSerializer(data=data)
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
         return animal
     
     
