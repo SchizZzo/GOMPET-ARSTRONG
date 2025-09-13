@@ -100,21 +100,6 @@ class AnimalParentSerializer(serializers.ModelSerializer):
             "animal",
             "relation",
         )
-        # Disable the default ``UniqueTogetherValidator`` so that ``animal``
-        # is not required when the serializer is used nested inside
-        # ``AnimalSerializer`` during creation. The model's ``full_clean``
-        # method (invoked on save) still enforces uniqueness constraints once
-        # the ``animal`` instance is supplied.
-        validators = []
-
-    def create(self, validated_data):
-        """Attach the current animal to a parent relation if missing."""
-
-        if "animal" not in validated_data:
-            animal = self.context.get("animal")
-            if animal is not None:
-                validated_data["animal"] = animal
-        return super().create(validated_data)
 
 
 class GrandparentSerializer(serializers.ModelSerializer):
@@ -299,7 +284,8 @@ class AnimalSerializer(serializers.ModelSerializer):
         for item in parentships:
             data = dict(item)
             data["parent"] = data["parent"].id
-            serializer = AnimalParentSerializer(data=data, context={"animal": animal})
+            data["animal"] = animal.id
+            serializer = AnimalParentSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
         return animal
@@ -322,7 +308,8 @@ class AnimalSerializer(serializers.ModelSerializer):
             for item in parentships:
                 data = dict(item)
                 data["parent"] = data["parent"].id
-                serializer = AnimalParentSerializer(data=data, context={"animal": animal})
+                data["animal"] = animal.id
+                serializer = AnimalParentSerializer(data=data)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
         return animal
