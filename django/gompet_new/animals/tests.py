@@ -192,6 +192,46 @@ class AnimalParentSerializerTests(TestCase):
         self.assertEqual(relation.parent, self.mother)
 
 
+class AnimalSerializerParentCreationTests(TestCase):
+    """Ensure AnimalSerializer can create parent relations."""
+
+    def setUp(self):
+        self.mother = Animal.objects.create(
+            name="Mom",
+            species="Dog",
+            gender=Gender.FEMALE,
+            size=Size.MEDIUM,
+        )
+        self.father = Animal.objects.create(
+            name="Dad",
+            species="Dog",
+            gender=Gender.MALE,
+            size=Size.MEDIUM,
+        )
+
+    def test_creates_parentships_during_animal_creation(self):
+        data = {
+            "name": "Puppy",
+            "species": "Dog",
+            "gender": Gender.MALE,
+            "size": Size.SMALL,
+            "parentships": [
+                {"parent": self.mother.id, "relation": ParentRelation.MOTHER},
+                {"parent": self.father.id, "relation": ParentRelation.FATHER},
+            ],
+        }
+        serializer = AnimalSerializer(data=data)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        animal = serializer.save()
+        self.assertEqual(animal.parentships.count(), 2)
+        self.assertTrue(
+            animal.parentships.filter(parent=self.mother, relation=ParentRelation.MOTHER).exists()
+        )
+        self.assertTrue(
+            animal.parentships.filter(parent=self.father, relation=ParentRelation.FATHER).exists()
+        )
+
+
 class AnimalGalleryModelTests(TestCase):
     """Basic tests for AnimalGallery model."""
 
