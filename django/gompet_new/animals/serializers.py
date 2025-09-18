@@ -88,11 +88,13 @@ class AnimalParentSerializer(serializers.ModelSerializer):
     parent = serializers.PrimaryKeyRelatedField(queryset=Animal.objects.all())
     animal = serializers.PrimaryKeyRelatedField(queryset=Animal.objects.all())
     relation = serializers.ChoiceField(choices=ParentRelation.choices)
+    animal_id = serializers.IntegerField(source="animal.id", read_only=True)
 
     class Meta:
         model = AnimalParent
         fields = (
             "id",
+            "animal_id",
             "parent",
             "animal",
             "relation",
@@ -102,7 +104,7 @@ class AnimalParentSerializer(serializers.ModelSerializer):
 class GrandparentSerializer(serializers.ModelSerializer):
     """Serialize a grandparent relationship for a given parent."""
 
-    id = serializers.IntegerField(source="parent.id", read_only=True)
+    animal_id = serializers.IntegerField(source="parent.id", read_only=True)
     name = serializers.CharField(source="parent.name", read_only=True)
     photos = serializers.SerializerMethodField()
     parentsOfWho = serializers.CharField(
@@ -111,7 +113,7 @@ class GrandparentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AnimalParent
-        fields = ("id", "name", "photos", "parentsOfWho")
+        fields = ("id", "animal_id", "name", "photos", "parentsOfWho")
 
     def get_photos(self, obj):
         image = getattr(obj.parent, "image", None)
@@ -125,7 +127,7 @@ class GrandparentSerializer(serializers.ModelSerializer):
 class ParentWithGrandparentsSerializer(serializers.ModelSerializer):
     """Serialize a parent along with its own parents (grandparents)."""
 
-    id = serializers.IntegerField(source="parent.id", read_only=True)
+    animal_id = serializers.IntegerField(source="parent.id", read_only=True)
     name = serializers.CharField(source="parent.name", read_only=True)
     gender = serializers.CharField(source="parent.gender", read_only=True)
     photos = serializers.SerializerMethodField()
@@ -133,7 +135,7 @@ class ParentWithGrandparentsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AnimalParent
-        fields = ("id", "name", "gender", "photos", "grandparents")
+        fields = ("id", "animal_id", "name", "gender", "photos", "grandparents")
 
     def get_photos(self, obj):
         image = getattr(obj.parent, "image", None)
