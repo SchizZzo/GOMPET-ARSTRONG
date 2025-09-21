@@ -1,3 +1,4 @@
+from urllib import request
 from rest_framework import serializers
 from .models import Post
 
@@ -34,6 +35,27 @@ class PostSerializer(serializers.ModelSerializer):
     def get_organization_name(self, obj):
         # Pobiera nazwę organizacji z powiązanego modelu Organization
         return obj.organization.name if obj.organization else None
+    
+    def queryset(self):
+        """
+        Zwraca queryset przefiltrowany po animal_id (z request.query_params lub z context).
+        Jeśli nie podano animal_id zwraca wszystkie posty.
+        """
+        qs = Post.objects.all()
+        animal_id = request.query_params.get("animal-id")
+               
+        if not animal_id:
+            animal_id = self.context.get("animal_id") if isinstance(self.context, dict) else None
+
+        
+        if animal_id:
+            qs = qs.filter(animal_id=animal_id)
+
+        organization_id = request.query_params.get("organization-id")
+        if organization_id:
+            qs = qs.filter(organization_id=organization_id)
+
+        return qs
 
   
         
