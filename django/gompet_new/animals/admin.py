@@ -33,7 +33,7 @@ class AnimalAdmin(admin.ModelAdmin):
             'fields': (
                 'name', 'image', 'species', 'breed',
                 'gender', 'size', 'birth_date', 'age', 'life_period',
-                'animal_breed_groups',
+                'animal_breed_groups', 'characteristic_board'
             )
         }),
         ('Ownership & Status', {

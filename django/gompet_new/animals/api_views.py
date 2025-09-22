@@ -37,6 +37,8 @@ from django.contrib.gis.db.models.functions import Distance
 from django.contrib.gis.measure import D
 from django.contrib.gis.geos import GEOSGeometry, GEOSException
 from django.db.models import Q
+import json
+from django.core.exceptions import FieldError
 
 class FamilyTreeNodeSerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -85,6 +87,7 @@ filtr odległości location__distance_lte=(user_location, D(m=max_distance)),
 annotate distance annotate(distance=Distance("location", user_location)),
 sortowanie po odległości order_by("distance").
 
+###################################################################################
 
 Przykład użycia (filtrowanie po lokalizacji i zasięgu):
 http://localhost/animals/animals/?location=SRID=4326;POINT (17 51)&range=1000000
@@ -92,6 +95,20 @@ http://localhost/animals/animals/?location=SRID=4326;POINT (17 51)&range=1000000
 
 Wymaga importów i konfiguracji GeoDjango: from django.contrib.gis.measure import D i from django.contrib.gis.db.models.functions import Distance.
 
+
+filtrowanie po zakresie wieku (np. ?age_min=2&age_max=5 lub ?age-range=2-5 lub ?age_range=2,5)
+
+localhost/animals/animals/?age-range=2-3
+localhost/animals/animals/?age-min=2&age-max=3
+
+
+filtrowanie po cechach (np. ?characteristics=friendly,vaccinated)
+
+?characteristics=sterylizacja/kastracj, przyjazny, zaszczepiony
+
+
+filtrowanie po miastach (np. ?city=Warszawa,Kraków)
+?city=Warszawa,Kraków
     """
     queryset = Animal.objects.all()
     serializer_class = AnimalSerializer
@@ -222,7 +239,80 @@ Wymaga importów i konfiguracji GeoDjango: from django.contrib.gis.measure impor
             except (TypeError, ValueError):
                 pass
 
+        # filtrowanie po zakresie wieku (np. ?age_min=2&age_max=5 lub ?age-range=2-5 lub ?age_range=2,5)
+        age_min_param = params.get('age_min') or params.get('age-min')
+        age_max_param = params.get('age_max') or params.get('age-max')
+        age_range_param = params.get('age_range') or params.get('age-range')
+
+        if age_range_param and not (age_min_param or age_max_param):
+            # wspiera formaty "2-5", "2,5", "2:5"
+            sep = '-' if '-' in age_range_param else (',' if ',' in age_range_param else (':' if ':' in age_range_param else None))
+            if sep:
+                parts = [p.strip() for p in age_range_param.split(sep) if p.strip()]
+                if len(parts) == 2:
+                    age_min_param, age_max_param = parts[0], parts[1]
+
+        try:
+            today = date.today()
+            if age_min_param and age_max_param:
+                min_age = int(age_min_param)
+                max_age = int(age_max_param)
+                if min_age > max_age:
+                    min_age, max_age = max_age, min_age
+                # dla zakresu [min_age, max_age] przyjmujemy:
+                # birth_date > today - (max_age+1) lat i birth_date <= today - min_age lat
+                lower_birth = today - relativedelta(years=(max_age + 1))
+                upper_birth = today - relativedelta(years=min_age)
+                qs = qs.filter(birth_date__gt=lower_birth, birth_date__lte=upper_birth)
+            elif age_min_param:
+                min_age = int(age_min_param)
+                # wiek >= min_age  => birth_date <= today - min_age lat
+                upper_birth = today - relativedelta(years=min_age)
+                qs = qs.filter(birth_date__lte=upper_birth)
+            elif age_max_param:
+                max_age = int(age_max_param)
+                # wiek <= max_age => birth_date > today - (max_age+1) lat
+                lower_birth = today - relativedelta(years=(max_age + 1))
+                qs = qs.filter(birth_date__gt=lower_birth)
+        except (TypeError, ValueError):
+            # nieprawidłowe wartości wieku — ignoruj filtr
+            pass
+
+
+    
+        # multi-value filtering for characteristics (JSONField `characteristic_board` stores a list of objects)
+        char_param = params.get('characteristics')
+        if char_param:
+            try:
+                parsed = json.loads(char_param)
+                # support passing a JSON array of objects like:
+                # [{"bool": false, "title": "akceptuje koty"}, {"bool": true, "title": "sterylizacja/kastracj"}]
+                if isinstance(parsed, list) and all(isinstance(i, dict) for i in parsed):
+                    # keep only titles that are true
+                    char_list = [i.get('title') for i in parsed if (i.get('bool') is True or i.get('value') is True) and i.get('title')]
+                else:
+                    raise ValueError("not a list of dicts")
+            except (ValueError, TypeError, json.JSONDecodeError):
+            # fallback: accept comma-separated titles e.g. ?characteristics=tail,vaccinated
+                char_list = [c.strip() for c in char_param.split(',') if c.strip()]
+
+            # require each requested characteristic title to be present with a true value
+            for c in char_list:
+                qs = qs.filter(
+                    Q(characteristic_board__contains=[{"title": c, "bool": True}]) |
+                    Q(characteristic_board__contains=[{"title": c, "value": True}])
+                )
+
+        city_param = params.get('city')
+        if city_param:
+            city_str = city_param.strip()
+            if city_str:
+                qs = qs.filter(city__icontains=city_str)
+                
+
         
+
+
         return qs
         # if user_location is None:
         #     return super().get_queryset().all()
