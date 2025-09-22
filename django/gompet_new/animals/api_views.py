@@ -109,6 +109,9 @@ filtrowanie po cechach (np. ?characteristics=friendly,vaccinated)
 
 filtrowanie po miastach (np. ?city=Warszawa,Kraków)
 ?city=Warszawa,Kraków
+
+filtrowanie po wielkości (np. ?size=SMALL,MEDIUM)
+localhost/animals/animals/?size=MEDIUM
     """
     queryset = Animal.objects.all()
     serializer_class = AnimalSerializer
@@ -308,6 +311,12 @@ filtrowanie po miastach (np. ?city=Warszawa,Kraków)
             city_str = city_param.strip()
             if city_str:
                 qs = qs.filter(city__icontains=city_str)
+
+        # sortowanie po wielkości (parametr size: "asc" lub "desc")
+        size_param = params.get('size')
+        if size_param:
+            size_param = [loc.strip() for loc in size_param.split(',') if loc.strip()]
+            qs = qs.filter(size__in=size_param)
                 
 
         
