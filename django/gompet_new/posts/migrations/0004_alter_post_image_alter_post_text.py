@@ -9,7 +9,9 @@ def convert_text_to_json(apps, schema_editor):
     Post = apps.get_model("posts", "Post")
     db_alias = schema_editor.connection.alias
 
-    for post in Post.objects.using(db_alias).all():
+    queryset = Post.objects.using(db_alias).all()
+
+    for post in queryset.iterator():
         value = post.text
 
         if value in (None, ""):
@@ -19,11 +21,9 @@ def convert_text_to_json(apps, schema_editor):
             try:
                 json.loads(value)
             except json.JSONDecodeError:
-                post.text = json.dumps(value)
-                post.save(update_fields=["text"])
+                queryset.filter(pk=post.pk).update(text=json.dumps(value))
         else:
-            post.text = json.dumps(value)
-            post.save(update_fields=["text"])
+            queryset.filter(pk=post.pk).update(text=json.dumps(value))
 
 
 class Migration(migrations.Migration):
