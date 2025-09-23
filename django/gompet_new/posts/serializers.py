@@ -28,12 +28,21 @@ class PostSerializer(serializers.ModelSerializer):
     
     image = Base64ImageField(required=False, allow_null=True)
 
+    first_name = serializers.SerializerMethodField()
+    last_name = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
+
     class Meta:
         model = Post
         fields = (
             "id",
             "animal_name",
             "organization_name",
+
+            "first_name",
+            "last_name",
+            "email",
+            
             "organization",
             "animal",
             "author",
@@ -45,6 +54,15 @@ class PostSerializer(serializers.ModelSerializer):
             "comments",
             "reactions",
         )
+
+    def get_first_name(self, obj):
+        return obj.author.first_name if obj.author else None
+
+    def get_last_name(self, obj):
+        return obj.author.last_name if obj.author else None
+    
+    def get_email(self, obj):
+        return obj.author.email if obj.author else None
 
     def get_animal_name(self, obj):
         # Pobiera nazwę zwierzęcia z powiązanego modelu Animal

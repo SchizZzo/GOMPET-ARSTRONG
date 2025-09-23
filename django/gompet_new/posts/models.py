@@ -36,7 +36,7 @@ class Post(TimeStampedModel):
     • relacje polimorficzne: komentarze, reakcje.
     """
 
-    text = models.TextField()
+    text = models.JSONField()
     image = models.ImageField(
         upload_to="posts/images/",
         null=True, blank=True)
