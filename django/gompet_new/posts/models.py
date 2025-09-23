@@ -39,7 +39,8 @@ class Post(TimeStampedModel):
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="posts"
+        related_name="posts",
+        blank=True, null=True
     )
     animal = models.ForeignKey(
         Animal,
@@ -65,6 +66,8 @@ class Post(TimeStampedModel):
         content_type_field="reactable_type",
         object_id_field="reactable_id",
     )
+
+    
 
     class Meta:
         db_table = "posts"

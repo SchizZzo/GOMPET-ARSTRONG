@@ -36,6 +36,13 @@ class PostSerializer(serializers.ModelSerializer):
         # Pobiera nazwę organizacji z powiązanego modelu Organization
         return obj.organization.name if obj.organization else None
     
+    def create(self, validated_data):
+        """
+        Automatycznie ustawia autora posta na aktualnie zalogowanego użytkownika.
+        """
+        validated_data["author"] = self.context["request"].user
+        return super().create(validated_data)
+    
     def queryset(self):
         """
         Zwraca queryset przefiltrowany po animal_id (z request.query_params lub z context).
