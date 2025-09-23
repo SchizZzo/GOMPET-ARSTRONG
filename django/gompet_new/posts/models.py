@@ -16,6 +16,8 @@ from animals.models import Animal
 from users.models import Organization
 
 
+
+
 class TimeStampedModel(models.Model):
     """DRY helper: pola created/updated/deleted."""
     created_at = models.DateTimeField(default=timezone.now, editable=False)
@@ -35,7 +37,10 @@ class Post(TimeStampedModel):
     """
 
     text = models.TextField()
-    image = models.URLField(null=True, blank=True)  # można też użyć ImageField(...)
+    image = models.ImageField(
+        upload_to="posts/images/",
+        null=True, blank=True)
+    #image = models.URLField(null=True, blank=True)  # można też użyć ImageField(...)
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
