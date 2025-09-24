@@ -38,6 +38,35 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
+    def get_queryset(self):
+        """
+        Optionally restricts the returned comments to a given object,
+        by filtering against `content_type` and `object_id` query parameters in the URL.
+        """
+        queryset = Comment.objects.all()
+        object_id = self.request.query_params.get('object_id')
+        content_type_id = self.request.query_params.get('content_type')
+
+        if object_id is not None:
+            queryset = queryset.filter(object_id=object_id)
+        
+        if content_type_id is not None:
+            # Sprawdź, czy content_type jest stringiem w formacie 'app_label.model'
+            if '.' in content_type_id:
+                try:
+                    app_label, model = content_type_id.split('.')
+                    content_type_obj = ContentType.objects.get_by_natural_key(app_label, model)
+                    queryset = queryset.filter(content_type=content_type_obj)
+                except ContentType.DoesNotExist:
+                    # Opcjonalnie: obsłuż błąd, jeśli podany content_type nie istnieje
+                    # Na przykład, zwracając pusty queryset
+                    return queryset.none()
+            else:
+                # Zakładamy, że to ID
+                queryset = queryset.filter(content_type_id=content_type_id)
+            
+        return queryset
+
 
     
 
