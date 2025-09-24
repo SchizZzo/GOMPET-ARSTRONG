@@ -22,6 +22,17 @@ class CommentViewSet(viewsets.ModelViewSet):
     """
     CRUD API dla komentarzy.
     GET list, POST create, PUT/PATCH update, DELETE delete.
+
+    {
+    "content_type": 26,  # ID ContentType (np. Post, Article)
+     # można też użyć "content_type": "posts.post",
+
+    "object_id": 20,
+        # ID obiektu powiązanego z komentarzem (np. Post, Article)
+        # można też użyć "object_id": "20",
+        
+    "body": "TEKST KKOMENTARZA"
+}
     """
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer

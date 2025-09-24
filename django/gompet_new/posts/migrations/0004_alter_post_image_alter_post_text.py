@@ -3,6 +3,27 @@
 from django.db import migrations, models
 
 
+def convert_text_to_json(apps, schema_editor):
+    Post = apps.get_model("posts", "Post")
+    db_alias = schema_editor.connection.alias
+
+    queryset = Post.objects.using(db_alias).all()
+
+    for post in queryset.iterator():
+        value = post.text
+
+        if value in (None, ""):
+            continue
+
+        if isinstance(value, str):
+            try:
+                json.loads(value)
+            except json.JSONDecodeError:
+                queryset.filter(pk=post.pk).update(text=json.dumps(value))
+        else:
+            queryset.filter(pk=post.pk).update(text=json.dumps(value))
+
+
 class Migration(migrations.Migration):
 
     dependencies = [

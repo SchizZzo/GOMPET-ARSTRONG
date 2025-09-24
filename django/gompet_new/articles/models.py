@@ -7,7 +7,7 @@ from django.db import models
 from django.utils import timezone
 from django.contrib.contenttypes.fields import GenericRelation
 
-from common.models import Comment
+from common.models import Comment, Reaction
 
 
 class TimeStampedModel(models.Model):
@@ -48,6 +48,15 @@ class Article(TimeStampedModel):
         Comment,
         related_query_name="articles"
     )
+
+    reactions = GenericRelation(
+        Reaction,
+        related_query_name="articles",
+        content_type_field="reactable_type",
+        object_id_field="reactable_id",
+    )
+
+
 
     class Meta:
         db_table = "articles"

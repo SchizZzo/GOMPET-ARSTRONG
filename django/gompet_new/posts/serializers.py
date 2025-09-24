@@ -2,6 +2,8 @@ from urllib import request
 from rest_framework import serializers
 from .models import Post
 
+from users.serializers import UserSerializer
+
 
 class Base64ImageField(serializers.ImageField):
     """
@@ -28,9 +30,7 @@ class PostSerializer(serializers.ModelSerializer):
     
     image = Base64ImageField(required=False, allow_null=True)
 
-    first_name = serializers.SerializerMethodField()
-    last_name = serializers.SerializerMethodField()
-    email = serializers.SerializerMethodField()
+    author = UserSerializer(read_only=True)
 
     class Meta:
         model = Post
@@ -38,15 +38,11 @@ class PostSerializer(serializers.ModelSerializer):
             "id",
             "animal_name",
             "organization_name",
-
-            "first_name",
-            "last_name",
-            "email",
             
             "organization",
             "animal",
             "author",
-            "text",
+            "content",
             "created_at",
             "updated_at",
             "deleted_at",
@@ -54,15 +50,8 @@ class PostSerializer(serializers.ModelSerializer):
             "comments",
             "reactions",
         )
+        read_only_fields = ("author",)
 
-    def get_first_name(self, obj):
-        return obj.author.first_name if obj.author else None
-
-    def get_last_name(self, obj):
-        return obj.author.last_name if obj.author else None
-    
-    def get_email(self, obj):
-        return obj.author.email if obj.author else None
 
     def get_animal_name(self, obj):
         # Pobiera nazwę zwierzęcia z powiązanego modelu Animal
@@ -85,7 +74,7 @@ class PostSerializer(serializers.ModelSerializer):
         Jeśli nie podano animal_id zwraca wszystkie posty.
         """
         qs = Post.objects.all()
-        animal_id = request.query_params.get("animal-id")
+        animal_id = self.context['request'].query_params.get("animal-id")
                
         if not animal_id:
             animal_id = self.context.get("animal_id") if isinstance(self.context, dict) else None
@@ -94,11 +83,8 @@ class PostSerializer(serializers.ModelSerializer):
         if animal_id:
             qs = qs.filter(animal_id=animal_id)
 
-        organization_id = request.query_params.get("organization-id")
+        organization_id = self.context['request'].query_params.get("organization-id")
         if organization_id:
             qs = qs.filter(organization_id=organization_id)
 
         return qs
-
-  
-        
