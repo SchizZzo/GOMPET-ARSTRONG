@@ -1,8 +1,25 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+
+from users.serializers import UserSerializer
 from .models import Article
 
 User = get_user_model()
+
+class Base64ImageField(serializers.ImageField):
+    """
+    Przyjmuje data URI lub czysty base‑64 i konwertuje na ContentFile.
+    """
+    def to_internal_value(self, data):
+        import base64, imghdr, uuid
+        from django.core.files.base import ContentFile
+
+        if isinstance(data, str) and data.startswith("data:image"):
+            fmt, imgstr = data.split(";base64,")
+            ext = imghdr.what(None, base64.b64decode(imgstr))
+            file_name = f"{uuid.uuid4()}.{ext}"
+            data = ContentFile(base64.b64decode(imgstr), name=file_name)
+        return super().to_internal_value(data)
 
 class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
@@ -10,9 +27,12 @@ class AuthorSerializer(serializers.ModelSerializer):
         fields = ("id", "email")
 
 class ArticleSerializer(serializers.ModelSerializer):
-    author = AuthorSerializer(read_only=True)
+    #author = AuthorSerializer(read_only=True)
     comments = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     reactions = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    image = Base64ImageField(required=False, allow_null=True)
+
+    author = UserSerializer(read_only=True)
 
     class Meta:
         model = Article

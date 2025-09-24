@@ -37,7 +37,9 @@ class Article(TimeStampedModel):
     slug    = models.SlugField(unique=True)
     title   = models.CharField(max_length=255)
     content = models.TextField()
-    image   = models.URLField(blank=True)                # lub ImageField(upload_to=…)
+    image = models.ImageField(
+        upload_to="articles/images/",
+        null=True, blank=True)
     author  = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         related_name="articles",

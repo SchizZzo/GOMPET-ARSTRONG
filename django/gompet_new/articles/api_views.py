@@ -16,6 +16,8 @@ class ArticleViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows Articles to be viewed or edited.
     Supports soft-delete on destroy.
+    
+    
     """
     queryset = Article.objects.filter(deleted_at__isnull=True)
     serializer_class = ArticleSerializer
