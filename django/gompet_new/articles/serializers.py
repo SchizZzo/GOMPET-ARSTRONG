@@ -31,7 +31,8 @@ class ArticleSerializer(serializers.ModelSerializer):
             "updated_at",
             "deleted_at",
         )
-        read_only_fields = ("created_at", "updated_at", "deleted_at")
+        read_only_fields = ("created_at", "updated_at", "deleted_at", "comments", "reactions")
+
 
     def create(self, validated_data):
         # Set the author to the current user

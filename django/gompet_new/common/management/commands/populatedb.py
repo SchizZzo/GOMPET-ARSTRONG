@@ -107,7 +107,7 @@ class Command(BaseCommand):
             if random.choice([True, False]):
                 animal = random.choice(animals)
                 post = Post.objects.create(
-                    text=f"Sample post {i+1}",
+                    content=f"Sample post {i+1}",
                     author=user,
                     animal=animal,
                 )
@@ -115,7 +115,7 @@ class Command(BaseCommand):
             else:
                 org = random.choice(organizations)
                 post = Post.objects.create(
-                    text=f"Sample post {i+1}",
+                    content=f"Sample post {i+1}",
                     author=user,
                     organization=org,
                 )
