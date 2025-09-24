@@ -11,6 +11,8 @@ class AuthorSerializer(serializers.ModelSerializer):
 
 class ArticleSerializer(serializers.ModelSerializer):
     author = AuthorSerializer(read_only=True)
+    comments = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    reactions = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
     class Meta:
         model = Article
@@ -21,6 +23,10 @@ class ArticleSerializer(serializers.ModelSerializer):
             "content",
             "image",
             "author",
+
+            "comments",
+            "reactions",
+            
             "created_at",
             "updated_at",
             "deleted_at",
