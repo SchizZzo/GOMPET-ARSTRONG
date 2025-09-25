@@ -4,6 +4,9 @@ from django.contrib.contenttypes.models import ContentType
 from common.models import Comment, Reaction, ReactionType
 
 
+from users.serializers import UserSerializer
+
+
 class ContentTypeRelatedField(serializers.PrimaryKeyRelatedField):
     """Field accepting ContentType by PK or "app_label.model" string."""
 
@@ -30,11 +33,13 @@ class CommentSerializer(serializers.ModelSerializer):
     # użytkownik z request.user (ukryte pole)
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
+    author = UserSerializer(source="user", read_only=True)
+
     class Meta:
         model = Comment
         fields = (
             "id",
-            "user",
+            "author",
             "content_type",
             "object_id",
             "body",
@@ -42,8 +47,10 @@ class CommentSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "deleted_at",
+            "user",
         )
         read_only_fields = ("created_at", "updated_at", "deleted_at")
+        extra_kwargs = {"user": {"write_only": True}}
 
     def validate(self, attrs):
         # optional: możesz tu dodać logikę walidacji np. rating 1-5
@@ -56,6 +63,8 @@ class CommentSerializer(serializers.ModelSerializer):
 class ReactionSerializer(serializers.ModelSerializer):
     reactable_type = ContentTypeRelatedField()
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    
 
     class Meta:
         model = Reaction
