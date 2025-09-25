@@ -16,6 +16,8 @@ from users.serializers import OrganizationSerializer
 
 from .models import ParentRelation
 
+from common.serializers import CommentSerializer
+
 
 class Base64ImageField(serializers.ImageField):
     """Accept a base64 string and convert it into an uploaded image.
@@ -172,7 +174,7 @@ class AnimalSerializer(serializers.ModelSerializer):
     parents = serializers.SerializerMethodField(read_only=True)
     #parentships = AnimalParentSerializer(many=True, read_only=True)
     #offsprings = AnimalParentSerializer(many=True, read_only=True)
-    comments = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    comments = CommentSerializer(many=True, read_only=True)
     reactions = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     distance = serializers.SerializerMethodField(read_only=True)
     organization = serializers.SerializerMethodField(read_only=True)
