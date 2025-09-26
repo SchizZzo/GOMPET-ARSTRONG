@@ -200,4 +200,44 @@ class ReactionViewSet(viewsets.ModelViewSet):
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(detail=False, methods=["get"], url_path="is-liked", url_name="is-liked")
+    def is_liked(self, request):
+        """Sprawdza czy bieżący użytkownik polubił wskazany post."""
+
+        post_id = request.query_params.get("post_id")
+
+        if post_id is None:
+            return Response(
+                {"detail": "Query parameter 'post_id' is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            post_id_int = int(post_id)
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "Invalid 'post_id'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not request.user.is_authenticated:
+            return Response({"is_liked": False})
+
+        try:
+            post_content_type = resolve_content_type("posts.post")
+        except ContentType.DoesNotExist:
+            return Response(
+                {"detail": "Content type for posts not found."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        is_liked = Reaction.objects.filter(
+            user=request.user,
+            reaction_type=ReactionType.LIKE,
+            reactable_type=post_content_type,
+            reactable_id=post_id_int,
+        ).exists()
+
+        return Response({"is_liked": is_liked})
+
 
