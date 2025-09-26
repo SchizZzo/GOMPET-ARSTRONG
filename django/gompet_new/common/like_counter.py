@@ -61,7 +61,7 @@ def calculate_like_total(ref: ReactableRef) -> int:
 def make_group_name(content_type_id: int, object_id: int) -> str:
     """Kanał grupowy używany do wysyłki aktualizacji liczby polubień."""
 
-    return f"like_counter:{content_type_id}:{object_id}"
+    return f"like_counter.{content_type_id}.{object_id}"
 
 
 def build_payload(ref: ReactableRef) -> dict[str, Any]:

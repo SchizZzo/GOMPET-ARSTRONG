@@ -31,7 +31,7 @@ class LikeCounterHelpersTests(TestCase):
 
     def test_make_group_name(self) -> None:
         group = make_group_name(self.content_type.id, self.animal.id)
-        self.assertEqual(group, f"like_counter:{self.content_type.id}:{self.animal.id}")
+        self.assertEqual(group, f"like_counter.{self.content_type.id}.{self.animal.id}")
 
     def test_resolve_content_type_accepts_natural_key(self) -> None:
         value = f"{self.content_type.app_label}.{self.content_type.model}"
