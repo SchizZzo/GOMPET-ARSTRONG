@@ -121,9 +121,14 @@ class ReactionViewSet(viewsets.ModelViewSet):
    
     
     SPRAWDZANIE CZY UŻYTKOWNIK DODAŁ REAKCJĘ
-    http://localhost/common/reactions/has-reaction/?reactable_type=articles.article&reactable_id=3
+    http://localhost/common/reactions/has-reaction/?reactable_type=articles.article&reactable_id=2
+    to zwroci id reackji dla artykulu 2 dla zalogowanego uzytkownika
+    
+    {"reaction_id":8}
 
-    sprawdza czy zalogowany użytkownik dodał reakcję LIKE do artykułu o ID 3
+    w przeciwnym razie 
+    
+    {"reaction_id":0}
 
 
 
@@ -214,8 +219,7 @@ class ReactionViewSet(viewsets.ModelViewSet):
         url_name="has-reaction",
     )
     def has_reaction(self, request):
-        """Sprawdza czy bieżący użytkownik dodał wskazaną reakcję dla dowolnego obiektu."""
-
+        """Zwraca ID reakcji bieżącego użytkownika dla obiektu, w przeciwnym razie 0."""
         reactable_type_param = request.query_params.get("reactable_type")
         reactable_id_param = request.query_params.get("reactable_id")
         reaction_type_param = request.query_params.get(
@@ -262,15 +266,19 @@ class ReactionViewSet(viewsets.ModelViewSet):
             )
 
         if not request.user.is_authenticated:
-            return Response({"has_reaction": False})
+            return Response({"reaction_id": 0})
 
-        has_reaction = Reaction.objects.filter(
-            user=request.user,
-            reaction_type=reaction_type_value,
-            reactable_type=reactable_content_type,
-            reactable_id=reactable_id,
-        ).exists()
+        reaction_id = (
+            Reaction.objects.filter(
+                user=request.user,
+                reaction_type=reaction_type_value,
+                reactable_type=reactable_content_type,
+                reactable_id=reactable_id,
+            )
+            .values_list("id", flat=True)
+            .first()
+        )
 
-        return Response({"has_reaction": has_reaction})
+        return Response({"reaction_id": reaction_id or 0})
 
 
