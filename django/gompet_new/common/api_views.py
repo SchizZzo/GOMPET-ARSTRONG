@@ -119,6 +119,13 @@ class ReactionViewSet(viewsets.ModelViewSet):
         "reactable_id": 20                     # lub string z ID obiektu
     }
    
+    
+    SPRAWDZANIE CZY UŻYTKOWNIK DODAŁ REAKCJĘ
+    http://localhost/common/reactions/has-reaction/?reactable_type=articles.article&reactable_id=3
+
+    sprawdza czy zalogowany użytkownik dodał reakcję LIKE do artykułu o ID 3
+
+
 
 
 
