@@ -200,4 +200,70 @@ class ReactionViewSet(viewsets.ModelViewSet):
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="has-reaction",
+        url_name="has-reaction",
+    )
+    def has_reaction(self, request):
+        """Sprawdza czy bieżący użytkownik dodał wskazaną reakcję dla dowolnego obiektu."""
+
+        reactable_type_param = request.query_params.get("reactable_type")
+        reactable_id_param = request.query_params.get("reactable_id")
+        reaction_type_param = request.query_params.get(
+            "reaction_type", ReactionType.LIKE
+        )
+
+        missing_params = [
+            name
+            for name, value in (
+                ("reactable_type", reactable_type_param),
+                ("reactable_id", reactable_id_param),
+            )
+            if value is None
+        ]
+
+        if missing_params:
+            missing_display = ", ".join(f"'{param}'" for param in missing_params)
+            return Response(
+                {"detail": f"Query parameter(s) {missing_display} are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        reaction_type_value = reaction_type_param.upper()
+        if reaction_type_value not in ReactionType.values:
+            return Response(
+                {"detail": "Invalid 'reaction_type'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            reactable_content_type = resolve_content_type(reactable_type_param)
+        except ContentType.DoesNotExist:
+            return Response(
+                {"detail": "Invalid 'reactable_type'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            reactable_id = int(reactable_id_param)
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "Invalid 'reactable_id'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not request.user.is_authenticated:
+            return Response({"has_reaction": False})
+
+        has_reaction = Reaction.objects.filter(
+            user=request.user,
+            reaction_type=reaction_type_value,
+            reactable_type=reactable_content_type,
+            reactable_id=reactable_id,
+        ).exists()
+
+        return Response({"has_reaction": has_reaction})
+
 
