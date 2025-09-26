@@ -98,4 +98,33 @@ class ReactionViewSet(viewsets.ModelViewSet):
     serializer_class = ReactionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        """
+        Optionally restricts the returned reactions to a given object,
+        by filtering against `reactable_type` and `reactable_id` query parameters in the URL.
+        """
+        queryset = Reaction.objects.all()
+        reactable_id = self.request.query_params.get('reactable_id')
+        reactable_type = self.request.query_params.get('reactable_type')
+
+        if reactable_id is not None:
+            queryset = queryset.filter(reactable_id=reactable_id)
+        
+        if reactable_type is not None:
+            # Sprawdź, czy reactable_type jest stringiem w formacie 'app_label.model'
+            if '.' in reactable_type:
+                try:
+                    app_label, model = reactable_type.split('.')
+                    content_type_obj = ContentType.objects.get_by_natural_key(app_label, model)
+                    queryset = queryset.filter(reactable_type=content_type_obj)
+                except ContentType.DoesNotExist:
+                    # Opcjonalnie: obsłuż błąd, jeśli podany reactable_type nie istnieje
+                    # Na przykład, zwracając pusty queryset
+                    return queryset.none()
+            else:
+                # Zakładamy, że to ID
+                queryset = queryset.filter(reactable_type_id=reactable_type)
+            
+        return queryset
+
 

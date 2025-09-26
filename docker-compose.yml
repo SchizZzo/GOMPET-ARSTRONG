@@ -39,11 +39,11 @@ services:
       - -c
       - |
         python manage.py collectstatic --noinput &&
-        exec gunicorn gompet_new.asgi:application \
-          -k uvicorn.workers.UvicornWorker \
-          --bind 0.0.0.0:8000 \
-          --reload \
-          --log-file -
+          exec uvicorn gompet_new.asgi:application \
+            --host 0.0.0.0 \
+            --port 8000 \
+            --ws websockets \
+            --reload
     depends_on:
       db:
         condition: service_healthy
@@ -80,5 +80,12 @@ services:
       # - ./certs:/etc/nginx/certs:ro
       - ./django/gompet_new/static:/static:ro
       - ./media:/code/django/gompet_new/media:ro  # <-- montujemy katalog media
+    networks:
+      - webnet
+
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"
     networks:
       - webnet

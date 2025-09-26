@@ -4,6 +4,7 @@ Pillow                         # Obsługa i przetwarzanie obrazów
 psycopg2-binary         # Sterownik PostgreSQL w wersji binarnej
 gunicorn                       # Produkcyjny serwer WSGI
 uvicorn                        # Lekki serwer ASGI wykorzystywany w środowisku dev
+websockets                     # Obsługa WebSocketów
 dj-database-url                # Pomaga w konfiguracji baz danych przez URL
 djangorestframework-simplejwt  # Implementacja JWT dla DRF
 django-cors-headers            # Obsługa nagłówków CORS w Django
@@ -17,4 +18,7 @@ django-filter            # Filtry dla Django REST Framework
 python-dateutil       # Obsługa dat i czasu
 
 djangorestframework-gis  # Obsługa geograficznych danych w Django REST Framework
+
+channels #do obsługi websocketów (nie wiem czy sie przyda)
+channels-redis #do obsługi websocketów (nie wiem czy sie przyda)
 
