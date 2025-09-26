@@ -200,44 +200,70 @@ class ReactionViewSet(viewsets.ModelViewSet):
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=False, methods=["get"], url_path="is-liked", url_name="is-liked")
-    def is_liked(self, request):
-        """Sprawdza czy bieżący użytkownik polubił wskazany post."""
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="has-reaction",
+        url_name="has-reaction",
+    )
+    def has_reaction(self, request):
+        """Sprawdza czy bieżący użytkownik dodał wskazaną reakcję dla dowolnego obiektu."""
 
-        post_id = request.query_params.get("post_id")
+        reactable_type_param = request.query_params.get("reactable_type")
+        reactable_id_param = request.query_params.get("reactable_id")
+        reaction_type_param = request.query_params.get(
+            "reaction_type", ReactionType.LIKE
+        )
 
-        if post_id is None:
+        missing_params = [
+            name
+            for name, value in (
+                ("reactable_type", reactable_type_param),
+                ("reactable_id", reactable_id_param),
+            )
+            if value is None
+        ]
+
+        if missing_params:
+            missing_display = ", ".join(f"'{param}'" for param in missing_params)
             return Response(
-                {"detail": "Query parameter 'post_id' is required."},
+                {"detail": f"Query parameter(s) {missing_display} are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        reaction_type_value = reaction_type_param.upper()
+        if reaction_type_value not in ReactionType.values:
+            return Response(
+                {"detail": "Invalid 'reaction_type'."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         try:
-            post_id_int = int(post_id)
+            reactable_content_type = resolve_content_type(reactable_type_param)
+        except ContentType.DoesNotExist:
+            return Response(
+                {"detail": "Invalid 'reactable_type'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            reactable_id = int(reactable_id_param)
         except (TypeError, ValueError):
             return Response(
-                {"detail": "Invalid 'post_id'."},
+                {"detail": "Invalid 'reactable_id'."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if not request.user.is_authenticated:
-            return Response({"is_liked": False})
+            return Response({"has_reaction": False})
 
-        try:
-            post_content_type = resolve_content_type("posts.post")
-        except ContentType.DoesNotExist:
-            return Response(
-                {"detail": "Content type for posts not found."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        is_liked = Reaction.objects.filter(
+        has_reaction = Reaction.objects.filter(
             user=request.user,
-            reaction_type=ReactionType.LIKE,
-            reactable_type=post_content_type,
-            reactable_id=post_id_int,
+            reaction_type=reaction_type_value,
+            reactable_type=reactable_content_type,
+            reactable_id=reactable_id,
         ).exists()
 
-        return Response({"is_liked": is_liked})
+        return Response({"has_reaction": has_reaction})
 
 

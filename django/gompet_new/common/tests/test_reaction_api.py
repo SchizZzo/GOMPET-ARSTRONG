@@ -8,7 +8,8 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from animals.models import Animal, Gender, Size
-from common.models import Reaction, ReactionType
+from articles.models import Article
+from common.models import Comment, Reaction, ReactionType
 from posts.models import Post
 
 
@@ -32,7 +33,14 @@ class ReactionViewSetTests(TestCase):
         )
         self.content_type = ContentType.objects.get_for_model(Animal)
         self.remove_like_url = reverse("reaction-remove-like")
-        self.is_liked_url = reverse("reaction-is-liked")
+        self.has_reaction_url = reverse("reaction-has-reaction")
+
+        self.article = Article.objects.create(
+            slug="test-article",
+            title="Test Article",
+            content="Some content",
+            author=self.user,
+        )
 
     def test_remove_like_deletes_existing_reaction(self) -> None:
         Reaction.objects.create(
@@ -67,7 +75,7 @@ class ReactionViewSetTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("detail", response.data)
 
-    def test_is_liked_returns_true_when_reaction_exists(self) -> None:
+    def test_has_reaction_returns_true_for_post(self) -> None:
         post = Post.objects.create(
             content="Hello",
             author=self.user,
@@ -81,39 +89,125 @@ class ReactionViewSetTests(TestCase):
             reactable_id=post.id,
         )
 
-        response = self.client.get(self.is_liked_url, {"post_id": post.id})
+        response = self.client.get(
+            self.has_reaction_url,
+            {
+                "reactable_type": "posts.post",
+                "reactable_id": post.id,
+                "reaction_type": ReactionType.LIKE,
+            },
+        )
 
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.data["is_liked"])
+        self.assertTrue(response.data["has_reaction"])
 
-    def test_is_liked_returns_false_when_no_reaction(self) -> None:
-        post = Post.objects.create(
+    def test_has_reaction_returns_true_for_article(self) -> None:
+        Reaction.objects.create(
+            user=self.user,
+            reaction_type=ReactionType.LOVE,
+            reactable_type=ContentType.objects.get_for_model(Article),
+            reactable_id=self.article.id,
+        )
+
+        response = self.client.get(
+            self.has_reaction_url,
+            {
+                "reactable_type": "articles.article",
+                "reactable_id": self.article.id,
+                "reaction_type": ReactionType.LOVE,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["has_reaction"])
+
+    def test_has_reaction_returns_true_for_comment(self) -> None:
+        comment_target = Post.objects.create(
             content="Hello",
             author=self.user,
             animal=self.animal,
         )
+        comment = Comment.objects.create(
+            user=self.user,
+            content_type=ContentType.objects.get_for_model(Post),
+            object_id=comment_target.id,
+            body="Nice!",
+        )
 
-        response = self.client.get(self.is_liked_url, {"post_id": post.id})
+        Reaction.objects.create(
+            user=self.user,
+            reaction_type=ReactionType.WOW,
+            reactable_type=ContentType.objects.get_for_model(Comment),
+            reactable_id=comment.id,
+        )
+
+        response = self.client.get(
+            self.has_reaction_url,
+            {
+                "reactable_type": "common.comment",
+                "reactable_id": comment.id,
+                "reaction_type": ReactionType.WOW,
+            },
+        )
 
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.data["is_liked"])
+        self.assertTrue(response.data["has_reaction"])
 
-    def test_is_liked_requires_post_id(self) -> None:
-        response = self.client.get(self.is_liked_url)
+    def test_has_reaction_returns_false_when_no_reaction(self) -> None:
+        response = self.client.get(
+            self.has_reaction_url,
+            {
+                "reactable_type": "articles.article",
+                "reactable_id": self.article.id,
+                "reaction_type": ReactionType.ANGRY,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["has_reaction"])
+
+    def test_has_reaction_requires_parameters(self) -> None:
+        response = self.client.get(self.has_reaction_url)
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("detail", response.data)
 
-    def test_is_liked_returns_false_for_anonymous_user(self) -> None:
+    def test_has_reaction_validates_reaction_type(self) -> None:
+        response = self.client.get(
+            self.has_reaction_url,
+            {
+                "reactable_type": "articles.article",
+                "reactable_id": self.article.id,
+                "reaction_type": "invalid",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("detail", response.data)
+
+    def test_has_reaction_returns_false_for_anonymous_user(self) -> None:
         post = Post.objects.create(
             content="Hello",
             author=self.user,
             animal=self.animal,
         )
 
+        Reaction.objects.create(
+            user=self.user,
+            reaction_type=ReactionType.LIKE,
+            reactable_type=ContentType.objects.get_for_model(Post),
+            reactable_id=post.id,
+        )
+
         self.client.force_authenticate(user=None)
 
-        response = self.client.get(self.is_liked_url, {"post_id": post.id})
+        response = self.client.get(
+            self.has_reaction_url,
+            {
+                "reactable_type": "posts.post",
+                "reactable_id": post.id,
+            },
+        )
 
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.data["is_liked"])
+        self.assertFalse(response.data["has_reaction"])
