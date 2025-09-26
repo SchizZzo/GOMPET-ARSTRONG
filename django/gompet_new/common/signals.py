@@ -41,13 +41,22 @@ def broadcast_like_count(reactable_type: Any, reactable_id: int) -> bool:
         return False
 
     group_name = make_group_name(content_type.pk, reactable_id)
-    async_to_sync(channel_layer.group_send)(
-        group_name,
-        {
-            "type": "like_count_update",
-            "payload": payload,
-        },
-    )
+    try:
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                "type": "like_count_update",
+                "payload": payload,
+            },
+        )
+    except TypeError as exc:
+        logger.debug(
+            "Nie udało się wysłać aktualizacji licznika polubień: %s",
+            exc,
+            exc_info=True,
+        )
+        return False
+
     return True
 
 
