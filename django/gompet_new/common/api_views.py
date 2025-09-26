@@ -1,16 +1,14 @@
-from rest_framework import viewsets, permissions
 from django.contrib.contenttypes.models import ContentType
-from common.models import Comment, Reaction
-from .serializers import CommentSerializer, ContentTypeSerializer, ReactionSerializer
-
-
 
 from drf_spectacular.utils import extend_schema
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework import permissions
-from rest_framework import serializers, viewsets, permissions
+
+from common.like_counter import resolve_content_type
+from common.models import Comment, Reaction, ReactionType
+
+from .serializers import CommentSerializer, ContentTypeSerializer, ReactionSerializer
 
 # common/api_serializers.py
 
@@ -129,5 +127,43 @@ class ReactionViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(reactable_type_id=reactable_type)
             
         return queryset
+
+    @action(detail=False, methods=["delete"], url_path="like", url_name="remove-like")
+    def remove_like(self, request):
+        """Usuwa reakcję LIKE bieżącego użytkownika dla wskazanego obiektu."""
+
+        reactable_type = request.data.get("reactable_type") or request.query_params.get("reactable_type")
+        reactable_id = request.data.get("reactable_id") or request.query_params.get("reactable_id")
+
+        if reactable_type is None or reactable_id is None:
+            return Response(
+                {"detail": "Fields 'reactable_type' and 'reactable_id' are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            content_type = resolve_content_type(reactable_type)
+        except ContentType.DoesNotExist:
+            return Response(
+                {"detail": "Invalid 'reactable_type'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            reactable_id_int = int(reactable_id)
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "Invalid 'reactable_id'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        Reaction.objects.filter(
+            user=request.user,
+            reaction_type=ReactionType.LIKE,
+            reactable_type=content_type,
+            reactable_id=reactable_id_int,
+        ).delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
