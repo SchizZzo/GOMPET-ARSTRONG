@@ -91,10 +91,41 @@ class ContentTypeViewSet(viewsets.ReadOnlyModelViewSet):
 class ReactionViewSet(viewsets.ModelViewSet):
     """
     CRUD API dla reakcji.
+
+
+    Nasłuchiwanie zmian liczby reakcji (np. like'ów) w czasie rzeczywistym
+    odbywa się przez WebSocket pod adresem:
+    ws://localhost/ws/reactable/{articles.article}/{reactable_id}/
+
+    z {articles.article} to nazwa modelu w formacie app_label.model,
+    a {reactable_id} to ID obiektu, dla którego liczymy reakcje.
+
+    Output przykładowej wiadomości WebSocket:
+    {"reactable": {"id": 2, "type": "articles.article"}, "total_likes": 1}
+    
+
+    Dodawanie i usuwanie reakcji LIKE można też wykonać przez endpoint:
+    POST http://localhost/common/reactions/  z danymi:
+    {
+        "reactable_type": "articles.article",  # lub ID ContentType
+        "reactable_id": 20,                    # lub string z ID obiektu
+        "reaction_type": "LIKE"                # typ reakcji (np. LIKE)
+    }
+
+    Usuwanie reakcji LIKE można wykonać przez endpoint:
+    DELETE http://localhost/common/reactions/like/  z danymi:   
+    {
+        "reactable_type": "articles.article",  # lub ID ContentType
+        "reactable_id": 20                     # lub string z ID obiektu
+    }
+   
+
+
+
     """
     queryset = Reaction.objects.all()
     serializer_class = ReactionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     http_method_names = ["get", "post", "put", "patch", "delete"]
 
 
@@ -103,6 +134,9 @@ class ReactionViewSet(viewsets.ModelViewSet):
         """
         Optionally restricts the returned reactions to a given object,
         by filtering against `reactable_type` and `reactable_id` query parameters in the URL.
+
+
+        
         """
         queryset = Reaction.objects.all()
         reactable_id = self.request.query_params.get('reactable_id')
