@@ -74,3 +74,6 @@ build-no-cache:
 
 test:
 	$(MANAGE) test animals
+
+test-common:
+	$(MANAGE) test common

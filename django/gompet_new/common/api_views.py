@@ -97,6 +97,9 @@ class ReactionViewSet(viewsets.ModelViewSet):
     queryset = Reaction.objects.all()
     serializer_class = ReactionSerializer
     permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["get", "post", "put", "patch", "delete"]
+
+
 
     def get_queryset(self):
         """
