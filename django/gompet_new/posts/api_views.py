@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from .models import Post
 from .serializers import PostSerializer
@@ -70,3 +71,11 @@ class PostViewSet(viewsets.ModelViewSet):
         if organization_id:
             qs = qs.filter(organization_id=organization_id)
         return qs
+
+    def perform_destroy(self, instance):
+        user = self.request.user
+        if not user.is_staff and instance.author_id != user.id:
+            raise PermissionDenied(
+                "Tylko autor posta lub administrator może go usunąć."
+            )
+        super().perform_destroy(instance)
