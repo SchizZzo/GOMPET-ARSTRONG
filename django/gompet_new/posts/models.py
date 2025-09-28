@@ -1,11 +1,10 @@
-from django.db import models
+from django.db import models, router, transaction
 
 # Create your models here.
 # posts/models.py
 from django.conf import settings
-from django.db import models
-from django.utils import timezone
 from django.contrib.contenttypes.fields import GenericRelation
+from django.utils import timezone
 
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
@@ -110,3 +109,10 @@ class Post(TimeStampedModel):
         """Wygodny helper soft-delete."""
         self.deleted_at = timezone.now()
         self.save(update_fields=["deleted_at"])
+
+    def delete(self, using=None, keep_parents=False):
+        """Ensure that related generic comments are removed when deleting a post."""
+        db_alias = using or self._state.db or router.db_for_write(type(self), instance=self)
+        with transaction.atomic(using=db_alias):
+            self.comments.using(db_alias).all().delete()
+            return super().delete(using=db_alias, keep_parents=keep_parents)
