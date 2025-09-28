@@ -112,12 +112,8 @@ class ReactionViewSet(viewsets.ModelViewSet):
         "reaction_type": "LIKE"                # typ reakcji (np. LIKE)
     }
 
-    Usuwanie reakcji LIKE można wykonać przez endpoint:
-    DELETE http://localhost/common/reactions/like/  z danymi:   
-    {
-        "reactable_type": "articles.article",  # lub ID ContentType
-        "reactable_id": 20                     # lub string z ID obiektu
-    }
+    
+    
    
     
     SPRAWDZANIE CZY UŻYTKOWNIK DODAŁ REAKCJĘ
@@ -131,7 +127,8 @@ class ReactionViewSet(viewsets.ModelViewSet):
     {"reaction_id":0}
 
 
-
+    Usuwanie reakcji LIKE można wykonać przez endpoint:
+    DELETE http://localhost/common/reactions/{id}/   
 
 
     """
@@ -174,43 +171,43 @@ class ReactionViewSet(viewsets.ModelViewSet):
             
         return queryset
 
-    @action(detail=False, methods=["delete"], url_path="like", url_name="remove-like")
-    def remove_like(self, request):
-        """Usuwa reakcję LIKE bieżącego użytkownika dla wskazanego obiektu."""
+    # @action(detail=False, methods=["delete"], url_path="like", url_name="remove-like")
+    # def remove_like(self, request):
+    #     """Usuwa reakcję LIKE bieżącego użytkownika dla wskazanego obiektu."""
 
-        reactable_type = request.data.get("reactable_type") or request.query_params.get("reactable_type")
-        reactable_id = request.data.get("reactable_id") or request.query_params.get("reactable_id")
+    #     reactable_type = request.data.get("reactable_type") or request.query_params.get("reactable_type")
+    #     reactable_id = request.data.get("reactable_id") or request.query_params.get("reactable_id")
 
-        if reactable_type is None or reactable_id is None:
-            return Response(
-                {"detail": "Fields 'reactable_type' and 'reactable_id' are required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+    #     if reactable_type is None or reactable_id is None:
+    #         return Response(
+    #             {"detail": "Fields 'reactable_type' and 'reactable_id' are required."},
+    #             status=status.HTTP_400_BAD_REQUEST,
+    #         )
 
-        try:
-            content_type = resolve_content_type(reactable_type)
-        except ContentType.DoesNotExist:
-            return Response(
-                {"detail": "Invalid 'reactable_type'."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+    #     try:
+    #         content_type = resolve_content_type(reactable_type)
+    #     except ContentType.DoesNotExist:
+    #         return Response(
+    #             {"detail": "Invalid 'reactable_type'."},
+    #             status=status.HTTP_400_BAD_REQUEST,
+    #         )
 
-        try:
-            reactable_id_int = int(reactable_id)
-        except (TypeError, ValueError):
-            return Response(
-                {"detail": "Invalid 'reactable_id'."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+    #     try:
+    #         reactable_id_int = int(reactable_id)
+    #     except (TypeError, ValueError):
+    #         return Response(
+    #             {"detail": "Invalid 'reactable_id'."},
+    #             status=status.HTTP_400_BAD_REQUEST,
+    #         )
 
-        Reaction.objects.filter(
-            user=request.user,
-            reaction_type=ReactionType.LIKE,
-            reactable_type=content_type,
-            reactable_id=reactable_id_int,
-        ).delete()
+    #     Reaction.objects.filter(
+    #         user=request.user,
+    #         reaction_type=ReactionType.LIKE,
+    #         reactable_type=content_type,
+    #         reactable_id=reactable_id_int,
+    #     ).delete()
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    #     return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=False,

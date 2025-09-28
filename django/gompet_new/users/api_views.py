@@ -49,6 +49,21 @@ class UserViewSet(viewsets.ModelViewSet):
     - list/retrieve: UserSerializer
     - create: UserCreateSerializer
     - update/partial_update: UserUpdateSerializer
+
+
+    Dodaawanie użytkowników
+    -------------------
+    http://localhost/users/users/
+    Metoda POST pozwala na rejestrację nowego użytkownika.
+    Przykładowe dane wejściowe (JSON):
+    {
+        "first_name": "Nowy",
+        "last_name": "Użytkownik",
+        "email": "nowy_uzytkownik@example.com",
+        "password": "supertajnehaslo"
+    }
+
+
     """
     queryset = User.objects.all()
     
@@ -98,11 +113,18 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     Przykład
     --------
     ```http
-    POST /organizations/
+    POST localhost/users/organizations/
     {
+
+        "type": "SHELTER",
+        
         "name": "Schronisko dla Zwierząt",
         "email": "kontakt@schronisko.pl",
-        ...
+        "address": {
+            "street": "ul. Psia 1",
+            "city": "Warszawa",
+            "postal_code": "00-001"
+        }
     }
     ```
     """
