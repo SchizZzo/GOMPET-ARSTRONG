@@ -115,4 +115,5 @@ class Post(TimeStampedModel):
         db_alias = using or self._state.db or router.db_for_write(type(self), instance=self)
         with transaction.atomic(using=db_alias):
             self.comments.using(db_alias).all().delete()
+            self.reactions.using(db_alias).all().delete()
             return super().delete(using=db_alias, keep_parents=keep_parents)
