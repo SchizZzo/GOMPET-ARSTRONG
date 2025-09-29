@@ -1,11 +1,7 @@
-from django.db import models
-
-# Create your models here.
-# articles/models.py
 from django.conf import settings
-from django.db import models
-from django.utils import timezone
 from django.contrib.contenttypes.fields import GenericRelation
+from django.db import models, router, transaction
+from django.utils import timezone
 
 from common.models import Comment, Reaction
 
@@ -69,3 +65,35 @@ class Article(TimeStampedModel):
 
     def __str__(self) -> str:
         return self.title
+
+    def soft_delete(self):
+        """Soft delete article together with its comments and reactions."""
+        if self.deleted_at is not None:
+            # already soft-deleted; no need to run cascade again
+            return
+
+        deleted_at = timezone.now()
+        db_alias = self._state.db or router.db_for_write(type(self), instance=self)
+
+        with transaction.atomic(using=db_alias):
+            self.deleted_at = deleted_at
+            self.save(update_fields=["deleted_at"])
+
+            (self.comments
+                 .using(db_alias)
+                 .filter(deleted_at__isnull=True)
+                 .update(deleted_at=deleted_at))
+
+            (self.reactions
+                 .using(db_alias)
+                 .filter(deleted_at__isnull=True)
+                 .update(deleted_at=deleted_at))
+
+    def delete(self, using=None, keep_parents=False):
+        """Hard delete article together with related generic data."""
+        db_alias = using or self._state.db or router.db_for_write(type(self), instance=self)
+
+        with transaction.atomic(using=db_alias):
+            self.comments.using(db_alias).all().delete()
+            self.reactions.using(db_alias).all().delete()
+            return super().delete(using=db_alias, keep_parents=keep_parents)
