@@ -157,7 +157,8 @@ phone_validator = RegexValidator(
 
 
 class OrganizationType(models.TextChoices):
-    SHELTER = "SHELTER", "Schronisko / Fundacja"
+    SHELTER = "SHELTER", "Schronisko"
+    FUND  = "FUND",   "Fundacja"
     BREEDER = "BREEDER", "Hodowla"
     CLINIC  = "CLINIC",  "Gabinet weterynaryjny"
     SHOP    = "SHOP",    "Sklep zoologiczny"
