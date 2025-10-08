@@ -55,6 +55,19 @@ class PostViewSet(viewsets.ModelViewSet):
     # Posty zwierzęcia 17 w organizacji 5
     GET /posts/?animal-id=17&organization-id=5
     ```
+
+
+    Aktualizacja postu 
+
+    PUT posts/posts/{id}/
+    -----------------
+    z danymi:
+    {
+    "content": "NOWY POST"
+    }
+
+
+
     """
     queryset = Post.objects.all()
     serializer_class = PostSerializer

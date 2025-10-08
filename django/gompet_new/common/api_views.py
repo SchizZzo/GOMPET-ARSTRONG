@@ -31,6 +31,11 @@ class CommentViewSet(viewsets.ModelViewSet):
         
     "body": "TEKST KKOMENTARZA"
 }
+
+    Przykład akcji PUT /common/comments/{id}/
+    z danymi:
+    
+    {"content_type":["To pole jest wymagane."],"object_id":["To pole jest wymagane."],"body":["To pole jest wymagane."]}
     """
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer

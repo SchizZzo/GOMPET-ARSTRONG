@@ -121,12 +121,23 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         "name": "Schronisko dla Zwierząt",
         "email": "kontakt@schronisko.pl",
         "address": {
-            "street": "ul. Psia 1",
+            "street": "ul. Psia",
+            "house_number": 1,
             "city": "Warszawa",
-            "postal_code": "00-001"
+
+            "zip_code": "00-001",
+            
+
+            "lat": 52.229676, # współrzędne geograficzne (szerokość)
+            "lng": 21.012229, # współrzędne geograficzne (długość)
+            
+
+            "location": {
+                "type": "Point",
+                "coordinates": [21.012229, 52.229676] # lng, lat
+            }
         }
     }
-    ```
     """
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer

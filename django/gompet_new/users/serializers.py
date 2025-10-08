@@ -3,6 +3,34 @@ from .models import User
 from .models import Organization, Address, OrganizationMember, BreedingTypeOrganizations, SpeciesOrganizations, \
       BreedingType, Species
 
+
+class Base64ImageField(serializers.ImageField):
+    """Accept a base64 string and convert it into an uploaded image.
+
+    The field supports both plain base64 strings and ``data:image/...`` URIs.
+    In both cases the decoded content is wrapped in a ``ContentFile`` so Django
+    treats it like a regular uploaded file.
+    """
+
+    def to_internal_value(self, data):
+        import base64
+        import imghdr
+        import uuid
+        from django.core.files.base import ContentFile
+
+        if isinstance(data, str):
+            if data.startswith("data:image"):
+                fmt, imgstr = data.split(";base64,")
+                ext = imghdr.what(None, base64.b64decode(imgstr))
+                file_name = f"{uuid.uuid4()}.{ext}"
+                data = ContentFile(base64.b64decode(imgstr), name=file_name)
+            else:
+                ext = imghdr.what(None, base64.b64decode(data)) or "png"
+                file_name = f"{uuid.uuid4()}.{ext}"
+                data = ContentFile(base64.b64decode(data), name=file_name)
+        return super().to_internal_value(data)
+    
+
 class UserSerializer(serializers.ModelSerializer):
     """Serializer do odczytu danych użytkownika."""
     full_name = serializers.CharField(read_only=True)
@@ -139,6 +167,7 @@ class BreedingTypeSerializer(serializers.ModelSerializer):
 class OrganizationSerializer(serializers.ModelSerializer):
     """Serializer odczytu organizacji wraz z adresem i powiązaniami."""
     address = AddressSerializer(required=True)
+    image = Base64ImageField(required=False, allow_null=True)
     # species = SpeciesOrganizationsSerializer(
     #     source='speciesorganizations_set',
     #     many=True,

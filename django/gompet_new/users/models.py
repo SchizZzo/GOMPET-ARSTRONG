@@ -187,7 +187,7 @@ class Organization(models.Model):
         blank=True,
     )                      # lub ImageField(...)
     phone       = models.CharField(max_length=20, blank=True, validators=[phone_validator])
-    description = models.TextField(blank=True)
+    description = models.JSONField(blank=True, null=True, help_text="Opis organizacji w formacie JSON.")
     rating      = models.PositiveSmallIntegerField(
         null=True, blank=True,
         validators=[MinValueValidator(1), MaxValueValidator(5)]
