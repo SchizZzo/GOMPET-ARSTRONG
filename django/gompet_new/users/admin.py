@@ -16,7 +16,7 @@ class OrganizationAdmin(admin.ModelAdmin):
 
 @admin.register(Address)
 class AddressAdmin(admin.ModelAdmin):
-    list_display = ("organization", "city", "street", "zip_code", "lat", "lng", "location")
+    list_display = ("organization", "city", "street", "zip_code", "lat", "lng", "location", "description")
 
 
 @admin.register(OrganizationMember)
