@@ -10,13 +10,13 @@ from .models import User, SpeciesOrganizations, BreedingTypeOrganizations, Speci
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
-    list_display = ("name", "type", "email", "rating", "created_at")
+    list_display = ("name", "type", "email", "description", "rating", "created_at")
     search_fields = ("name", "email")
 
 
 @admin.register(Address)
 class AddressAdmin(admin.ModelAdmin):
-    list_display = ("organization", "city", "street", "zip_code", "lat", "lng", "location", "description")
+    list_display = ("organization", "city", "street", "zip_code", "lat", "lng", "location")
 
 
 @admin.register(OrganizationMember)
