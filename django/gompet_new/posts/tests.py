@@ -56,6 +56,14 @@ class PostOwnershipAPITests(APITestCase):
             first_name="Other",
             last_name="User",
         )
+        self.staff_user = get_user_model().objects.create_user(
+            email="staff@example.com",
+            password="password123",
+            first_name="Staff",
+            last_name="User",
+        )
+        self.staff_user.is_staff = True
+        self.staff_user.save(update_fields=["is_staff"])
         self.animal = Animal.objects.create(
             name="Burek",
             species="Dog",
@@ -95,6 +103,18 @@ class PostOwnershipAPITests(APITestCase):
 
         self.assertEqual(response.status_code, 403)
         self.assertFalse(Post.objects.filter(content="Attempted post").exists())
+
+    def test_staff_user_cannot_create_post_for_foreign_animal(self):
+        self.client.force_authenticate(user=self.staff_user)
+        payload = {
+            "animal": self.animal.id,
+            "content": "Staff attempt",
+        }
+
+        response = self.client.post("/posts/", data=payload, format="json")
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Post.objects.filter(content="Staff attempt").exists())
 
     def test_owner_can_update_post_for_owned_animal(self):
         self.client.force_authenticate(user=self.owner)
