@@ -75,6 +75,8 @@ class PostViewSet(viewsets.ModelViewSet):
         IsAuthenticatedOrReadOnly,
     ] # Każdy może czytać, ale tworzyć/edytować tylko zalogowani
 
+    
+
     def get_queryset(self):
         qs = super().get_queryset()
         animal_id = self.request.query_params.get("animal-id")
@@ -92,3 +94,5 @@ class PostViewSet(viewsets.ModelViewSet):
                 "Tylko autor posta lub administrator może go usunąć."
             )
         super().perform_destroy(instance)
+
+
