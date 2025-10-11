@@ -152,6 +152,63 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             role=MemberRole.OWNER,
         )
 
+    def get_queryset(self):
+        qs = Organization.objects.all().order_by('-created_at')
+        # filter by organization type
+
+        name = self.request.query_params.get('name')
+        if name:
+            qs = qs.filter(name__icontains=name)
+
+        # filtrowanie po zasięgu (parametr "zasieg" – wartość w metrach)
+        zasieg_param = self.request.query_params.get('range')
+        if zasieg_param:
+            try:
+                max_distance = float(zasieg_param)
+                user_location = getattr(self.request.user, "location", None)
+                print(f"User location: {user_location}, Max distance: {max_distance}")
+                if user_location:
+                    qs = (
+                        qs.exclude(address__location__isnull=True)
+                          .filter(
+                              address__location__distance_lte=(
+                                  user_location,
+                                  D(m=max_distance)
+                              )
+                          )
+                          .annotate(
+                              distance=Distance("address__location", user_location)
+                          )
+                          .order_by("distance")
+                    )
+            except (TypeError, ValueError):
+                pass
+
+        city = self.request.query_params.get('city')
+        if city:
+            qs = qs.filter(address__city__iexact=city.strip())
+
+         # filter by organization type
+
+        org_type = self.request.query_params.get('organization-type')
+        if org_type:
+            org_types = [t.strip() for t in org_type.split(',') if t.strip()]
+            qs = qs.filter(type__in=org_types)
+
+        # filter by species
+        species = self.request.query_params.get('species')
+        if species:
+            species_list = [s.strip() for s in species.split(',') if s.strip()]
+            qs = qs.filter(species_organizations__species__name__in=species_list)
+
+        breeding_type = self.request.query_params.get('breeding-type')
+        if breeding_type:
+            breeding_types = [bt.strip() for bt in breeding_type.split(',') if bt.strip()]
+            qs = qs.filter(breeding_type_organizations__breeding_type__name__in=breeding_types)
+
+        
+        return qs
+
     
 
     
@@ -325,52 +382,52 @@ class OrganizationFilteringAddedViewSet(viewsets.ReadOnlyModelViewSet):
         qs = Organization.objects.all().order_by('-created_at')
         # filter by organization type
 
-        name = self.request.query_params.get('name')
+        name = self.request.query_params.get("name")
         if name:
             qs = qs.filter(name__icontains=name)
 
-        # filtrowanie po zasięgu (parametr "zasieg" – wartość w metrach)
-        zasieg_param = self.request.query_params.get('range')
+        zasieg_param = self.request.query_params.get("range")
         if zasieg_param:
             try:
                 max_distance = float(zasieg_param)
                 user_location = getattr(self.request.user, "location", None)
-                print(f"User location: {user_location}, Max distance: {max_distance}")
                 if user_location:
                     qs = (
-                        qs.exclude(address__location__isnull=True)
-                          .filter(
-                              address__location__distance_lte=(
-                                  user_location,
-                                  D(m=max_distance)
-                              )
-                          )
-                          .annotate(
-                              distance=Distance("address__location", user_location)
-                          )
-                          .order_by("distance")
+                    qs.exclude(address__location__isnull=True)
+                    .filter(
+                        address__location__distance_lte=(
+                        user_location,
+                        D(m=max_distance)
+                        )
+                    )
+                    .annotate(
+                        distance=Distance("address__location", user_location)
+                    )
+                    .order_by("distance")
                     )
             except (TypeError, ValueError):
                 pass
 
-        org_type = self.request.query_params.get('organization-type')
+        city = self.request.query_params.get("city")
+        if city:
+            qs = qs.filter(address__city__iexact=city.strip())
+
+        org_type = self.request.query_params.get("organization-type")
         if org_type:
-            org_types = [t.strip() for t in org_type.split(',') if t.strip()]
+            org_types = [t.strip().upper() for t in org_type.split(",") if t.strip()]
             qs = qs.filter(type__in=org_types)
 
-        # filter by species
-        species = self.request.query_params.get('species')
+        species = self.request.query_params.get("species")
         if species:
-            species_list = [s.strip() for s in species.split(',') if s.strip()]
+            species_list = [s.strip() for s in species.split(",") if s.strip()]
             qs = qs.filter(species_organizations__species__name__in=species_list)
 
-        breeding_type = self.request.query_params.get('breeding-type')
+        breeding_type = self.request.query_params.get("breeding-type")
         if breeding_type:
-            breeding_types = [bt.strip() for bt in breeding_type.split(',') if bt.strip()]
+            breeding_types = [bt.strip() for bt in breeding_type.split(",") if bt.strip()]
             qs = qs.filter(breeding_type_organizations__breeding_type__name__in=breeding_types)
 
-        
-        return qs
+        return qs.distinct()
     
 
 @extend_schema(

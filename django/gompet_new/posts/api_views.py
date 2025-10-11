@@ -75,7 +75,27 @@ class PostViewSet(viewsets.ModelViewSet):
         IsAuthenticatedOrReadOnly,
     ] # Każdy może czytać, ale tworzyć/edytować tylko zalogowani
 
-    
+    def _ensure_user_can_modify_animal(self, serializer):
+        animal = serializer.validated_data.get("animal")
+        if animal is None and getattr(serializer, "instance", None) is not None:
+            animal = serializer.instance.animal
+
+        if (
+            animal
+            and not self.request.user.is_staff
+            and animal.owner_id != self.request.user.id
+        ):
+            raise PermissionDenied(
+                "Tylko właściciel zwierzęcia lub administrator może modyfikować post."
+            )
+
+    def perform_create(self, serializer):
+        self._ensure_user_can_modify_animal(serializer)
+        serializer.save()
+
+    def perform_update(self, serializer):
+        self._ensure_user_can_modify_animal(serializer)
+        serializer.save()
 
     def get_queryset(self):
         qs = super().get_queryset()
