@@ -217,6 +217,29 @@ class OrganizationSerializer(serializers.ModelSerializer):
             address.species.set(species)
         return org
 
+    def update(self, instance, validated_data):
+        address_data = validated_data.pop("address", None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if address_data is not None:
+            species = address_data.pop("species", None)
+            address = getattr(instance, "address", None)
+
+            if address is None:
+                address = Address.objects.create(organization=instance, **address_data)
+            else:
+                for attr, value in address_data.items():
+                    setattr(address, attr, value)
+                address.save()
+
+            if species is not None:
+                address.species.set(species)
+
+        return instance
+
 
 class OrganizationCreateSerializer(serializers.ModelSerializer):
     """Serializer tworzenia nowej organizacji wraz z adresem."""
