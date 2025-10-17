@@ -210,8 +210,11 @@ class OrganizationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         address_data = validated_data.pop("address")
+        species = address_data.pop("species", [])
         org = Organization.objects.create(**validated_data)
-        Address.objects.create(organization=org, **address_data)
+        address = Address.objects.create(organization=org, **address_data)
+        if species:
+            address.species.set(species)
         return org
 
 
@@ -234,8 +237,11 @@ class OrganizationCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         address_data = validated_data.pop("address")
+        species = address_data.pop("species", [])
         org = Organization.objects.create(**validated_data)
-        Address.objects.create(organization=org, **address_data)
+        address = Address.objects.create(organization=org, **address_data)
+        if species:
+            address.species.set(species)
         return org
 
 
