@@ -6,7 +6,7 @@ from django.contrib import admin
 from .models import Organization, Address, OrganizationMember
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, SpeciesOrganizations, BreedingTypeOrganizations, Species, BreedingType
+from .models import User, BreedingTypeOrganizations, Species, BreedingType
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
@@ -17,6 +17,7 @@ class OrganizationAdmin(admin.ModelAdmin):
 @admin.register(Address)
 class AddressAdmin(admin.ModelAdmin):
     list_display = ("organization", "city", "street", "zip_code", "lat", "lng", "location")
+    filter_horizontal = ("species",)  # multi-pick
 
 
 @admin.register(OrganizationMember)
@@ -48,9 +49,7 @@ class UserAdmin(BaseUserAdmin):
 
 
 
-@admin.register(SpeciesOrganizations)
-class SpeciesOrganizationsAdmin(admin.ModelAdmin):
-    list_display = ("id", "organization", "species")
+
     
 
 @admin.register(BreedingTypeOrganizations)

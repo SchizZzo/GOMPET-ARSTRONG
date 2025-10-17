@@ -223,37 +223,7 @@ class Organization(models.Model):
         self.save(update_fields=["deleted_at"])
 
 
-class Address(models.Model):
-    """
-    Jedno-do-jednego z Organization (możesz łatwo zmienić na ManyToOne
-    – wtedy usuń `unique=True` w FK).
-    """
 
-    id             = models.BigAutoField(primary_key=True)
-    organization   = models.OneToOneField(
-        Organization,
-        related_name="address",
-        on_delete=models.CASCADE,
-        unique=True,
-    )
-
-    city           = models.CharField(max_length=120)
-    street         = models.CharField(max_length=120)
-    house_number   = models.CharField(max_length=10)
-    zip_code       = models.CharField(max_length=12)
-    lat            = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    lng            = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    location    = gis_models.PointField(null=True, blank=True, geography=True)
-
-
-    updated_at     = models.DateTimeField(auto_now=True)
-    deleted_at     = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        db_table = "addresses"
-
-    def __str__(self) -> str:
-        return f"{self.street} {self.house_number}, {self.city}"
 
 
 class OrganizationMember(models.Model):
@@ -297,29 +267,29 @@ class OrganizationMember(models.Model):
 
 
 
-class SpeciesOrganizations(models.Model):
-    """
-    Tabela łącznikowa organizacja ↔ gatunki zwierząt.
-    """
-    id             = models.BigAutoField(primary_key=True)
-    organization   = models.ForeignKey(
-        Organization,
-        on_delete=models.CASCADE,
-        related_name="species_organizations",
-    )
+# class SpeciesOrganizations(models.Model):
+#     """
+#     Tabela łącznikowa organizacja ↔ gatunki zwierząt.
+#     """
+#     id             = models.BigAutoField(primary_key=True)
+#     organization   = models.ForeignKey(
+#         Organization,
+#         on_delete=models.CASCADE,
+#         related_name="species_organizations",
+#     )
     
-    species = models.ForeignKey(
-        "Species",
-        on_delete=models.CASCADE,
-        related_name="organizations",
-    )
+#     species = models.ForeignKey(
+#         "Species",
+#         on_delete=models.CASCADE,
+#         related_name="organizations",
+#     )
 
-    class Meta:
-        db_table   = "species_organizations"
-        unique_together = (("organization", "species"),)
+#     class Meta:
+#         db_table   = "species_organizations"
+#         unique_together = (("organization", "species"),)
 
-    def __str__(self) -> str:
-        return f"{self.organization.name} - {self.species}"
+#     def __str__(self) -> str:
+#         return f"{self.organization.name} - {self.species}"
     
 
 class BreedingTypeOrganizations(models.Model):
@@ -379,3 +349,38 @@ class BreedingType(models.Model):
 
     def __str__(self) -> str:
         return self.name
+    
+
+class Address(models.Model):
+    """
+    Jedno-do-jednego z Organization (możesz łatwo zmienić na ManyToOne
+    – wtedy usuń `unique=True` w FK).
+    """
+
+    id             = models.BigAutoField(primary_key=True)
+    organization   = models.OneToOneField(
+        Organization,
+        related_name="address",
+        on_delete=models.CASCADE,
+        unique=True,
+    )
+
+    species = models.ManyToManyField(Species, related_name="organizations", blank=True)
+
+    city           = models.CharField(max_length=120)
+    street         = models.CharField(max_length=120)
+    house_number   = models.CharField(max_length=10)
+    zip_code       = models.CharField(max_length=12)
+    lat            = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    lng            = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    location    = gis_models.PointField(null=True, blank=True, geography=True)
+
+
+    updated_at     = models.DateTimeField(auto_now=True)
+    deleted_at     = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "addresses"
+
+    def __str__(self) -> str:
+        return f"{self.street} {self.house_number}, {self.city}"

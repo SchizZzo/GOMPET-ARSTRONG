@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import User
-from .models import Organization, Address, OrganizationMember, BreedingTypeOrganizations, SpeciesOrganizations, \
+from .models import Organization, Address, OrganizationMember, BreedingTypeOrganizations, \
       BreedingType, Species
 
 
@@ -105,6 +105,9 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 class AddressSerializer(serializers.ModelSerializer):
     """Serializer adresu organizacji."""
     distance = serializers.SerializerMethodField(read_only=True)
+    species = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Species.objects.all()
+    )
     class Meta:
         model = Address
         fields = [
@@ -116,6 +119,7 @@ class AddressSerializer(serializers.ModelSerializer):
             "lng",
             "location",
             "distance",
+            "species",
         ]
     def get_distance(self, obj):
         # Jeśli w queryset było .annotate(distance=...), to obj.distance to GEOSDistance
@@ -123,17 +127,20 @@ class AddressSerializer(serializers.ModelSerializer):
         if dist is None and hasattr(obj, "organization"):
             dist = getattr(obj.organization, "distance", None)
         return None if dist is None else round(dist.m)  # zwraca odległość w metrach
+    
+    
+    
 
 
-class SpeciesOrganizationsSerializer(serializers.ModelSerializer):
-    """Serializer dla organizacji według gatunku."""
-    class Meta:
-        model = SpeciesOrganizations
-        fields = [
-            "id",
-            "organization",
-            "species",
-        ]
+# class SpeciesOrganizationsSerializer(serializers.ModelSerializer):
+#     """Serializer dla organizacji według gatunku."""
+#     class Meta:
+#         model = SpeciesOrganizations
+#         fields = [
+#             "id",
+#             "organization",
+#             "species",
+#         ]
     
 class BreedingTypeOrganizationsSerializer(serializers.ModelSerializer):
     """Serializer dla organizacji według typu hodowli."""
@@ -194,6 +201,8 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "updated_at",
             "deleted_at",
             "address",
+            "user",
+            
             # "species",
             # "breeding_type",
         ]
