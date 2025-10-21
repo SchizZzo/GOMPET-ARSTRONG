@@ -1,6 +1,7 @@
 from rest_framework import viewsets
 from .models import Litter, LitterAnimal
 from .serializers import LitterSerializer, LitterAnimalSerializer
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 
 from drf_spectacular.utils import extend_schema
@@ -44,7 +45,9 @@ class LitterViewSet(viewsets.ModelViewSet):
     GET /litters/?user-id=42
     ```
     """
+    permission_classes = [IsAuthenticatedOrReadOnly]  # AllowAny
     queryset = Litter.objects.all()
+
     serializer_class = LitterSerializer
     def get_queryset(self):
         qs = super().get_queryset()
