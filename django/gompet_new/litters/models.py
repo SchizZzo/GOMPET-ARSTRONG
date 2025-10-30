@@ -28,7 +28,7 @@ class Litter(models.Model):
         null=True, blank=True
     )
     title       = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
+    description = models.JSONField(blank=True, null=True, help_text="Opis miotu w formacie JSON")
     birth_date  = models.DateField(null=True, blank=True)
 
     status      = models.CharField(max_length=10, choices=LitterStatus.choices, default=LitterStatus.ACTIVE)
