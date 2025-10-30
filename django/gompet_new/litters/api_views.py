@@ -45,8 +45,9 @@ class LitterViewSet(viewsets.ModelViewSet):
     GET /litters/?user-id=42
     ```
     """
-    permission_classes = [IsAuthenticatedOrReadOnly]  # AllowAny
+    
     queryset = Litter.objects.all()
+    permission_classes = [IsAuthenticatedOrReadOnly]  # AllowAny
 
     serializer_class = LitterSerializer
     def get_queryset(self):
