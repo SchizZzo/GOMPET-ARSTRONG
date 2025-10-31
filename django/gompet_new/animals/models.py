@@ -15,6 +15,8 @@ from django.contrib.postgres.fields import ArrayField
 
 from django.contrib.postgres.indexes import GinIndex
 
+from users.models import Species
+
 # ────────────────────────────────────────────────────────────────────
 #  Enums / Choices
 # ────────────────────────────────────────────────────────────────────
@@ -332,6 +334,11 @@ class AnimalsWeightRanges(models.Model):
 class AnimalsBreedGroups(models.Model):
     id = models.BigAutoField(primary_key=True)
     group_name = models.CharField(max_length=100, unique=True)
+    species = models.ForeignKey(
+        Species,
+        on_delete=models.CASCADE,
+        related_name="breed_groups"
+    )
     description = models.TextField(blank=True, null=True)
     min_weight = models.DecimalField(
         max_digits=5, decimal_places=2, validators=[MinValueValidator(0)],
