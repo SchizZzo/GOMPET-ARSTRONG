@@ -59,9 +59,10 @@ class Command(BaseCommand):
             breed_groups_data = json.load(f)
 
         for data in breed_groups_data:
-            AnimalsBreedGroups.objects.get_or_create(
+            AnimalsBreedGroups.objects.update_or_create(
                 group_name=data["group_name"],
                 defaults={
+                    "species": dog_species,
                     "min_weight": data["min_weight"],
                     "max_weight": data["max_weight"],
                     "min_size_male": data["min_size_male"],
