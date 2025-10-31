@@ -22,6 +22,16 @@ class LitterSerializer(serializers.ModelSerializer):
   
     class Meta:
         model = Litter
-        fields = "__all__"
+        fields = (
+            "id",
+            "title",
+            "description",
+            "status",
+            "owner",
+            "organization",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+        )
 
     
