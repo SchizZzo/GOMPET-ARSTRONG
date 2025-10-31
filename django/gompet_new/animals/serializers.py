@@ -414,7 +414,7 @@ class RecentlyAddedAnimalSerializer(serializers.ModelSerializer):
 class AnimalsBreedGroupsSerializer(serializers.ModelSerializer):
     class Meta:
         model = AnimalsBreedGroups
-        fields = ('id', 'group_name', 'description', 'created_at', 'updated_at')
+        fields = ('id', 'group_name', 'species', 'description', 'created_at', 'updated_at')
         read_only_fields = ('created_at', 'updated_at')
 
     

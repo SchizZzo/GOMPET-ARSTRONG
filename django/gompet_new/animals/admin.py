@@ -68,7 +68,7 @@ class CharacteristicsAdmin(admin.ModelAdmin):
 
 @admin.register(AnimalsBreedGroups)
 class AnimalsBreedGroupsAdmin(admin.ModelAdmin):
-    list_display = ('id', 'group_name', 'description', 'created_at', 'updated_at')
+    list_display = ('id', 'group_name', 'species', 'description', 'created_at', 'updated_at')
     search_fields = ('group_name',)
     readonly_fields = ('created_at', 'updated_at', 'deleted_at')
 
