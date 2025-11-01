@@ -80,13 +80,9 @@ class PostViewSet(viewsets.ModelViewSet):
         if animal is None and getattr(serializer, "instance", None) is not None:
             animal = serializer.instance.animal
 
-        if (
-            animal
-            and not self.request.user.is_staff
-            and animal.owner_id != self.request.user.id
-        ):
+        if animal and animal.owner_id != self.request.user.id:
             raise PermissionDenied(
-                "Tylko właściciel zwierzęcia lub administrator może modyfikować post."
+                "Tylko właściciel zwierzęcia może dodawać lub modyfikować post."
             )
 
     def perform_create(self, serializer):
