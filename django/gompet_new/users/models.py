@@ -18,18 +18,18 @@ from django.contrib.gis.db import models as gis_models
 # Gatunek / grupa zwierząt prowadzących organizację (schronisko, fundacja itd.)
 # ─────────────────────────────────────────────────────────────
 class OrganizationSpecies(models.TextChoices):
-    DOG        = "dog",        "Pies"
-    CAT        = "cat",        "Kot"
-    RABBIT     = "rabbit",     "Królik"
-    GUINEA_PIG = "guinea_pig", "Świnka morska"
-    HAMSTER    = "hamster",    "Chomik"
-    RAT        = "rat",        "Szczur"
-    MOUSE      = "mouse",      "Mysz"
-    BIRD       = "bird",       "Ptak"
-    REPTILE    = "reptile",    "Gady"
-    AMPHIBIAN  = "amphibian",  "Płazy"
-    FISH       = "fish",       "Ryby"
-    OTHER      = "other",      "Inne"
+    DOG        = "dog",        "Dog"
+    CAT        = "cat",        "Cat"
+    RABBIT     = "rabbit",     "Rabbit"
+    GUINEA_PIG = "guinea_pig", "Guinea pig"
+    HAMSTER    = "hamster",    "Hamster"
+    RAT        = "rat",        "Rat"
+    MOUSE      = "mouse",      "Mouse"
+    BIRD       = "bird",       "Bird"
+    REPTILE    = "reptile",    "Reptile"
+    AMPHIBIAN  = "amphibian",  "Amphibian"
+    FISH       = "fish",       "Fish"
+    OTHER      = "other",      "Other"
 
 
 # ─────────────────────────────────────────────────────────────
