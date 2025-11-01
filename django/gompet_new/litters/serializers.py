@@ -18,8 +18,7 @@ class LitterAnimalSerializer(serializers.ModelSerializer):
 
 
 class LitterSerializer(serializers.ModelSerializer):
-    
-  
+
     class Meta:
         model = Litter
         fields = (
@@ -27,6 +26,8 @@ class LitterSerializer(serializers.ModelSerializer):
             "title",
             "description",
             "status",
+            "species",
+            "breed",
             "owner",
             "organization",
             "created_at",
@@ -34,4 +35,8 @@ class LitterSerializer(serializers.ModelSerializer):
             "deleted_at",
         )
 
-    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["species"] = instance.species.name if instance.species else None
+        data["breed"] = instance.breed.group_name if instance.breed else None
+        return data
