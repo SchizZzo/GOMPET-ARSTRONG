@@ -25,6 +25,7 @@ class LitterSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "description",
+            "birth_date",
             "status",
             "species",
             "breed",
