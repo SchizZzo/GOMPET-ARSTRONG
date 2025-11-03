@@ -38,6 +38,12 @@ class LitterSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        data["species"] = instance.species.name if instance.species else None
-        data["breed"] = instance.breed.group_name if instance.breed else None
+        data["species"] = (
+            {"value": instance.species.id, "label": instance.species.name}
+            if instance.species else None
+        )
+        data["breed"] = (
+            {"value": instance.breed.id, "label": instance.breed.group_name}
+            if instance.breed else None
+        )
         return data
