@@ -321,33 +321,3 @@ class OrganizationMemberCreateSerializer(serializers.ModelSerializer):
         return OrganizationMember.objects.create(**validated_data)
     
 
-class LatestOrganizationSerializer(serializers.ModelSerializer):
-    """Serializer dla ostatnio dodanych organizacji."""
-    address = AddressSerializer(read_only=True)
-    members = OrganizationMemberSerializer(
-        source='organizationmember_set',
-        many=True,
-        read_only=True
-    )
-
-    class Meta:
-        model = Organization
-        fields = [
-            "id",
-            "type",
-            "name",
-            "email",
-            "image",
-            "phone",
-            "description",
-            "rating",
-            "created_at",
-            "address",
-            "members",
-        ]
-        # UWAGA: Kolejność zwracanych organizacji ustaw w widoku:
-        # queryset = Organization.objects.order_by('-created_at')[:N]
-
-
-
-

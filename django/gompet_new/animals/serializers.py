@@ -357,60 +357,6 @@ class AnimalParentTreeSerializer(serializers.ModelSerializer):
 
 
 
-class RecentlyAddedAnimalSerializer(serializers.ModelSerializer):
-    """
-    Serializer for listing recently added animals with minimal fields.
-    """
-    
-    #characteristics = serializers.SerializerMethodField()
-
-    characteristicBoard = CharacterItemSerializer(
-        many=True, source='characteristic_board', required=False
-    )
-    gender = serializers.CharField(read_only=True)
-    age = serializers.IntegerField(read_only=True)
-
-
-    size = serializers.CharField(read_only=True)
-
-    distance = serializers.SerializerMethodField(read_only=True)
-
-    
-
-    # def get_characteristics(self, obj):
-    #     return [
-    #         {   "id": ac.id,
-    #             "name": ac.characteristics.characteristic,
-    #             "value": ac.value,
-    #         }
-    #         for ac in obj.characteristics_values.all()
-    #     ]
-    def get_distance(self, obj):
-        # Jeśli w queryset było .annotate(distance=...), to obj.distance to GEOSDistance
-        dist = getattr(obj, "distance", None)
-        return None if dist is None else round(dist.m)  # zwraca odległość w metrach
-    class Meta:
-        model = Animal
-        fields = (
-            "id",
-            "name",
-            "species",
-            "characteristicBoard",
-            "age",
-            "city",
-            "gender",
-            "size",
-            "breed",
-            "image",
-            "location",
-            "distance",
-            "created_at",
-        )
-        read_only_fields = ("id", "created_at")
-
-
-
-
 class AnimalsBreedGroupsSerializer(serializers.ModelSerializer):
     class Meta:
         model = AnimalsBreedGroups

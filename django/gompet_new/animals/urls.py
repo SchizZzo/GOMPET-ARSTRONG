@@ -7,11 +7,8 @@ from .api_views import (
     AnimalGalleryViewSet,
     AnimalParentViewSet,
     AnimalFamilyTreeViewSet,
-    AnimalRecentlyAddedViewSet,
-    AnimalFilterViewSet,
     CharacteristicsViewSet,
-    AnimalsBreedGroupsViewSet
-    
+    AnimalsBreedGroupsViewSet,
 )
 
 router = DefaultRouter()
@@ -22,8 +19,6 @@ router.register(r'characteristics-values', CharacteristicsViewSet, basename='cha
 router.register(r'galleries', AnimalGalleryViewSet, basename='animalgallery')
 router.register(r'parents', AnimalParentViewSet, basename='animalparent')
 router.register(r'family-tree', AnimalFamilyTreeViewSet, basename='animalfamilytree')
-router.register(r'latest', AnimalRecentlyAddedViewSet, basename='animalrecentlyadded')
-router.register(r'filtering', AnimalFilterViewSet, basename='animalfiltering')
 
 
 urlpatterns = [
