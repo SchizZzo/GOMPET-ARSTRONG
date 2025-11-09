@@ -1,6 +1,6 @@
-from rest_framework import viewsets
+from rest_framework import filters, viewsets
+from rest_framework.parsers import JSONParser, FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
-from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from .models import (
     Animal,
@@ -18,19 +18,15 @@ from .serializers import (
     AnimalCharacteristicSerializer,
     AnimalGallerySerializer,
     AnimalParentSerializer,
-    RecentlyAddedAnimalSerializer,
     CharacteristicsSerializer,
     AnimalsBreedGroupsSerializer,
 
-    
+
 )
 from drf_spectacular.utils import extend_schema
 from django.shortcuts import get_object_or_404
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters
 from rest_framework import serializers
+from rest_framework.response import Response
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from django.contrib.gis.db.models.functions import Distance
@@ -38,7 +34,6 @@ from django.contrib.gis.measure import D
 from django.contrib.gis.geos import GEOSGeometry, GEOSException
 from django.db.models import Q
 import json
-from django.core.exceptions import FieldError
 
 class FamilyTreeNodeSerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -117,143 +112,146 @@ localhost/animals/animals/?size=MEDIUM
     serializer_class = AnimalSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'descriptions']
+    ordering_fields = ['created_at', 'id']
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
-    # Disable pagination so list endpoints return plain arrays.
-    #pagination_class = None
-    # DEFAULT_LIMIT = 10
-    # MAX_LIMIT = 50
-
-    # def list(self, request, *args, **kwargs):
-    #     """Return a plain list of serialized animals without pagination."""
-    #     queryset = self.filter_queryset(self.get_queryset())
-    #     serializer = self.get_serializer(queryset, many=True)
-    #     return Response(serializer.data)
+    MAX_LIMIT = 50
 
     def perform_create(self, serializer):
         # automatycznie ustawia właściciela na zalogowanego użytkownika
         serializer.save(owner=self.request.user)
 
+
     def get_queryset(self):
         qs = Animal.objects.all().order_by('-created_at')
         params = self.request.query_params
 
+        def split(param_value):
+            return [item.strip() for item in param_value.split(',') if item.strip()]
 
-
-        # multi-value filtering for organization types
         org_param = params.get('organization-type')
         if org_param:
-            org_list = [t.strip() for t in org_param.split(',') if t.strip()]
-            qs = qs.filter(owner__memberships__organization__type__in=org_list)
+            org_list = split(org_param)
+            if org_list:
+                qs = qs.filter(owner__memberships__organization__type__in=org_list)
 
-        # filtrowanie zwierząt należących do podanych organizacji
         org_id_param = params.get('organization-id')
         if org_id_param:
-            org_ids = [oid.strip() for oid in org_id_param.split(',') if oid.strip()]
-            qs = qs.filter(owner__memberships__organization__id__in=org_ids)
+            org_ids = split(org_id_param)
+            if org_ids:
+                qs = qs.filter(owner__memberships__organization__id__in=org_ids)
 
+        status_param = params.get('status')
+        if status_param:
+            statuses = split(status_param)
+            if statuses:
+                qs = qs.filter(status__in=statuses)
 
-       
+        life_period_param = params.get('life-period') or params.get('life_period')
+        if life_period_param:
+            life_periods = split(life_period_param)
+            if life_periods:
+                qs = qs.filter(life_period__in=life_periods)
 
-        # # limit pagination
-        # try:
-        #     limit = int(params.get('limit', self.DEFAULT_LIMIT))
-        # except (TypeError, ValueError):
-        #     limit = self.DEFAULT_LIMIT
-        # limit = max(1, min(limit, self.MAX_LIMIT))
-
-
-        #user_location = getattr(self.request.user, "location", None)
-
-        # filtrowanie po płci (parametr gender: wartości wielokrotne rozdzielone przecinkami)
         gender_param = params.get('gender')
         if gender_param:
-            gender_list = [g.strip() for g in gender_param.split(',') if g.strip()]
-            qs = qs.filter(gender__in=gender_list)
-        
-        # multi-value filtering for species (e.g. ?species=dog,cat)
+            gender_list = split(gender_param)
+            if gender_list:
+                qs = qs.filter(gender__in=gender_list)
+
         species_param = params.get('species')
         if species_param:
-            species_list = [s.strip() for s in species_param.split(',') if s.strip()]
-            qs = qs.filter(species__in=species_list)
+            species_list = split(species_param)
+            if species_list:
+                qs = qs.filter(species__in=species_list)
 
         breed_param = params.get('breed')
         if breed_param:
-            breed_list = [b.strip() for b in breed_param.split(',') if b.strip()]
-            qs = qs.filter(breed__in=breed_list)
+            breed_list = split(breed_param)
+            if breed_list:
+                qs = qs.filter(breed__in=breed_list)
 
-        # multi-value filtering for location
-        location_param = params.get('location')
+        size_param = params.get('size')
+        if size_param:
+            sizes = split(size_param)
+            if sizes:
+                qs = qs.filter(size__in=sizes)
+
+        breed_groups_param = params.get('breed-groups')
+        if breed_groups_param:
+            group_list = split(breed_groups_param)
+            if group_list:
+                qs = qs.filter(animal_breed_groups__group_name__in=group_list)
+
+        city_param = params.get('city')
+        if city_param:
+            cities = split(city_param)
+            if cities:
+                city_query = Q()
+                for city in cities:
+                    city_query |= Q(city__icontains=city)
+                qs = qs.filter(city_query)
+
         location_point = None
+        location_param = params.get('location')
         if location_param:
-            locations = [loc.strip() for loc in location_param.split(',') if loc.strip()]
-            try:
-                location_point = GEOSGeometry(locations[0])
-            except (ValueError, GEOSException, IndexError):
-                location_point = None
-            if location_point and not params.get('range'):
-                qs = qs.filter(location=location_point)
+            locations = split(location_param)
+            if locations:
+                try:
+                    location_point = GEOSGeometry(locations[0])
+                except (ValueError, GEOSException):
+                    location_point = None
+                if location_point and not params.get('range'):
+                    qs = qs.filter(location=location_point)
 
-
-        # wyszukiwanie po nazwie (niewrażliwe na wielkość liter) — spacje w parametrach URL koduj jako %20 lub "+"
-        # np. GET /animals/?name=Animal%201 lub /animals/?name=Animal+1
         search_param = params.get('name')
         if search_param:
-            # support multiple comma-separated search terms, e.g. ?name=Animal 1,Animal 2
-            terms = [t.strip() for t in search_param.split(',') if t.strip()]
+            terms = split(search_param)
             if terms:
-                q = Q()
-            for t in terms:
-                q |= Q(name__icontains=t)
-            qs = qs.filter(q)
+                query = Q()
+                for term in terms:
+                    query |= Q(name__icontains=term)
+                qs = qs.filter(query)
 
-        # filtrowanie po zasięgu (parametr "zasieg" – wartość w metrach)
-
-        zasieg_param = params.get('range')
-        if zasieg_param:
+        range_param = params.get('range')
+        if range_param:
             try:
-                if location_point is None:
-                    user_location = getattr(self.request.user, "location", None)
-                max_distance = float(zasieg_param)
-                point = location_point or user_location
+                max_distance = float(range_param)
+            except (TypeError, ValueError):
+                max_distance = None
+            if max_distance is not None:
+                point = location_point or getattr(self.request.user, 'location', None)
                 if point:
                     qs = (
                         qs.exclude(location__isnull=True)
                         .filter(location__distance_lte=(point, D(m=max_distance)))
-                        .annotate(distance=Distance("location", point))
-                        .order_by("distance")
+                        .annotate(distance=Distance('location', point))
+                        .order_by('distance')
                     )
-            except (TypeError, ValueError):
-                pass
 
         age_param = params.get('age')
         if age_param:
             try:
                 age = int(age_param)
-
+            except (TypeError, ValueError):
+                age = None
+            if age is not None:
                 today = date.today()
-                # Animals whose birth_date makes them exactly `age` years old
                 max_birth = today - relativedelta(years=age)
                 min_birth = today - relativedelta(years=age + 1)
+                qs = qs.filter(birth_date__gt=min_birth, birth_date__lte=max_birth)
 
-                qs = qs.filter(
-                    birth_date__gt=min_birth,
-                    birth_date__lte=max_birth
-                )
-            except (TypeError, ValueError):
-                pass
-
-        # filtrowanie po zakresie wieku (np. ?age_min=2&age_max=5 lub ?age-range=2-5 lub ?age_range=2,5)
         age_min_param = params.get('age_min') or params.get('age-min')
         age_max_param = params.get('age_max') or params.get('age-max')
         age_range_param = params.get('age_range') or params.get('age-range')
-
         if age_range_param and not (age_min_param or age_max_param):
-            # wspiera formaty "2-5", "2,5", "2:5"
-            sep = '-' if '-' in age_range_param else (',' if ',' in age_range_param else (':' if ':' in age_range_param else None))
-            if sep:
-                parts = [p.strip() for p in age_range_param.split(sep) if p.strip()]
-                if len(parts) == 2:
-                    age_min_param, age_max_param = parts[0], parts[1]
+            for sep in ('-', ',', ':'):
+                if sep in age_range_param:
+                    parts = split(age_range_param.replace(sep, ','))
+                    if len(parts) == 2:
+                        age_min_param, age_max_param = parts
+                    break
 
         try:
             today = date.today()
@@ -262,418 +260,69 @@ localhost/animals/animals/?size=MEDIUM
                 max_age = int(age_max_param)
                 if min_age > max_age:
                     min_age, max_age = max_age, min_age
-                # dla zakresu [min_age, max_age] przyjmujemy:
-                # birth_date > today - (max_age+1) lat i birth_date <= today - min_age lat
                 lower_birth = today - relativedelta(years=(max_age + 1))
                 upper_birth = today - relativedelta(years=min_age)
                 qs = qs.filter(birth_date__gt=lower_birth, birth_date__lte=upper_birth)
             elif age_min_param:
                 min_age = int(age_min_param)
-                # wiek >= min_age  => birth_date <= today - min_age lat
                 upper_birth = today - relativedelta(years=min_age)
                 qs = qs.filter(birth_date__lte=upper_birth)
             elif age_max_param:
                 max_age = int(age_max_param)
-                # wiek <= max_age => birth_date > today - (max_age+1) lat
                 lower_birth = today - relativedelta(years=(max_age + 1))
                 qs = qs.filter(birth_date__gt=lower_birth)
         except (TypeError, ValueError):
-            # nieprawidłowe wartości wieku — ignoruj filtr
             pass
 
-
-    
-        # multi-value filtering for characteristics (JSONField `characteristic_board` stores a list of objects)
         char_param = params.get('characteristics')
         if char_param:
+            titles = []
             try:
                 parsed = json.loads(char_param)
-                # support passing a JSON array of objects like:
-                # [{"bool": false, "title": "akceptuje koty"}, {"bool": true, "title": "sterylizacja/kastracj"}]
-                if isinstance(parsed, list) and all(isinstance(i, dict) for i in parsed):
-                    # keep only titles that are true
-                    char_list = [i.get('title') for i in parsed if (i.get('bool') is True or i.get('value') is True) and i.get('title')]
-                else:
-                    raise ValueError("not a list of dicts")
-            except (ValueError, TypeError, json.JSONDecodeError):
-            # fallback: accept comma-separated titles e.g. ?characteristics=tail,vaccinated
-                char_list = [c.strip() for c in char_param.split(',') if c.strip()]
-
-            # require each requested characteristic title to be present with a true value
-            for c in char_list:
+            except (TypeError, json.JSONDecodeError):
+                parsed = None
+            if isinstance(parsed, list):
+                for item in parsed:
+                    if isinstance(item, dict):
+                        if (item.get('bool') is True or item.get('value') is True) and item.get('title'):
+                            titles.append(item['title'])
+            if not titles:
+                titles = split(char_param)
+            for title in titles:
                 qs = qs.filter(
-                    Q(characteristic_board__contains=[{"title": c, "bool": True}]) |
-                    Q(characteristic_board__contains=[{"title": c, "value": True}])
+                    Q(characteristic_board__contains=[{"title": title, "bool": True}])
+                    | Q(characteristic_board__contains=[{"title": title, "value": True}])
+                )
+            if titles:
+                qs = qs.filter(
+                    characteristics_values__characteristics__characteristic__in=titles,
+                    characteristics_values__value=True,
                 )
 
-        city_param = params.get('city')
-        if city_param:
-            city_str = city_param.strip()
-            if city_str:
-                qs = qs.filter(city__icontains=city_str)
+        return qs.distinct()
 
-        # sortowanie po wielkości (parametr size: "asc" lub "desc")
-        size_param = params.get('size')
-        if size_param:
-            size_param = [loc.strip() for loc in size_param.split(',') if loc.strip()]
-            qs = qs.filter(size__in=size_param)
-                
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
 
-        
-
-
-        return qs
-        # if user_location is None:
-        #     return super().get_queryset().all()
-        # # sortuje zwierzęta według odległości od użytkownika
-        # return super().get_queryset() \
-        #     .annotate(distance=Distance("location", user_location)) \
-        #     .order_by("distance")
-    
-
-    
-    
-    
-
-@extend_schema(
-    tags=["animals_new_home"],
-)
-class AnimalRecentlyAddedViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    AnimalRecentlyAddedViewSet
-    ==========================
-
-    Endpoint tylko do odczytu zwracający **najnowsze** zwierzęta,
-    domyślnie posortowane malejąco po `created_at` (ostatnio dodane najpierw).
-
-    Parametry zapytania
-    -------------------
-    - **limit** (int, opcjonalny)  
-      Maksymalna liczba wyników (1–50, domyślnie 10).
-
-    - **species** (str, opcjonalny)  
-      Jeden lub więcej gatunków oddzielonych przecinkami, np. `dog,cat`.
-
-    - **organization-type** (str, opcjonalny)  
-      Typy organizacji właściciela (wartości rozdzielone przecinkami):  
-        • `SHELTER` – Schronisko / Fundacja  
-        • `BREEDER` – Hodowla  
-        • `CLINIC`  – Gabinet weterynaryjny  
-        • `SHOP`    – Sklep zoologiczny  
-        • `OTHER`   – Inne
-
-    - **name** (str, opcjonalny)  
-      Fragment nazwy zwierzęcia (niewrażliwy na wielkość liter).
-
-    - **characteristics** (str, opcjonalny)  
-      Lista kluczy cech boolowskich (przecinkami).  
-      Zwracane są tylko zwierzęta, dla których każda wymieniona cecha ma
-      wartość `True`, np. `characteristics=friendly,vaccinated`.
-
-    Sortowanie i wyszukiwanie
-    -------------------------
-    - Wspiera standardowe parametry DRF `ordering` (pola `created_at`, `id`)  
-      oraz `search` w polach `name`, `description`.
-
-    Przykład
-    --------
-    ```http
-    GET /animals/latest/?limit=20
-        &species=dog,cat
-        &organization-type=SHELTER
-        &characteristics=friendly,vaccinated
-    ```
-    Zwraca maks. 20 najnowszych psów lub kotów należących do schronisk,
-    które są przyjazne i zaszczepione.
-    """
-    
-    
-    serializer_class = RecentlyAddedAnimalSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['name', 'description']
-    ordering_fields = ['created_at', 'id']
-
-    DEFAULT_LIMIT = 10
-    MAX_LIMIT = 50
-
-    def get_queryset(self):
-        qs = Animal.objects.all().order_by('-created_at')
-        params = self.request.query_params
-
-        # multi-value filtering for species (e.g. ?species=dog,cat)
-        species_param = params.get('species')
-        if species_param:
-            species_list = [s.strip() for s in species_param.split(',') if s.strip()]
-            qs = qs.filter(species__in=species_list)
-
-        breed_param = params.get('breed')
-        if breed_param:
-            breed_list = [b.strip() for b in breed_param.split(',') if b.strip()]
-            qs = qs.filter(breed__in=breed_list)
-
-        # multi-value filtering for organization types
-        org_param = params.get('organization-type')
-        if org_param:
-            org_list = [t.strip() for t in org_param.split(',') if t.strip()]
-            qs = qs.filter(owner__memberships__organization__type__in=org_list)
-
-        # search by name (case-insensitive)
-        search_param = params.get('name')
-        if search_param:
-            qs = qs.filter(name__icontains=search_param)
-
-        # limit pagination
-        try:
-            limit = int(params.get('limit', self.DEFAULT_LIMIT))
-        except (TypeError, ValueError):
-            limit = self.DEFAULT_LIMIT
-        limit = max(1, min(limit, self.MAX_LIMIT))
-
-        # multi-value filtering for characteristics (e.g. ?characteristics=tail,vaccinated)
-        char_param = params.get('characteristics')
-        if char_param:
-            char_list = [c.strip() for c in char_param.split(',') if c.strip()]
-            # multi-value filtering for characteristics (e.g. ?characteristics=tail,vaccinated)
-            char_param = params.get('characteristics')
-            if char_param:
-                char_list = [c.strip() for c in char_param.split(',') if c.strip()]
-                qs = qs.filter(
-                    characteristics_values__characteristics__characteristic__in=char_list,
-                    characteristics_values__value=True
-                ).distinct()
-
-        return qs[:limit]
-    
-
-
-@extend_schema(
-    tags=["animals_filtering", "animals_filtering_advanced", "organizations_aniamls_filtering"],
-)
-class AnimalFilterViewSet(viewsets.ReadOnlyModelViewSet):
-    
-    """
-    AnimalFilterViewSet
-    ===================
-
-    Endpoint tylko do odczytu umożliwiający filtrowanie listy zwierząt
-    według wielu kryteriów: gatunku, danych o organizacji właściciela,
-    cech fizycznych, lokalizacji i innych.
-
-    Parametry zapytania
-    -------------------
-    - **limit** (int, opcjonalny)  
-      Maksymalna liczba wyników na stronę (1–50, domyślnie 10 – zgodnie z paginacją).
-
-    - **species** (str, opcjonalny)  
-      Jeden lub więcej gatunków rozdzielonych przecinkami, np. `dog,cat`.
-
-    - **organization-type** (str, opcjonalny)  
-      Typy organizacji właściciela, rozdzielone przecinkami:  
-        • `SHELTER` – Schronisko / Fundacja  
-        • `BREEDER` – Hodowla  
-        • `CLINIC`  – Gabinet weterynaryjny  
-        • `SHOP`    – Sklep zoologiczny  
-        • `OTHER`   – Inne
-
-    - **organization-id** (int, opcjonalny)  
-      Jeden lub więcej identyfikatorów organizacji (przecinkami) – zwraca
-      wyłącznie zwierzęta należące do tych organizacji.
-
-    - **name** (str, opcjonalny)  
-      Niewrażliwe na wielkość liter wyszukiwanie fragmentu nazwy zwierzęcia.
-
-    - **size** (str, opcjonalny)  
-      Jeden lub więcej rozmiarów: `SMALL`, `MEDIUM`, `LARGE` (przecinkami).
-
-    - **gender** (str, opcjonalny)  
-      Jedna lub więcej płci: `MALE`, `FEMALE`, `OTHER` (przecinkami).
-
-    - **age** (int, opcjonalny)  
-      Dokładny wiek w pełnych latach (wyliczany z pola `birth_date`).
-
-    - **characteristics** (str, opcjonalny)  
-      Lista kluczy cech **boolowskich** (przecinkami); zwracane są tylko
-      zwierzęta, dla których każda z wymienionych cech ma wartość `True`.  
-      Przykład: `characteristics=friendly,vaccinated`.
-
-    - **location** (str, opcjonalny)  
-      Lista kodów lokalizacji obsługiwanych przez `LocationField`
-      (np. ID miasta, kody pocztowe) rozdzielonych przecinkami.
-
-    - **range** (float, opcjonalny)  
-      Maksymalna odległość w **metrach** od lokalizacji użytkownika.
-      Wymaga ustawionego pola `location`; łączy się z innymi filtrami i
-      sortuje wyniki według odległości.
-
-    - **breed-groups** (str, opcjonalny)  
-      Jedna lub więcej nazw grup rasowych, rozdzielonych przecinkami,
-      np. `toy,herding`.
-
-    Sortowanie i wyszukiwanie
-    -------------------------
-    - Obsługuje standardowy mechanizm DRF `ordering` (po `created_at`, `id`;
-      domyślnie najnowsze pierwsze) oraz `search` po `name` i `description`.
-
-    Przykład
-    --------
-    ```http
-    GET /animals/filtering/?species=dog,cat
-        &organization-type=SHELTER
-        &characteristics=friendly,vaccinated
-        &size=SMALL,MEDIUM
-        &range=5000
-    ```
-    Zwraca przyjazne, zaszczepione psy lub koty znajdujące się w promieniu
-    5 km od użytkownika, należące do schronisk lub fundacji, ograniczone do
-    podanych rozmiarów.
-
-
-
-    29250911
-    Inny przykład (filtrowanie po grupach rasowych i rasie):
-
-    http://localhost/animals/filtering/?breed=Mixed
-    """
-
-
-    serializer_class = RecentlyAddedAnimalSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['name', 'description']
-    ordering_fields = ['created_at', 'id']
-    
-    def get_queryset(self):
-        qs = Animal.objects.all().order_by('-created_at')
-        params = self.request.query_params
-
-        # multi-value filtering for species (e.g. ?species=dog,cat)
-        species_param = params.get('species')
-        if species_param:
-            species_list = [s.strip() for s in species_param.split(',') if s.strip()]
-            qs = qs.filter(species__in=species_list)
-
-        # multi-value filtering for organization types
-        org_param = params.get('organization-type')
-        if org_param:
-            org_list = [t.strip() for t in org_param.split(',') if t.strip()]
-            qs = qs.filter(owner__memberships__organization__type__in=org_list)
-
-        # search by name
-        search_param = params.get('name')
-        if search_param:
-            qs = qs.filter(name__icontains=search_param)
-
-        # multi-value filtering for characteristics
-        char_param = params.get('characteristics')
-        if char_param:
-            char_list = [c.strip() for c in char_param.split(',') if c.strip()]
-            qs = qs.filter(
-                characteristics_values__characteristic__in=char_list,
-                characteristics_values__value=True
-            ).distinct()
-
-        # multi-value filtering for location
-        location_param = params.get('location')
-        if location_param:
-            locations = [loc.strip() for loc in location_param.split(',') if loc.strip()]
-            qs = qs.filter(location__in=locations)
-
-        # support Polish “gatunek” query parameter for species filtering
-        gatunek_param = params.get('species')
-        if gatunek_param:
-            gatunek_list = [g.strip() for g in gatunek_param.split(',') if g.strip()]
-            qs = qs.filter(species__in=gatunek_list)
-
-        age_param = params.get('age')
-        if age_param:
+        limit_param = request.query_params.get('limit')
+        limit = None
+        if limit_param is not None:
             try:
-                age = int(age_param)
-
-                today = date.today()
-                # Animals whose birth_date makes them exactly `age` years old
-                max_birth = today - relativedelta(years=age)
-                min_birth = today - relativedelta(years=age + 1)
-
-                qs = qs.filter(
-                    birth_date__gt=min_birth,
-                    birth_date__lte=max_birth
-                )
+                limit = int(limit_param)
             except (TypeError, ValueError):
-                pass
+                limit = None
+            else:
+                limit = max(1, min(limit, self.MAX_LIMIT))
+        if limit is not None:
+            queryset = queryset[:limit]
 
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
-        # multi-value filtering for breed groups (e.g. ?breed-groups=herding,toy)
-        breed_groups_param = params.get('breed-groups')
-        if breed_groups_param:
-            group_list = [g.strip() for g in breed_groups_param.split(',') if g.strip()]
-            qs = qs.filter(animal_breed_groups__group_name__in=group_list)
-
-        breed_param = params.get('breed')
-        if breed_param:
-            breed_list = [b.strip() for b in breed_param.split(',') if b.strip()]
-            qs = qs.filter(breed__in=breed_list)
-
-        
-        # sortowanie po wielkości (parametr size: "asc" lub "desc")
-        size_param = params.get('size')
-        if size_param:
-            size_param = [loc.strip() for loc in size_param.split(',') if loc.strip()]
-            qs = qs.filter(size__in=size_param)
-
-        
-
-        # filtrowanie po płci (parametr gender: wartości wielokrotne rozdzielone przecinkami)
-        gender_param = params.get('gender')
-        if gender_param:
-            gender_list = [g.strip() for g in gender_param.split(',') if g.strip()]
-            qs = qs.filter(gender__in=gender_list)
-
-        # filtering by range (zasięg) – expects an integer value in query param “zasieg”
-
-
-        # filtrowanie zwierząt należących do podanych organizacji
-        org_id_param = params.get('organization-id')
-        if org_id_param:
-            org_ids = [oid.strip() for oid in org_id_param.split(',') if oid.strip()]
-            qs = qs.filter(owner__memberships__organization__id__in=org_ids)
-            
-        # filtrowanie po zasięgu (parametr "zasieg" – wartość w metrach)
-        zasieg_param = params.get('range')
-        if zasieg_param:
-            try:
-                max_distance = float(zasieg_param)
-                user_location = getattr(self.request.user, "location", None)
-                print(f"User location: {user_location}, Max distance: {max_distance}")
-                if user_location:
-                    qs = (
-                    qs.exclude(location__isnull=True)
-                    .filter(location__distance_lte=(user_location, D(m=max_distance)))
-                    .annotate(distance=Distance("location", user_location))
-                    .order_by("distance")
-                    )
-            except (TypeError, ValueError):
-                pass
-
-        
-
-        
-        return qs
-
-
-            
-        
-
-       
-        
-    
-        
-
-
-
-    
-    
-
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 @extend_schema(
     tags=["animal_characteristics", "animals_characteristics_new"],
     description="API for managing animal characteristics (boolean features)."

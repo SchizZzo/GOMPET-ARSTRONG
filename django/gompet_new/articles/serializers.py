@@ -62,18 +62,3 @@ class ArticleSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
     
 
-class ArticlesLastSerializer(serializers.ModelSerializer):
-    """
-    Serializer for listing the last 10 articles with minimal fields.
-    """
-
-    class Meta:
-        model = Article
-        fields = (
-            "id",
-            "slug",
-            "title",
-            "image",
-            "created_at",
-        )
-        read_only_fields = ("id", "created_at")

@@ -1,12 +1,10 @@
-from django.utils import timezone
-from rest_framework import serializers, viewsets, permissions, filters, status
+from rest_framework import filters, permissions, status, viewsets
 from rest_framework.response import Response
 from .models import Article
 
-from .serializers import ArticleSerializer, ArticlesLastSerializer
+from .serializers import ArticleSerializer
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.decorators import action
 
 @extend_schema(
     tags=["articles"],
@@ -25,9 +23,40 @@ class ArticleViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["title", "content", "author__username"]
     ordering_fields = ["created_at", "updated_at"]
+    MAX_LIMIT = 50
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+    def get_queryset(self):
+        queryset = Article.objects.filter(deleted_at__isnull=True)
+        author = self.request.query_params.get('author')
+        if author:
+            queryset = queryset.filter(author__first_name__icontains=author)
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        limit_param = request.query_params.get('limit')
+        limit = None
+        if limit_param is not None:
+            try:
+                limit = int(limit_param)
+            except (TypeError, ValueError):
+                limit = None
+            else:
+                limit = max(1, min(limit, self.MAX_LIMIT))
+        if limit is not None:
+            queryset = queryset[:limit]
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
         article = self.get_object()
@@ -37,48 +66,3 @@ class ArticleViewSet(viewsets.ModelViewSet):
     
     
 
-@extend_schema(
-    tags=["articles_latest"],
-    
-)
-class ArticlesLastViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    # Widok tylko do odczytu - Najnowsze artykuły
-    Pobiera do określonej liczby nieusuniętych instancji **Article**, posortowanych malejąco według daty utworzenia.
-
-    ## Parametry zapytania
-    - `author` (str, opcjonalnie): filtr częściowy (case-insensitive) na nazwę użytkownika autora artykułu.
-    - `limit` (int, opcjonalnie): maksymalna liczba zwracanych artykułów (domyślnie 10, jeśli brak lub nieprawidłowy).
-
-    ## Funkcjonalności
-    - Uwzględnia tylko artykuły, których `deleted_at` jest null.
-    - Wspiera wyszukiwanie po tytule za pomocą standardowego parametru `search`.
-    - Wspiera sortowanie po `created_at` za pomocą standardowego parametru `ordering`.
-    - Zastosowanie uprawnień `IsAuthenticatedOrReadOnly`.
-
-    ## Przykład zapytania
-    ```http
-    GET /articles-latest/?author=johndoe&limit=5
-    ```
-    """
-    queryset = Article.objects.filter(deleted_at__isnull=True).order_by('-created_at')[:10]
-    serializer_class = ArticlesLastSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ["title"]
-    ordering_fields = ["created_at"]
-
-    def get_queryset(self):
-        queryset = Article.objects.filter(deleted_at__isnull=True)
-        author = self.request.query_params.get('author')
-        if author:
-            queryset = queryset.filter(author__first_name__icontains=author)
-
-        # read `limit` param, default to 10
-        limit_param = self.request.query_params.get('limit')
-        try:
-            limit = int(limit_param) if limit_param is not None else 10
-        except ValueError:
-            limit = 10
-
-        return queryset.order_by('-created_at')[:limit]

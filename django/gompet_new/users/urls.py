@@ -9,8 +9,6 @@ from .api_views import (
     UserViewSet,
     OrganizationViewSet,
     OrganizationMemberViewSet,
-    OrganizationRecentlyAddedViewSet,
-    OrganizationFilteringAddedViewSet,
     SpeciesViewSet,
 )
 
@@ -18,8 +16,6 @@ router = routers.DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
 router.register(r'organizations', OrganizationViewSet, basename='organization')
 router.register(r'organization-members', OrganizationMemberViewSet, basename='organizationmember')
-router.register(r'organization-latest', OrganizationRecentlyAddedViewSet, basename='latestorganization')
-router.register(r'organization-filtering', OrganizationFilteringAddedViewSet, basename='organizationfiltering')
 router.register(r'species', SpeciesViewSet, basename='species')
 
 urlpatterns = [
