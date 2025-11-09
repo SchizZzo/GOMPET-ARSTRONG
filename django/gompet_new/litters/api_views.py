@@ -1,15 +1,18 @@
+from django.utils.translation import gettext_lazy as _
 from rest_framework import viewsets
+from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+
 from .models import Litter, LitterAnimal
 from .serializers import LitterSerializer, LitterAnimalSerializer
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 
 from drf_spectacular.utils import extend_schema
 @extend_schema(
     tags=["litters", "organizations_miots", "litters_new_profile"],
-    description="API endpoint that allows litters to be viewed or edited."
+    description="API endpoint that allows litters to be viewed."
 )
-class LitterViewSet(viewsets.ModelViewSet):
+class LitterViewSet(viewsets.ReadOnlyModelViewSet):
     """
     LitterViewSet
     =============
@@ -47,20 +50,34 @@ class LitterViewSet(viewsets.ModelViewSet):
     """
     
     queryset = Litter.objects.all()
-    permission_classes = [IsAuthenticatedOrReadOnly]  # AllowAny
-
+    permission_classes = [IsAuthenticatedOrReadOnly]
     serializer_class = LitterSerializer
+
     def get_queryset(self):
         qs = super().get_queryset()
-        organization_id = self.request.query_params.get("organization-id")
-        user_id = self.request.query_params.get("user-id")
+        organization_param = self.request.query_params.get("organization-id")
+        user_param = self.request.query_params.get("user-id")
 
-        if organization_id:
+        if organization_param:
+            organization_id = self._parse_positive_int(organization_param, "organization-id")
             qs = qs.filter(organization_id=organization_id)
-        elif user_id:
+        elif user_param:
+            user_id = self._parse_positive_int(user_param, "user-id")
             qs = qs.filter(owner_id=user_id)
 
         return qs
+
+    @staticmethod
+    def _parse_positive_int(value: str, param_name: str) -> int:
+        try:
+            parsed_value = int(value)
+        except (TypeError, ValueError):
+            raise ValidationError({param_name: _("Expected an integer value.")})
+
+        if parsed_value < 1:
+            raise ValidationError({param_name: _("Value must be greater than zero.")})
+
+        return parsed_value
 
 
 @extend_schema(
