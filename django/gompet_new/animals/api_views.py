@@ -289,15 +289,15 @@ localhost/animals/animals/?size=MEDIUM
             if not titles:
                 titles = split(char_param)
             for title in titles:
-                qs = qs.filter(
+                board_query = (
                     Q(characteristic_board__contains=[{"title": title, "bool": True}])
                     | Q(characteristic_board__contains=[{"title": title, "value": True}])
                 )
-            if titles:
-                qs = qs.filter(
-                    characteristics_values__characteristics__characteristic__in=titles,
+                relational_query = Q(
+                    characteristics_values__characteristics__characteristic=title,
                     characteristics_values__value=True,
                 )
+                qs = qs.filter(board_query | relational_query)
 
         return qs.distinct()
 
