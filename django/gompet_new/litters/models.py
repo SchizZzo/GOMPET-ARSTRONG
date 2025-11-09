@@ -36,14 +36,14 @@ class Litter(models.Model):
     owner       = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         related_name="litters",
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True, blank=True
     )
 
     organization = models.ForeignKey(
         "users.Organization",
         related_name="litters",
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True, blank=True
     )
 
