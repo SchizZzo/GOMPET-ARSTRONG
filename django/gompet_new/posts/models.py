@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
+from common.managers import ActiveManager
 from common.models import Comment, Reaction
 
 from animals.models import Animal
@@ -22,6 +23,9 @@ class TimeStampedModel(models.Model):
     created_at = models.DateTimeField(default=timezone.now, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
+
+    objects = ActiveManager()
+    all_objects = models.Manager()
 
     class Meta:
         abstract = True

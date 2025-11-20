@@ -17,7 +17,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
     
 
     """
-    queryset = Article.objects.filter(deleted_at__isnull=True)
+    queryset = Article.objects.all()
     serializer_class = ArticleSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
@@ -29,7 +29,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user)
 
     def get_queryset(self):
-        queryset = Article.objects.filter(deleted_at__isnull=True)
+        queryset = Article.objects.all()
         author = self.request.query_params.get('author')
         if author:
             queryset = queryset.filter(author__first_name__icontains=author)

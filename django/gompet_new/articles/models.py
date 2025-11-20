@@ -3,6 +3,7 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models, router, transaction
 from django.utils import timezone
 
+from common.managers import ActiveManager
 from common.models import Comment, Reaction
 
 
@@ -11,6 +12,9 @@ class TimeStampedModel(models.Model):
     created_at = models.DateTimeField(default=timezone.now, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
+
+    objects = ActiveManager()
+    all_objects = models.Manager()
 
     class Meta:
         abstract = True
