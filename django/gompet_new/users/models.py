@@ -70,13 +70,6 @@ class UserManager(BaseUserManager):
     def get_queryset(self):
         return super().get_queryset().filter(deleted_at__isnull=True)
 
-
-class AllUsersManager(UserManager):
-    """Manager zwracający wszystkie rekordy bez filtra soft-delete."""
-
-    def get_queryset(self):
-        return super(UserManager, self).get_queryset()
-
     def _create_user(self, email: str, password: str | None, **extra_fields):
         if not email:
             raise ValueError("Użytkownik musi mieć adres e-mail")
@@ -95,6 +88,13 @@ class AllUsersManager(UserManager):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         return self._create_user(email, password, **extra_fields)
+
+
+class AllUsersManager(UserManager):
+    """Manager zwracający wszystkie rekordy bez filtra soft-delete."""
+
+    def get_queryset(self):
+        return super(UserManager, self).get_queryset()
 
 
 class User(AbstractBaseUser, PermissionsMixin):
