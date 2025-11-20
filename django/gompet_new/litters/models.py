@@ -3,6 +3,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.contrib.contenttypes.fields import GenericRelation
 from animals.models import Animal, LitterStatus
+from common.managers import ActiveManager
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from animals.models import AnimalsBreedGroups
@@ -59,6 +60,9 @@ class Litter(models.Model):
         object_id_field="reactable_id",
     )
 
+    objects = ActiveManager()
+    all_objects = models.Manager()
+
     
 
     class Meta:
@@ -105,6 +109,9 @@ class LitterAnimal(models.Model):
 
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
+
+    objects = ActiveManager()
+    all_objects = models.Manager()
 
     class Meta:
         db_table   = "litter_animals"

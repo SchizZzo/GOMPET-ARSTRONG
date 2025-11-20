@@ -15,6 +15,7 @@ from django.contrib.postgres.fields import ArrayField
 
 from django.contrib.postgres.indexes import GinIndex
 
+from common.managers import ActiveManager
 from users.models import Species
 
 # ────────────────────────────────────────────────────────────────────
@@ -149,6 +150,9 @@ class Animal(models.Model):
         default=LifePeriod.PUPPY
     )
 
+    objects = ActiveManager()
+    all_objects = models.Manager()
+
     class Meta:
         db_table = "animals"
         ordering = ("-created_at",)
@@ -188,6 +192,9 @@ class Characteristics(models.Model):
     updated_at  = models.DateTimeField(auto_now=True)
     deleted_at  = models.DateTimeField(null=True, blank=True)
 
+    objects = ActiveManager()
+    all_objects = models.Manager()
+
     class Meta:
         db_table = "characteristics"
 
@@ -210,6 +217,9 @@ class AnimalCharacteristic(models.Model):
 
     updated_at  = models.DateTimeField(auto_now=True)
     deleted_at  = models.DateTimeField(null=True, blank=True)
+
+    objects = ActiveManager()
+    all_objects = models.Manager()
 
     class Meta:
         db_table  = "animal_characteristics"
@@ -241,6 +251,9 @@ class AnimalGallery(models.Model):
     updated_at  = models.DateTimeField(auto_now=True)
     deleted_at  = models.DateTimeField(null=True, blank=True)
 
+    objects = ActiveManager()
+    all_objects = models.Manager()
+
     class Meta:
         db_table = "animal_gallery"
         #ordering = ("ordering",)
@@ -267,6 +280,9 @@ class AnimalParent(models.Model):
 
     updated_at  = models.DateTimeField(auto_now=True)
     deleted_at  = models.DateTimeField(null=True, blank=True)
+
+    objects = ActiveManager()
+    all_objects = models.Manager()
 
     class Meta:
         db_table = "animal_parents"
@@ -321,6 +337,9 @@ class AnimalsWeightRanges(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
+
+    objects = ActiveManager()
+    all_objects = models.Manager()
 
 
 
@@ -382,6 +401,9 @@ class AnimalsBreedGroups(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
+
+    objects = ActiveManager()
+    all_objects = models.Manager()
 
     class Meta:
         db_table = "animal_breed_groups"

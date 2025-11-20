@@ -12,6 +12,7 @@ from django.contrib.auth.models import (
 )
 from django.contrib.gis.db import models as gis_models
 
+from common.managers import ActiveManager
 
 
 # ─────────────────────────────────────────────────────────────
@@ -66,6 +67,16 @@ phone_validator = RegexValidator(
 class UserManager(BaseUserManager):
     """Custom manager z użyciem e-maila jako loginu."""
 
+    def get_queryset(self):
+        return super().get_queryset().filter(deleted_at__isnull=True)
+
+
+class AllUsersManager(UserManager):
+    """Manager zwracający wszystkie rekordy bez filtra soft-delete."""
+
+    def get_queryset(self):
+        return super(UserManager, self).get_queryset()
+
     def _create_user(self, email: str, password: str | None, **extra_fields):
         if not email:
             raise ValueError("Użytkownik musi mieć adres e-mail")
@@ -111,6 +122,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff    = models.BooleanField(default=False)  # dostęp do admina
 
     objects     = UserManager()
+    all_objects = AllUsersManager()
 
     USERNAME_FIELD  = "email"
     REQUIRED_FIELDS = ["first_name", "last_name"]
@@ -208,6 +220,9 @@ class Organization(models.Model):
     updated_at  = models.DateTimeField(auto_now=True)
     deleted_at  = models.DateTimeField(null=True, blank=True)
 
+    objects = ActiveManager()
+    all_objects = models.Manager()
+
     class Meta:
         db_table = "organizations"
         ordering = ("-created_at",)
@@ -252,6 +267,9 @@ class OrganizationMember(models.Model):
 
     updated_at     = models.DateTimeField(auto_now=True)
     deleted_at     = models.DateTimeField(null=True, blank=True)
+
+    objects = ActiveManager()
+    all_objects = models.Manager()
 
     class Meta:
         db_table   = "organization_members"
@@ -378,6 +396,9 @@ class Address(models.Model):
 
     updated_at     = models.DateTimeField(auto_now=True)
     deleted_at     = models.DateTimeField(null=True, blank=True)
+
+    objects = ActiveManager()
+    all_objects = models.Manager()
 
     class Meta:
         db_table = "addresses"
