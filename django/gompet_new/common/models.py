@@ -43,8 +43,10 @@ class Comment(TimeStampedModel):
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="comments",
+        null=True,
+        blank=True,
     )
 
     # Polimorficzny klucz obcy
@@ -88,8 +90,10 @@ class Reaction(TimeStampedModel):
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="reactions",
+        null=True,
+        blank=True,
     )
 
     reaction_type = models.CharField(

@@ -7,6 +7,7 @@ from .api_views import (
     TokenCreateView,
     TokenRefreshView,
     UserViewSet,
+    DeleteMeView,
     OrganizationViewSet,
     OrganizationMemberViewSet,
     OrganizationRecentlyAddedViewSet,
@@ -40,5 +41,6 @@ router.register(r'species', SpeciesViewSet, basename='species')
 urlpatterns = [
     path('auth/token/', TokenCreateView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('users/me/delete/', DeleteMeView.as_view(), name='user-delete-me'),
     path('', include(router.urls)),
 ]

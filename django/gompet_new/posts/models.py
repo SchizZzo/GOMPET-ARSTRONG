@@ -42,7 +42,7 @@ class Post(TimeStampedModel):
     #image = models.URLField(null=True, blank=True)  # można też użyć ImageField(...)
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="posts",
         blank=True, null=True
     )

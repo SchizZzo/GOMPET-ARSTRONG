@@ -105,6 +105,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     created_at  = models.DateTimeField(default=timezone.now)
     updated_at  = models.DateTimeField(auto_now=True)
     deleted_at  = models.DateTimeField(null=True, blank=True)
+    is_deleted  = models.BooleanField(default=False)
 
     # Django-owe flagi
     is_active   = models.BooleanField(default=True)
@@ -133,7 +134,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         """Oznacza użytkownika jako usuniętego bez fizycznego kasowania."""
         self.deleted_at = timezone.now()
         self.is_active = False
-        self.save(update_fields=["deleted_at", "is_active"])
+        self.is_deleted = True
+        self.save(update_fields=["deleted_at", "is_active", "is_deleted"])
 
 
 # organizations/models.py
@@ -196,7 +198,7 @@ class Organization(models.Model):
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="organizations",
         
         help_text="Opcjonalny właściciel organizacji (użytkownik)."
