@@ -102,19 +102,6 @@ class UserViewSet(viewsets.ModelViewSet):
         request.user.soft_delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=["delete"], url_path="hard-delete")
-    def hard_delete(self, request, *args, **kwargs):
-        user = self.get_object()
-
-        if request.user != user and not (request.user.is_staff or request.user.is_superuser):
-            return Response(
-                {"detail": "Nie masz uprawnień do trwałego usunięcia tego konta."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        user.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
 @extend_schema(
     tags=["organizations", "organizations_profile", "organizations_profile_pupils", "organizations_profile_miots", "organizations_new_profile"],
     description="API for managing organizations, including CRUD operations."
