@@ -1,8 +1,9 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
 from django.db import transaction
 from django.utils import timezone
-from rest_framework.authtoken.models import Token
+from importlib import util
 
 from .models import MemberRole
 
@@ -11,6 +12,38 @@ User = get_user_model()
 
 class CannotDeleteUser(Exception):
     """Raised when a user cannot be safely removed."""
+
+
+def _delete_authtoken_tokens(user: User) -> None:
+    """Delete tokens from DRF's TokenAuthentication if available."""
+
+    if util.find_spec("rest_framework.authtoken.models") is None:
+        return
+
+    from rest_framework.authtoken.models import Token
+
+    if hasattr(Token, "objects"):
+        Token.objects.filter(user=user).delete()
+
+
+def _blacklist_jwt_tokens(user: User) -> None:
+    """Blacklist and remove SimpleJWT outstanding tokens if enabled."""
+
+    if "rest_framework_simplejwt.token_blacklist" not in settings.INSTALLED_APPS:
+        return
+
+    if util.find_spec("rest_framework_simplejwt.token_blacklist.models") is None:
+        return
+
+    from rest_framework_simplejwt.token_blacklist.models import (
+        BlacklistedToken,
+        OutstandingToken,
+    )
+
+    tokens = OutstandingToken.objects.filter(user=user)
+    for token in tokens:
+        BlacklistedToken.objects.get_or_create(token=token)
+    tokens.delete()
 
 
 @transaction.atomic
@@ -25,7 +58,8 @@ def delete_user_account(user: User):
                 f"Użytkownik jest jedynym właścicielem organizacji {org.name}"
             )
 
-    Token.objects.filter(user=user).delete()
+    _delete_authtoken_tokens(user)
+    _blacklist_jwt_tokens(user)
 
     for session in Session.objects.all():
         data = session.get_decoded()
