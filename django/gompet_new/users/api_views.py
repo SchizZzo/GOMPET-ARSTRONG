@@ -1,29 +1,23 @@
-from rest_framework import viewsets
+from django.contrib.gis.db.models.functions import Distance
+from django.contrib.gis.measure import D
+from drf_spectacular.utils import extend_schema
+from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
-from rest_framework import permissions
-from .models import User, Organization, OrganizationMember, Species, MemberRole
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView as SimpleJWTTokenObtainPairView,
+    TokenRefreshView as SimpleJWTTokenRefreshView,
+)
 
+from .models import MemberRole, Organization, OrganizationMember, Species, User
 from .serializers import (
     UserSerializer, UserCreateSerializer, UserUpdateSerializer,
     OrganizationSerializer, OrganizationCreateSerializer, OrganizationUpdateSerializer,
     OrganizationMemberSerializer, OrganizationMemberCreateSerializer, LatestOrganizationSerializer, SpeciesSerializer
 )
-
-
-from rest_framework_simplejwt.views import TokenObtainPairView as SimpleJWTTokenObtainPairView, TokenRefreshView as SimpleJWTTokenRefreshView
-from drf_spectacular.utils import extend_schema
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
-from .models import Organization
-from .serializers import LatestOrganizationSerializer
-from django.contrib.gis.db.models.functions import Distance
-from django.contrib.gis.measure import D
-from rest_framework import status
-
-
-
+from .services import CannotDeleteUser, delete_user_account
 
 @extend_schema(tags=["auth"])
 class TokenCreateView(SimpleJWTTokenObtainPairView):
@@ -65,7 +59,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
     """
-    queryset = User.objects.filter(deleted_at__isnull=True)
+    queryset = User.objects.filter(is_deleted=False)
     
 
     def get_serializer_class(self):
@@ -89,7 +83,11 @@ class UserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        user.soft_delete()
+        try:
+            delete_user_account(user)
+        except CannotDeleteUser as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def destroy_current(self, request, *args, **kwargs):
@@ -99,8 +97,32 @@ class UserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        request.user.soft_delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        try:
+            delete_user_account(request.user)
+        except CannotDeleteUser as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(status=status.HTTP_200_OK, data={
+            "detail": "Konto zostało usunięte (dezaktywowane i zanonimizowane)."
+        })
+
+
+class DeleteMeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request):
+        try:
+            delete_user_account(request.user)
+        except CannotDeleteUser as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(
+            {"detail": "Konto zostało usunięte (dezaktywowane i zanonimizowane)."},
+            status=status.HTTP_200_OK,
+        )
 
 @extend_schema(
     tags=["organizations", "organizations_profile", "organizations_profile_pupils", "organizations_profile_miots", "organizations_new_profile"],

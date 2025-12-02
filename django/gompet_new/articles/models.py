@@ -39,7 +39,9 @@ class Article(TimeStampedModel):
     author  = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         related_name="articles",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
     )
 
     comments = GenericRelation(
