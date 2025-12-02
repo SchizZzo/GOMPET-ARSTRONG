@@ -14,7 +14,19 @@ from .api_views import (
     SpeciesViewSet,
 )
 
-router = routers.DefaultRouter()
+
+class UserRouter(routers.DefaultRouter):
+    def get_routes(self, viewset):
+        routes = super().get_routes(viewset)
+
+        if hasattr(viewset, "destroy_current"):
+            for route in routes:
+                if route.mapping.get("get") == "list":
+                    route.mapping["delete"] = "destroy_current"
+
+        return routes
+
+router = UserRouter()
 router.register(r'users', UserViewSet, basename='user')
 router.register(r'organizations', OrganizationViewSet, basename='organization')
 router.register(r'organization-members', OrganizationMemberViewSet, basename='organizationmember')
