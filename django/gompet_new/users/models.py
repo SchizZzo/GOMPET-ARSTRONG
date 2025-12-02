@@ -5,6 +5,7 @@ from django.db import models
 from django.db import models
 from django.core.validators import RegexValidator
 from django.utils import timezone
+from uuid import uuid4
 from django.contrib.auth.models import (
     AbstractBaseUser,
     PermissionsMixin,
@@ -133,7 +134,20 @@ class User(AbstractBaseUser, PermissionsMixin):
         """Oznacza użytkownika jako usuniętego bez fizycznego kasowania."""
         self.deleted_at = timezone.now()
         self.is_active = False
-        self.save(update_fields=["deleted_at", "is_active"])
+        self.first_name = "Konto"
+        self.last_name = "usunięte"
+        self.email = f"deleted_user_{self.pk}_{uuid4().hex[:8]}@deleted.local"
+        self.set_unusable_password()
+        self.save(
+            update_fields=[
+                "deleted_at",
+                "is_active",
+                "first_name",
+                "last_name",
+                "email",
+                "password",
+            ]
+        )
 
 
 # organizations/models.py
