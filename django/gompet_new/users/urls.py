@@ -21,7 +21,10 @@ class UserRouter(routers.DefaultRouter):
 
         if hasattr(viewset, "destroy_current"):
             for route in routes:
-                if route.mapping.get("get") == "list":
+                # Only inspect default routes whose mapping is a standard dict.
+                # Extra actions use a MethodMapper which exposes a .get method
+                # that expects a callable, not a key, so guard against it here.
+                if isinstance(route.mapping, dict) and route.mapping.get("get") == "list":
                     route.mapping["delete"] = "destroy_current"
 
         return routes
