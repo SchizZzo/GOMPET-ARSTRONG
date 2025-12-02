@@ -65,7 +65,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
     """
-    queryset = User.objects.all()
+    queryset = User.objects.filter(deleted_at__isnull=True)
     
 
     def get_serializer_class(self):
@@ -79,6 +79,18 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == "create":
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
+
+    def destroy(self, request, *args, **kwargs):
+        user = self.get_object()
+
+        if request.user != user and not request.user.is_staff and not request.user.is_superuser:
+            return Response(
+                {"detail": "Nie masz uprawnień do usunięcia tego konta."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        user.soft_delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 @extend_schema(
     tags=["organizations", "organizations_profile", "organizations_profile_pupils", "organizations_profile_miots", "organizations_new_profile"],
