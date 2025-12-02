@@ -92,6 +92,16 @@ class UserViewSet(viewsets.ModelViewSet):
         user.soft_delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    def destroy_current(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response(
+                {"detail": "Authentication credentials were not provided."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        request.user.soft_delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 @extend_schema(
     tags=["organizations", "organizations_profile", "organizations_profile_pupils", "organizations_profile_miots", "organizations_new_profile"],
     description="API for managing organizations, including CRUD operations."
