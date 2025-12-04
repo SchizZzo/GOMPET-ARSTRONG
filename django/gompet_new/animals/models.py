@@ -191,6 +191,41 @@ class Animal(models.Model):
             self.age = None
         super().save(*args, **kwargs)
 
+    @property
+    def age_display(self) -> str:
+        if not self.birth_date:
+            return "brak danych"
+
+        birth_date = self.birth_date
+        today = date.today()
+
+        years = today.year - birth_date.year
+        months = today.month - birth_date.month
+        days = today.day - birth_date.day
+
+        # Adjust when days or months are negative
+        if days < 0:
+            months -= 1
+        if months < 0:
+            years -= 1
+            months += 12
+
+        result = []
+        if years > 0:
+            result.append(
+                f"{years} rok"
+                if years == 1
+                else f"{years} lata" if 2 <= years <= 4 else f"{years} lat"
+            )
+        if months > 0:
+            result.append(
+                f"{months} miesiąc"
+                if months == 1
+                else f"{months} miesiące" if 2 <= months <= 4 else f"{months} miesięcy"
+            )
+
+        return " ".join(result) if result else "mniej niż miesiąc"
+
 
 # ────────────────────────────────────────────────────────────────────
 #  Charakterystyki / cechy boolowskie
@@ -234,35 +269,6 @@ class AnimalCharacteristic(models.Model):
 
     def __str__(self) -> str:
         return f"{self.animal} {self.value}"
-    
-
-    @property
-    def age_display(self) -> str:
-        animal = getattr(self, "animal", None)
-        if not (animal and animal.birth_date):
-            return "brak danych"
-
-        birth_date = animal.birth_date
-        today = date.today()
-
-        years = today.year - birth_date.year
-        months = today.month - birth_date.month
-        days = today.day - birth_date.day
-
-        # Korekty gdy dni lub miesiące są ujemne
-        if days < 0:
-            months -= 1
-        if months < 0:
-            years -= 1
-            months += 12
-
-        result = []
-        if years > 0:
-            result.append(f"{years} rok" if years == 1 else f"{years} lata" if 2 <= years <= 4 else f"{years} lat")
-        if months > 0:
-            result.append(f"{months} miesiąc" if months == 1 else f"{months} miesiące" if 2 <= months <= 4 else f"{months} miesięcy")
-
-        return " ".join(result) if result else "mniej niż miesiąc"
     
 
 
