@@ -37,6 +37,7 @@ class Base64ImageField(serializers.ImageField):
 class UserSerializer(serializers.ModelSerializer):
     """Serializer do odczytu danych użytkownika."""
     full_name = serializers.CharField(read_only=True)
+    image = Base64ImageField(required=False, allow_null=True)
 
     class Meta:
         model = User
@@ -60,6 +61,7 @@ class UserSerializer(serializers.ModelSerializer):
 class UserCreateSerializer(serializers.ModelSerializer):
     """Serializer do tworzenia nowego użytkownika."""
     password = serializers.CharField(write_only=True, required=True)
+    image = Base64ImageField(required=False, allow_null=True)
 
     class Meta:
         model = User
@@ -80,6 +82,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     """Serializer do aktualizacji danych użytkownika."""
     password = serializers.CharField(write_only=True, required=False)
+    image = Base64ImageField(required=False, allow_null=True)
 
     class Meta:
         model = User
@@ -247,6 +250,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
 class OrganizationCreateSerializer(serializers.ModelSerializer):
     """Serializer tworzenia nowej organizacji wraz z adresem."""
     address = AddressSerializer()
+    image = Base64ImageField(required=False, allow_null=True)
 
     class Meta:
         model = Organization
@@ -273,6 +277,7 @@ class OrganizationCreateSerializer(serializers.ModelSerializer):
 
 class OrganizationUpdateSerializer(serializers.ModelSerializer):
     """Serializer aktualizacji organizacji."""
+    image = Base64ImageField(required=False, allow_null=True)
     class Meta:
         model = Organization
         fields = [
