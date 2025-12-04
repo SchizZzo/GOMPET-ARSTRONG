@@ -186,6 +186,14 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return OrganizationCreateSerializer
+        if self.action in {"update", "partial_update"}:
+            return OrganizationUpdateSerializer
+        return super().get_serializer_class()
     
 
     def perform_create(self, serializer):
