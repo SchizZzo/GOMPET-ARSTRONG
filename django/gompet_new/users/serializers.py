@@ -16,21 +16,36 @@ class Base64ImageField(serializers.ImageField):
         import base64
         import imghdr
         import uuid
+        from binascii import Error as BinasciiError
         from django.core.files.base import ContentFile
 
-
         if isinstance(data, str):
+            # Accept both data URI notation ("data:image/png;base64,<...>")
+            # and a raw base64 string without the prefix.
             if data.startswith("data:image"):
-                _, imgstr = data.split(";base64,")
-                decoded = base64.b64decode(imgstr)
-                ext = imghdr.what(None, decoded) or "png"
-                file_name = f"{uuid.uuid4()}.{ext}"
-                data = ContentFile(decoded, name=file_name)
+                try:
+                    header, imgstr = data.split(";base64,", 1)
+                except ValueError:
+                    raise serializers.ValidationError("Niepoprawny format danych obrazu.")
+
+                mime_part = header.split("/")[-1]
+                try:
+                    decoded = base64.b64decode(imgstr)
+                except (BinasciiError, ValueError):
+                    raise serializers.ValidationError("Nie można odczytać przesłanego obrazu (Base64).")
+
+                ext = (mime_part.split(";")[0] or imghdr.what(None, decoded) or "png")
             else:
-                decoded = base64.b64decode(data)
+                try:
+                    decoded = base64.b64decode(data)
+                except (BinasciiError, ValueError):
+                    raise serializers.ValidationError("Nie można odczytać przesłanego obrazu (Base64).")
+
                 ext = imghdr.what(None, decoded) or "png"
-                file_name = f"{uuid.uuid4()}.{ext}"
-                data = ContentFile(decoded, name=file_name)
+
+            file_name = f"{uuid.uuid4()}.{ext}"
+            data = ContentFile(decoded, name=file_name)
+
         return super().to_internal_value(data)
     
 
