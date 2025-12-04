@@ -91,7 +91,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     id          = models.BigAutoField(primary_key=True)
     email       = models.EmailField(unique=True)
-    image       = models.URLField(blank=True)                # lub ImageField(...)
+    image       = models.ImageField(
+        upload_to="users/images/",
+        blank=True,
+        null=True,
+    )
     first_name  = models.CharField(max_length=150)
     last_name   = models.CharField(max_length=150)
     phone       = models.CharField(max_length=20, blank=True, validators=[phone_validator])
