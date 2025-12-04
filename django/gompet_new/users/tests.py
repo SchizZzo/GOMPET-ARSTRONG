@@ -45,6 +45,17 @@ class UserManagerTests(TestCase):
         self.assertTrue(user.is_superuser)
         self.assertEqual(user.role, user._meta.get_field("role").choices[0][0])
 
+    def test_create_user_with_image(self):
+        user = User.objects.create_user(
+            email="image@example.com",
+            password="secret",
+            first_name="Image",
+            last_name="User",
+            image="https://example.com/avatar.png",
+        )
+
+        self.assertEqual(user.image, "https://example.com/avatar.png")
+
 
 class UserModelTests(TestCase):
     def test_full_name_property(self):
