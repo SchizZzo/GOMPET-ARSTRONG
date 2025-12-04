@@ -21,14 +21,16 @@ class Base64ImageField(serializers.ImageField):
 
         if isinstance(data, str):
             if data.startswith("data:image"):
-                fmt, imgstr = data.split(";base64,")
-                ext = imghdr.what(None, base64.b64decode(imgstr))
+                _, imgstr = data.split(";base64,")
+                decoded = base64.b64decode(imgstr)
+                ext = imghdr.what(None, decoded) or "png"
                 file_name = f"{uuid.uuid4()}.{ext}"
-                data = ContentFile(base64.b64decode(imgstr), name=file_name)
+                data = ContentFile(decoded, name=file_name)
             else:
-                ext = imghdr.what(None, base64.b64decode(data)) or "png"
+                decoded = base64.b64decode(data)
+                ext = imghdr.what(None, decoded) or "png"
                 file_name = f"{uuid.uuid4()}.{ext}"
-                data = ContentFile(base64.b64decode(data), name=file_name)
+                data = ContentFile(decoded, name=file_name)
         return super().to_internal_value(data)
     
 
