@@ -13,6 +13,7 @@ from .api_views import (
     OrganizationRecentlyAddedViewSet,
     OrganizationFilteringAddedViewSet,
     SpeciesViewSet,
+    OrganizationTypeListView,
 )
 
 
@@ -42,5 +43,6 @@ urlpatterns = [
     path('auth/token/', TokenCreateView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('users/me/delete/', DeleteMeView.as_view(), name='user-delete-me'),
+    path('organization-types/', OrganizationTypeListView.as_view(), name='organization-types'),
     path('', include(router.urls)),
 ]
