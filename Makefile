@@ -77,3 +77,6 @@ test:
 
 test-common:
 	$(MANAGE) test common
+
+test-users:
+	$(MANAGE) test users

@@ -16,45 +16,25 @@ class Base64ImageField(serializers.ImageField):
         import base64
         import imghdr
         import uuid
-        from binascii import Error as BinasciiError
         from django.core.files.base import ContentFile
 
+
         if isinstance(data, str):
-            # Accept both data URI notation ("data:image/png;base64,<...>")
-            # and a raw base64 string without the prefix.
             if data.startswith("data:image"):
-                try:
-                    header, imgstr = data.split(";base64,", 1)
-                except ValueError:
-                    raise serializers.ValidationError("Niepoprawny format danych obrazu.")
-
-                mime_part = header.split("/")[-1]
-                base64_payload = imgstr
+                fmt, imgstr = data.split(";base64,")
+                ext = imghdr.what(None, base64.b64decode(imgstr))
+                file_name = f"{uuid.uuid4()}.{ext}"
+                data = ContentFile(base64.b64decode(imgstr), name=file_name)
             else:
-                mime_part = None
-                base64_payload = data
-
-            # Some clients omit padding – add it back to avoid decoding errors.
-            missing_padding = len(base64_payload) % 4
-            if missing_padding:
-                base64_payload += "=" * (4 - missing_padding)
-
-            try:
-                decoded = base64.b64decode(base64_payload)
-            except (BinasciiError, ValueError, TypeError):
-                raise serializers.ValidationError("Nie można odczytać przesłanego obrazu (Base64).")
-
-            ext = (mime_part.split(";")[0] if mime_part else None) or imghdr.what(None, decoded) or "png"
-            file_name = f"{uuid.uuid4()}.{ext}"
-            data = ContentFile(decoded, name=file_name)
-
+                ext = imghdr.what(None, base64.b64decode(data)) or "png"
+                file_name = f"{uuid.uuid4()}.{ext}"
+                data = ContentFile(base64.b64decode(data), name=file_name)
         return super().to_internal_value(data)
     
 
 class UserSerializer(serializers.ModelSerializer):
     """Serializer do odczytu danych użytkownika."""
     full_name = serializers.CharField(read_only=True)
-    image = Base64ImageField(required=False, allow_null=True)
 
     class Meta:
         model = User
@@ -78,7 +58,6 @@ class UserSerializer(serializers.ModelSerializer):
 class UserCreateSerializer(serializers.ModelSerializer):
     """Serializer do tworzenia nowego użytkownika."""
     password = serializers.CharField(write_only=True, required=True)
-    image = Base64ImageField(required=False, allow_null=True)
 
     class Meta:
         model = User
@@ -99,7 +78,6 @@ class UserCreateSerializer(serializers.ModelSerializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     """Serializer do aktualizacji danych użytkownika."""
     password = serializers.CharField(write_only=True, required=False)
-    image = Base64ImageField(required=False, allow_null=True)
 
     class Meta:
         model = User
@@ -267,7 +245,6 @@ class OrganizationSerializer(serializers.ModelSerializer):
 class OrganizationCreateSerializer(serializers.ModelSerializer):
     """Serializer tworzenia nowej organizacji wraz z adresem."""
     address = AddressSerializer()
-    image = Base64ImageField(required=False, allow_null=True)
 
     class Meta:
         model = Organization
@@ -294,7 +271,6 @@ class OrganizationCreateSerializer(serializers.ModelSerializer):
 
 class OrganizationUpdateSerializer(serializers.ModelSerializer):
     """Serializer aktualizacji organizacji."""
-    image = Base64ImageField(required=False, allow_null=True)
     class Meta:
         model = Organization
         fields = [
