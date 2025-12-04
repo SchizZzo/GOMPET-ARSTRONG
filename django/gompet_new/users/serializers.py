@@ -1,4 +1,11 @@
+import base64
+import binascii
+import imghdr
+import uuid
+
+from django.core.files.base import ContentFile
 from rest_framework import serializers
+
 from .models import User
 from .models import Organization, Address, OrganizationMember, BreedingTypeOrganizations, \
       BreedingType, Species
@@ -13,21 +20,24 @@ class Base64ImageField(serializers.ImageField):
     """
 
     def to_internal_value(self, data):
-        import base64
-        import imghdr
-        import uuid
-        from django.core.files.base import ContentFile
-
         if isinstance(data, str):
+            # Strip the header from data URI inputs
             if data.startswith("data:image"):
-                fmt, imgstr = data.split(";base64,")
-                ext = imghdr.what(None, base64.b64decode(imgstr))
-                file_name = f"{uuid.uuid4()}.{ext}"
-                data = ContentFile(base64.b64decode(imgstr), name=file_name)
-            else:
-                ext = imghdr.what(None, base64.b64decode(data)) or "png"
-                file_name = f"{uuid.uuid4()}.{ext}"
-                data = ContentFile(base64.b64decode(data), name=file_name)
+                try:
+                    _, data = data.split(";base64,", 1)
+                except ValueError:
+                    raise serializers.ValidationError(
+                        self.error_messages["invalid_image"]
+                    )
+
+            try:
+                decoded_file = base64.b64decode(data, validate=True)
+            except (TypeError, ValueError, binascii.Error):
+                raise serializers.ValidationError(self.error_messages["invalid_image"])
+
+            extension = imghdr.what(None, decoded_file) or "png"
+            file_name = f"{uuid.uuid4()}.{extension}"
+            data = ContentFile(decoded_file, name=file_name)
         return super().to_internal_value(data)
     
 
@@ -95,8 +105,16 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         pwd = validated_data.pop("password", None)
+        image = validated_data.pop("image", serializers.empty)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+        if image is not serializers.empty:
+            if image is None:
+                if instance.image:
+                    instance.image.delete(save=False)
+                instance.image = None
+            else:
+                instance.image = image
         if pwd:
             instance.set_password(pwd)
         instance.save()
