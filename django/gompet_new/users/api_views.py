@@ -489,8 +489,13 @@ class SpeciesViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 
-class OrganizationTypeListView(viewsets.ReadOnlyModelViewSet):
+class OrganizationTypeListView(viewsets.ViewSet):
     """Zwraca listę dostępnych typów organizacji (code + label)."""
-    queryset = OrganizationType.objects.all()
-    serializer_class = OrganizationTypeSerializer
+
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def list(self, request):
+        serializer = OrganizationTypeSerializer(
+            OrganizationTypeSerializer.get_choices(), many=True
+        )
+        return Response(serializer.data)
