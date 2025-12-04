@@ -1,3 +1,15 @@
+from __future__ import annotations
+import os
+import tempfile
+from dataclasses import dataclass
+from django.contrib.auth import get_user_model
+from django.core.files.storage import default_storage
+from django.test import TestCase, override_settings
+from rest_framework import serializers
+from .serializers import Base64ImageField, UserUpdateSerializer
+
+
+
 from unittest import mock
 
 from django.contrib.auth import get_user_model
@@ -159,34 +171,102 @@ class DeleteUserAccountTests(TestCase):
         )
 
 
+User = get_user_model()
+
+
+PNG_DATA_URI = (
+    "data:image/png;base64,"
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5nB50AAAAASUVORK5CYII="
+)
+PNG_BASE64 = (
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO5nB50AAAAASUVORK5CYII="
+)
+
+
+class DummySerializer(serializers.Serializer):
+    image = Base64ImageField(required=True, allow_null=False)
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp())
 class Base64ImageFieldTests(TestCase):
-    def setUp(self):
-        self.base64_png = (
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8A"
-            "AwMCAO+wmfUAAAAASUVORK5CYII="
+    def test_accepts_data_uri(self) -> None:
+        ser = DummySerializer(data={"image": PNG_DATA_URI})
+        self.assertTrue(ser.is_valid(), ser.errors)
+        img = ser.validated_data["image"]
+        self.assertTrue(hasattr(img, "name"))
+        self.assertTrue(img.name.endswith(".png"))
+
+    def test_accepts_plain_base64(self) -> None:
+        ser = DummySerializer(data={"image": PNG_BASE64})
+        self.assertTrue(ser.is_valid(), ser.errors)
+        img = ser.validated_data["image"]
+        self.assertTrue(hasattr(img, "name"))
+        self.assertTrue(img.name.endswith(".png"))
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+class UserUpdateSerializerImageTests(TestCase):
+    def test_updates_user_image_from_base64_data_uri(self) -> None:
+        user = User.objects.create_user(
+            email="img@example.com",
+            password="secret",
+            first_name="Img",
+            last_name="User",
         )
-        self.data_uri_png = f"data:image/png;base64,{self.base64_png}"
 
-    def test_accepts_data_uri(self):
-        class DummySerializer(serializers.Serializer):
-            image = Base64ImageField()
+        ser = UserUpdateSerializer(
+            instance=user,
+            data={"image": PNG_DATA_URI},
+            partial=True,
+        )
+        self.assertTrue(ser.is_valid(), ser.errors)
+        updated = ser.save()
 
-        serializer = DummySerializer(data={"image": self.data_uri_png})
+        # Ensure file was assigned and saved
+        self.assertTrue(updated.image)
+        self.assertTrue(updated.image.name.endswith(".png"))
+        self.assertTrue(default_storage.exists(updated.image.name))
 
-        self.assertTrue(serializer.is_valid(), serializer.errors)
-        image = serializer.validated_data["image"]
+        # Cleanup the file to avoid cluttering temp MEDIA_ROOT
+        default_storage.delete(updated.image.name)
 
-        self.assertTrue(image.name.endswith(".png"))
-        self.assertGreater(image.size, 0)
+    def test_updates_user_image_from_plain_base64(self) -> None:
+        user = User.objects.create_user(
+            email="img2@example.com",
+            password="secret",
+            first_name="Img2",
+            last_name="User",
+        )
 
-    def test_accepts_plain_base64_string(self):
-        class DummySerializer(serializers.Serializer):
-            image = Base64ImageField()
+        ser = UserUpdateSerializer(
+            instance=user,
+            data={"image": PNG_BASE64},
+            partial=True,
+        )
+        self.assertTrue(ser.is_valid(), ser.errors)
+        updated = ser.save()
 
-        serializer = DummySerializer(data={"image": self.base64_png})
+        self.assertTrue(updated.image)
+        self.assertTrue(updated.image.name.endswith(".png"))
+        self.assertTrue(default_storage.exists(updated.image.name))
 
-        self.assertTrue(serializer.is_valid(), serializer.errors)
-        image = serializer.validated_data["image"]
+        default_storage.delete(updated.image.name)
 
-        self.assertTrue(image.name.endswith(".png"))
-        self.assertGreater(image.size, 0)
+    def test_accepts_null_image(self) -> None:
+        user = User.objects.create_user(
+            email="nullimg@example.com",
+            password="secret",
+            first_name="Null",
+            last_name="Img",
+        )
+
+        ser = UserUpdateSerializer(
+            instance=user,
+            data={"image": None},
+            partial=True,
+        )
+        self.assertTrue(ser.is_valid(), ser.errors)
+        updated = ser.save()
+
+        # When setting None, ensure image is cleared or remains falsy
+        self.assertFalse(bool(updated.image))

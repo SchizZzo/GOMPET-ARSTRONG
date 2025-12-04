@@ -14,27 +14,20 @@ class Base64ImageField(serializers.ImageField):
 
     def to_internal_value(self, data):
         import base64
-        import binascii
         import imghdr
         import uuid
         from django.core.files.base import ContentFile
 
         if isinstance(data, str):
-            if "data:" in data and ";base64," in data:
-                _, data = data.split(";base64,", 1)
-
-            try:
-                decoded_file = base64.b64decode(data)
-            except (TypeError, ValueError, binascii.Error):  # pragma: no cover - defensive
-                self.fail("invalid_image")
-
-            extension = imghdr.what(None, decoded_file) or "png"
-            if extension == "jpeg":
-                extension = "jpg"
-
-            file_name = f"{uuid.uuid4()}.{extension}"
-            data = ContentFile(decoded_file, name=file_name)
-
+            if data.startswith("data:image"):
+                fmt, imgstr = data.split(";base64,")
+                ext = imghdr.what(None, base64.b64decode(imgstr))
+                file_name = f"{uuid.uuid4()}.{ext}"
+                data = ContentFile(base64.b64decode(imgstr), name=file_name)
+            else:
+                ext = imghdr.what(None, base64.b64decode(data)) or "png"
+                file_name = f"{uuid.uuid4()}.{ext}"
+                data = ContentFile(base64.b64decode(data), name=file_name)
         return super().to_internal_value(data)
     
 
