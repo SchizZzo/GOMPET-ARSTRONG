@@ -29,20 +29,22 @@ class Base64ImageField(serializers.ImageField):
                     raise serializers.ValidationError("Niepoprawny format danych obrazu.")
 
                 mime_part = header.split("/")[-1]
-                try:
-                    decoded = base64.b64decode(imgstr)
-                except (BinasciiError, ValueError):
-                    raise serializers.ValidationError("Nie można odczytać przesłanego obrazu (Base64).")
-
-                ext = (mime_part.split(";")[0] or imghdr.what(None, decoded) or "png")
+                base64_payload = imgstr
             else:
-                try:
-                    decoded = base64.b64decode(data)
-                except (BinasciiError, ValueError):
-                    raise serializers.ValidationError("Nie można odczytać przesłanego obrazu (Base64).")
+                mime_part = None
+                base64_payload = data
 
-                ext = imghdr.what(None, decoded) or "png"
+            # Some clients omit padding – add it back to avoid decoding errors.
+            missing_padding = len(base64_payload) % 4
+            if missing_padding:
+                base64_payload += "=" * (4 - missing_padding)
 
+            try:
+                decoded = base64.b64decode(base64_payload)
+            except (BinasciiError, ValueError, TypeError):
+                raise serializers.ValidationError("Nie można odczytać przesłanego obrazu (Base64).")
+
+            ext = (mime_part.split(";")[0] if mime_part else None) or imghdr.what(None, decoded) or "png"
             file_name = f"{uuid.uuid4()}.{ext}"
             data = ContentFile(decoded, name=file_name)
 
