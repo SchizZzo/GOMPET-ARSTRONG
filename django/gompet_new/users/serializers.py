@@ -79,6 +79,8 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     """Serializer do aktualizacji danych użytkownika."""
     password = serializers.CharField(write_only=True, required=False)
 
+    image = Base64ImageField(required=False, allow_null=True)
+
     class Meta:
         model = User
         fields = [
