@@ -186,7 +186,7 @@ class AnimalSerializer(serializers.ModelSerializer):
     )
 
     size = serializers.ChoiceField(choices=Size.choices)
-
+    age_display = serializers.SerializerMethodField()
    
 
     class Meta:
@@ -209,6 +209,8 @@ class AnimalSerializer(serializers.ModelSerializer):
             "parents",
             "distance",
             "age",
+            "age_display",
+            
             "life_period",
             "characteristicBoard",
             "gallery",
@@ -226,6 +228,12 @@ class AnimalSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
+
+    
+    def get_age_display(self, obj):
+        return obj.age_display
+    
+    
     def get_distance(self, obj):
         # Jeśli w queryset było .annotate(distance=...), to obj.distance to GEOSDistance
         dist = getattr(obj, "distance", None)

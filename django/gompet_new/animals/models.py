@@ -17,6 +17,8 @@ from django.contrib.postgres.indexes import GinIndex
 
 from users.models import Species
 
+from datetime import date
+
 # ────────────────────────────────────────────────────────────────────
 #  Enums / Choices
 # ────────────────────────────────────────────────────────────────────
@@ -66,6 +68,13 @@ class LifePeriod(models.TextChoices):
 #  Core Animal model
 # ────────────────────────────────────────────────────────────────────
 class Animal(models.Model):
+
+
+    def validate_birth_date(value):
+        if value > timezone.now().date():
+            raise ValidationError("Zwierzę nie może mieć daty urodzenia w przyszłości.")
+        
+
     id          = models.BigAutoField(primary_key=True)
 
     # podstawowe pola
@@ -82,7 +91,13 @@ class Animal(models.Model):
     breed       = models.CharField(max_length=120, blank=True)
     gender      = models.CharField(max_length=6, choices=Gender.choices)
     size        = models.CharField(max_length=6, choices=Size.choices)
-    birth_date  = models.DateField(null=True, blank=True)
+    
+
+    birth_date  = models.DateField(
+        null=True,
+        blank=True,
+        validators=[validate_birth_date],
+    )
 
     # właściciel (np. użytkownik lub organizacja – tutaj user)
     owner       = models.ForeignKey(
@@ -156,6 +171,8 @@ class Animal(models.Model):
 
     def __str__(self) -> str:
         return self.name
+    
+    
 
     
 
@@ -217,6 +234,35 @@ class AnimalCharacteristic(models.Model):
 
     def __str__(self) -> str:
         return f"{self.animal} {self.value}"
+    
+
+    @property
+    def age_display(self) -> str:
+        animal = getattr(self, "animal", None)
+        if not (animal and animal.birth_date):
+            return "brak danych"
+
+        birth_date = animal.birth_date
+        today = date.today()
+
+        years = today.year - birth_date.year
+        months = today.month - birth_date.month
+        days = today.day - birth_date.day
+
+        # Korekty gdy dni lub miesiące są ujemne
+        if days < 0:
+            months -= 1
+        if months < 0:
+            years -= 1
+            months += 12
+
+        result = []
+        if years > 0:
+            result.append(f"{years} rok" if years == 1 else f"{years} lata" if 2 <= years <= 4 else f"{years} lat")
+        if months > 0:
+            result.append(f"{months} miesiąc" if months == 1 else f"{months} miesiące" if 2 <= months <= 4 else f"{months} miesięcy")
+
+        return " ".join(result) if result else "mniej niż miesiąc"
     
 
 
