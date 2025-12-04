@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.sessions.backends.db import SessionStore
 from django.contrib.sessions.models import Session
 from django.test import TestCase
+from rest_framework import serializers
 
 from .models import (
     MemberRole,
@@ -12,6 +13,7 @@ from .models import (
     OrganizationMember,
 )
 from .services import CannotDeleteUser, delete_user_account
+from .serializers import Base64ImageField
 
 User = get_user_model()
 
@@ -155,3 +157,36 @@ class DeleteUserAccountTests(TestCase):
         self.assertFalse(
             Session.objects.filter(session_key=session.session_key).exists()
         )
+
+
+class Base64ImageFieldTests(TestCase):
+    def setUp(self):
+        self.base64_png = (
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8A"
+            "AwMCAO+wmfUAAAAASUVORK5CYII="
+        )
+        self.data_uri_png = f"data:image/png;base64,{self.base64_png}"
+
+    def test_accepts_data_uri(self):
+        class DummySerializer(serializers.Serializer):
+            image = Base64ImageField()
+
+        serializer = DummySerializer(data={"image": self.data_uri_png})
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        image = serializer.validated_data["image"]
+
+        self.assertTrue(image.name.endswith(".png"))
+        self.assertGreater(image.size, 0)
+
+    def test_accepts_plain_base64_string(self):
+        class DummySerializer(serializers.Serializer):
+            image = Base64ImageField()
+
+        serializer = DummySerializer(data={"image": self.base64_png})
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        image = serializer.validated_data["image"]
+
+        self.assertTrue(image.name.endswith(".png"))
+        self.assertGreater(image.size, 0)
