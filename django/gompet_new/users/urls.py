@@ -38,11 +38,12 @@ router.register(r'organization-members', OrganizationMemberViewSet, basename='or
 router.register(r'organization-latest', OrganizationRecentlyAddedViewSet, basename='latestorganization')
 router.register(r'organization-filtering', OrganizationFilteringAddedViewSet, basename='organizationfiltering')
 router.register(r'species', SpeciesViewSet, basename='species')
+router.register(r'organization-types', OrganizationTypeListView, basename='organizationtype')
 
 urlpatterns = [
     path('auth/token/', TokenCreateView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('users/me/delete/', DeleteMeView.as_view(), name='user-delete-me'),
-    path('organization-types/', OrganizationTypeListView.as_view(), name='organization-types'),
+    
     path('', include(router.urls)),
 ]

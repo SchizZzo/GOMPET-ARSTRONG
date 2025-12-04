@@ -13,7 +13,7 @@ from rest_framework_simplejwt.views import (
 
 from .models import MemberRole, Organization, OrganizationMember, OrganizationType, Species, User
 from .serializers import (
-    UserSerializer, UserCreateSerializer, UserUpdateSerializer,
+    OrganizationTypeSerializer, UserSerializer, UserCreateSerializer, UserUpdateSerializer,
     OrganizationSerializer, OrganizationCreateSerializer, OrganizationUpdateSerializer,
     OrganizationMemberSerializer, OrganizationMemberCreateSerializer, LatestOrganizationSerializer, SpeciesSerializer
 )
@@ -487,16 +487,10 @@ class SpeciesViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
 
-@extend_schema(tags=["organizations"])
-class OrganizationTypeListView(APIView):
+
+
+class OrganizationTypeListView(viewsets.ReadOnlyModelViewSet):
     """Zwraca listę dostępnych typów organizacji (code + label)."""
-
-    permission_classes = [permissions.AllowAny]
-
-    def get(self, request):
-        data = [
-            {"code": org_type.value, "label": org_type.label}
-            for org_type in OrganizationType
-        ]
-        return Response(data)
-
+    queryset = OrganizationType.objects.all()
+    serializer_class = OrganizationTypeSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]

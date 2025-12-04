@@ -17,3 +17,5 @@ __pycache__
 *.vscode
 *.egg-info
 settings.py
+django.zip
+endpoints.txt

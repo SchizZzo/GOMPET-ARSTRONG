@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import User
 from .models import Organization, Address, OrganizationMember, BreedingTypeOrganizations, \
       BreedingType, Species
-
+from .models import OrganizationType
 
 class Base64ImageField(serializers.ImageField):
     """Accept a base64 string and convert it into an uploaded image.
@@ -17,6 +17,7 @@ class Base64ImageField(serializers.ImageField):
         import imghdr
         import uuid
         from django.core.files.base import ContentFile
+
 
         if isinstance(data, str):
             if data.startswith("data:image"):
@@ -351,3 +352,14 @@ class LatestOrganizationSerializer(serializers.ModelSerializer):
 
 
 
+class OrganizationTypeSerializer(serializers.Serializer):
+    """Representation of organization type choices."""
+    value = serializers.CharField()
+    label = serializers.CharField()
+
+    @staticmethod
+    def get_choices():
+        return [
+            {"value": choice.value, "label": choice.label}
+            for choice in OrganizationType
+        ]
