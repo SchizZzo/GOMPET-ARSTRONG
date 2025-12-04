@@ -11,7 +11,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView as SimpleJWTTokenRefreshView,
 )
 
-from .models import MemberRole, Organization, OrganizationMember, Species, User
+from .models import MemberRole, Organization, OrganizationMember, OrganizationType, Species, User
 from .serializers import (
     UserSerializer, UserCreateSerializer, UserUpdateSerializer,
     OrganizationSerializer, OrganizationCreateSerializer, OrganizationUpdateSerializer,
@@ -485,4 +485,18 @@ class SpeciesViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Species.objects.all()
     serializer_class = SpeciesSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+
+@extend_schema(tags=["organizations"])
+class OrganizationTypeListView(APIView):
+    """Zwraca listę dostępnych typów organizacji (code + label)."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        data = [
+            {"code": org_type.value, "label": org_type.label}
+            for org_type in OrganizationType
+        ]
+        return Response(data)
 
