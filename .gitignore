@@ -16,6 +16,6 @@ __pycache__
 *.idea
 *.vscode
 *.egg-info
-
+settings.py
 django.zip
 endpoints.txt
