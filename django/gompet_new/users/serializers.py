@@ -55,6 +55,7 @@ class UserSerializer(serializers.ModelSerializer):
             "full_name",
             "image",
             "phone",
+            "location",
             "role",
             "created_at",
             "updated_at",
@@ -77,6 +78,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
             "password",
             "image",
             "phone",
+            "location",
             #"role",
         ]
 
@@ -100,6 +102,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             "image",
             "phone",
             "role",
+            "location",
             "is_active",
             "is_staff",
         ]
