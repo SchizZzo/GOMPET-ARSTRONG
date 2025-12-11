@@ -5,6 +5,7 @@ import uuid
 
 from django.core.files.base import ContentFile
 from rest_framework import serializers
+from django.contrib.auth.password_validation import validate_password
 
 from .models import User
 from .models import Organization, Address, OrganizationMember, BreedingTypeOrganizations, \
@@ -67,7 +68,9 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserCreateSerializer(serializers.ModelSerializer):
     """Serializer do tworzenia nowego użytkownika."""
-    password = serializers.CharField(write_only=True, required=True)
+    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
+    email = serializers.EmailField(required=True)
+    last_name = serializers.CharField(required=False, allow_blank=True, default="")
 
     class Meta:
         model = User
@@ -83,6 +86,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
+        if not validated_data.get("last_name"):
+            validated_data["last_name"] = ""
         return User.objects.create_user(**validated_data)
 
 
