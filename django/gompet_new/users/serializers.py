@@ -69,6 +69,7 @@ class UserSerializer(serializers.ModelSerializer):
 class UserCreateSerializer(serializers.ModelSerializer):
     """Serializer do tworzenia nowego użytkownika."""
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
+    confirm_password = serializers.CharField(write_only=True, required=True)
     email = serializers.EmailField(required=True)
     last_name = serializers.CharField(required=False, allow_blank=True, default="")
 
@@ -79,13 +80,24 @@ class UserCreateSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "password",
+            "confirm_password",
             "image",
             "phone",
             "location",
             #"role",
         ]
 
+    def validate(self, attrs):
+        password = attrs.get("password")
+        confirm_password = attrs.get("confirm_password")
+
+        if password != confirm_password:
+            raise serializers.ValidationError({"confirm_password": "Hasła muszą być takie same."})
+
+        return attrs
+
     def create(self, validated_data):
+        validated_data.pop("confirm_password", None)
         if not validated_data.get("last_name"):
             validated_data["last_name"] = ""
         return User.objects.create_user(**validated_data)
