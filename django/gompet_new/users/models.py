@@ -97,7 +97,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         null=True,
     )
     first_name  = models.CharField(max_length=150)
-    last_name   = models.CharField(max_length=150)
+    last_name   = models.CharField(max_length=150, blank=True, default="")
     phone       = models.CharField(max_length=20, blank=True, validators=[phone_validator])
     role        = models.CharField(max_length=20, choices=UserRole.choices, default=UserRole.USER)
 
@@ -118,7 +118,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects     = UserManager()
 
     USERNAME_FIELD  = "email"
-    REQUIRED_FIELDS = ["first_name", "last_name"]
+    REQUIRED_FIELDS = ["first_name"]
 
     class Meta:
         db_table = "users"
