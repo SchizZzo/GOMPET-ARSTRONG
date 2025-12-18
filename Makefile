@@ -54,6 +54,10 @@ populatedb:
 	$(MANAGE) populatedb
 
 
+graphmodels:
+	$(MANAGE) graph_models -a -o project_models.svg
+
+
 	
 
 
@@ -80,3 +84,5 @@ test-common:
 
 test-users:
 	$(MANAGE) test users
+
+

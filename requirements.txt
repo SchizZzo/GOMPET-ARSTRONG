@@ -22,3 +22,7 @@ djangorestframework-gis  # Obsługa geograficznych danych w Django REST Framewor
 channels #do obsługi websocketów (nie wiem czy sie przyda)
 channels-redis #do obsługi websocketów (nie wiem czy sie przyda)
 
+
+django-extensions  
+graphviz
+pydot

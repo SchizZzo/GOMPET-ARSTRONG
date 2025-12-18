@@ -10,7 +10,8 @@ from .models import User, BreedingTypeOrganizations, Species, BreedingType
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
-    list_display = ("name", "type", "email", "description", "rating", "created_at")
+
+    list_display = ("name", "type", "email", "description", "rating", "created_at", "image")
     search_fields = ("name", "email")
 
 

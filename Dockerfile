@@ -5,6 +5,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /code
 
+RUN apt-get update && apt-get install -y graphviz \
+    && rm -rf /var/lib/apt/lists/*
+
 # Instalacja GDAL i innych niezbędnych bibliotek systemowych
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \

@@ -285,6 +285,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
 class OrganizationCreateSerializer(serializers.ModelSerializer):
     """Serializer tworzenia nowej organizacji wraz z adresem."""
     address = AddressSerializer()
+    image = Base64ImageField(required=False, allow_null=True)
 
     class Meta:
         model = Organization
@@ -311,6 +312,7 @@ class OrganizationCreateSerializer(serializers.ModelSerializer):
 
 class OrganizationUpdateSerializer(serializers.ModelSerializer):
     """Serializer aktualizacji organizacji."""
+    image = Base64ImageField(required=False, allow_null=True)
     class Meta:
         model = Organization
         fields = [
