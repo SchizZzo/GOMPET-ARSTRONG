@@ -174,7 +174,7 @@ class AddressSerializer(serializers.ModelSerializer):
 class OrganizationAddressSerializer(AddressSerializer):
     """Serializer adresu organizacji rozszerzony o dane organizacji."""
 
-    organization_id = serializers.IntegerField(source="organization_id", read_only=True)
+    organization_id = serializers.IntegerField(read_only=True)
     organization_name = serializers.CharField(source="organization.name", read_only=True)
     organization_type = serializers.CharField(source="organization.type", read_only=True)
 
