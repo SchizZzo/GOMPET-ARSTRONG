@@ -186,6 +186,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
 
 
     def get_serializer_class(self):
@@ -194,6 +195,27 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         if self.action in {"update", "partial_update"}:
             return OrganizationUpdateSerializer
         return super().get_serializer_class()
+
+    def get_permissions(self):
+        if self.action in {"create", "update", "partial_update", "destroy"}:
+            return [permissions.IsAuthenticated()]
+        return super().get_permissions()
+
+    def update(self, request, *args, **kwargs):
+        kwargs["partial"] = False
+        return self._update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        kwargs["partial"] = True
+        return self._update(request, *args, **kwargs)
+
+    def _update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        partial = kwargs.pop("partial", False)
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
     
 
     def perform_create(self, serializer):
