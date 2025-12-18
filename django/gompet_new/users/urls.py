@@ -12,6 +12,7 @@ from .api_views import (
     OrganizationMemberViewSet,
     OrganizationRecentlyAddedViewSet,
     OrganizationFilteringAddedViewSet,
+    OrganizationAddressViewSet,
     SpeciesViewSet,
     OrganizationTypeListView,
 )
@@ -37,6 +38,7 @@ router.register(r'organizations', OrganizationViewSet, basename='organization')
 router.register(r'organization-members', OrganizationMemberViewSet, basename='organizationmember')
 router.register(r'organization-latest', OrganizationRecentlyAddedViewSet, basename='latestorganization')
 router.register(r'organization-filtering', OrganizationFilteringAddedViewSet, basename='organizationfiltering')
+router.register(r'organization-addresses', OrganizationAddressViewSet, basename='organizationaddress')
 router.register(r'species', SpeciesViewSet, basename='species')
 router.register(r'organization-types', OrganizationTypeListView, basename='organizationtype')
 
