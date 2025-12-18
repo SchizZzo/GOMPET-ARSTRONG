@@ -313,6 +313,7 @@ class OrganizationCreateSerializer(serializers.ModelSerializer):
 class OrganizationUpdateSerializer(serializers.ModelSerializer):
     """Serializer aktualizacji organizacji."""
     image = Base64ImageField(required=False, allow_null=True)
+    address = AddressSerializer(required=False)
     class Meta:
         model = Organization
         fields = [
@@ -323,6 +324,7 @@ class OrganizationUpdateSerializer(serializers.ModelSerializer):
             "phone",
             "description",
             "rating",
+            "address",
         ]
 
     def update(self, instance, validated_data):
