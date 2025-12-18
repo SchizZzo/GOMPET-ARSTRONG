@@ -136,6 +136,16 @@ localhost/animals/animals/?size=MEDIUM
     def get_queryset(self):
         qs = Animal.objects.all().order_by('-created_at')
         params = self.request.query_params
+        user_location = (
+            getattr(self.request.user, "location", None)
+            if self.request.user and self.request.user.is_authenticated
+            else None
+        )
+        user_location = (
+            getattr(self.request.user, "location", None)
+            if self.request.user and self.request.user.is_authenticated
+            else None
+        )
 
 
 
@@ -209,19 +219,26 @@ localhost/animals/animals/?size=MEDIUM
         # filtrowanie po zasięgu (parametr "zasieg" – wartość w metrach)
 
         zasieg_param = params.get('range')
-        if zasieg_param:
-            try:
-                if location_point is None:
-                    user_location = getattr(self.request.user, "location", None)
-                max_distance = float(zasieg_param)
-                point = location_point or user_location
-                if point:
-                    qs = (
-                        qs.exclude(location__isnull=True)
-                        .filter(location__distance_lte=(point, D(m=max_distance)))
-                        .annotate(distance=Distance("location", point))
-                        .order_by("distance")
+        reference_point = location_point or user_location
+        if reference_point:
+            qs = qs.exclude(location__isnull=True).annotate(
+                distance=Distance("location", reference_point)
+            )
+
+            if zasieg_param:
+                try:
+                    max_distance = float(zasieg_param)
+                    qs = qs.filter(
+                        location__distance_lte=(reference_point, D(m=max_distance))
                     )
+                except (TypeError, ValueError):
+                    pass
+
+            qs = qs.order_by("distance")
+        elif zasieg_param:
+            # brak punktu odniesienia – ignorujemy filtr zasięgu
+            try:
+                float(zasieg_param)
             except (TypeError, ValueError):
                 pass
 
@@ -640,18 +657,25 @@ class AnimalFilterViewSet(viewsets.ReadOnlyModelViewSet):
             
         # filtrowanie po zasięgu (parametr "zasieg" – wartość w metrach)
         zasieg_param = params.get('range')
-        if zasieg_param:
-            try:
-                max_distance = float(zasieg_param)
-                user_location = getattr(self.request.user, "location", None)
-                print(f"User location: {user_location}, Max distance: {max_distance}")
-                if user_location:
-                    qs = (
-                    qs.exclude(location__isnull=True)
-                    .filter(location__distance_lte=(user_location, D(m=max_distance)))
-                    .annotate(distance=Distance("location", user_location))
-                    .order_by("distance")
+        if user_location:
+            qs = qs.exclude(location__isnull=True).annotate(
+                distance=Distance("location", user_location)
+            )
+
+            if zasieg_param:
+                try:
+                    max_distance = float(zasieg_param)
+                    qs = qs.filter(
+                        location__distance_lte=(user_location, D(m=max_distance))
                     )
+                except (TypeError, ValueError):
+                    pass
+
+            qs = qs.order_by("distance")
+        elif zasieg_param:
+            # brak lokalizacji użytkownika – ignorujemy parametr zasięgu
+            try:
+                float(zasieg_param)
             except (TypeError, ValueError):
                 pass
 

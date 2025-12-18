@@ -206,7 +206,11 @@ class OrganizationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Organization.objects.all().order_by('-created_at')
-        # filter by organization type
+        user_location = (
+            getattr(self.request.user, "location", None)
+            if self.request.user and self.request.user.is_authenticated
+            else None
+        )
 
         name = self.request.query_params.get('name')
         if name:
@@ -214,25 +218,25 @@ class OrganizationViewSet(viewsets.ModelViewSet):
 
         # filtrowanie po zasięgu (parametr "zasieg" – wartość w metrach)
         zasieg_param = self.request.query_params.get('range')
-        if zasieg_param:
-            try:
-                max_distance = float(zasieg_param)
-                user_location = getattr(self.request.user, "location", None)
-                print(f"User location: {user_location}, Max distance: {max_distance}")
-                if user_location:
-                    qs = (
-                        qs.exclude(address__location__isnull=True)
-                          .filter(
-                              address__location__distance_lte=(
-                                  user_location,
-                                  D(m=max_distance)
-                              )
-                          )
-                          .annotate(
-                              distance=Distance("address__location", user_location)
-                          )
-                          .order_by("distance")
+        if user_location:
+            qs = qs.exclude(address__location__isnull=True).annotate(
+                distance=Distance("address__location", user_location)
+            )
+
+            if zasieg_param:
+                try:
+                    max_distance = float(zasieg_param)
+                    qs = qs.filter(
+                        address__location__distance_lte=(user_location, D(m=max_distance))
                     )
+                except (TypeError, ValueError):
+                    pass
+
+            qs = qs.order_by("distance")
+        elif zasieg_param:
+            # brak lokalizacji użytkownika – ignorujemy parametr zasięgu
+            try:
+                float(zasieg_param)
             except (TypeError, ValueError):
                 pass
 
@@ -432,31 +436,36 @@ class OrganizationFilteringAddedViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         qs = Organization.objects.all().order_by('-created_at')
-        # filter by organization type
+        user_location = (
+            getattr(self.request.user, "location", None)
+            if self.request.user and self.request.user.is_authenticated
+            else None
+        )
 
         name = self.request.query_params.get("name")
         if name:
             qs = qs.filter(name__icontains=name)
 
         zasieg_param = self.request.query_params.get("range")
-        if zasieg_param:
+        if user_location:
+            qs = qs.exclude(address__location__isnull=True).annotate(
+                distance=Distance("address__location", user_location)
+            )
+
+            if zasieg_param:
+                try:
+                    max_distance = float(zasieg_param)
+                    qs = qs.filter(
+                        address__location__distance_lte=(user_location, D(m=max_distance))
+                    )
+                except (TypeError, ValueError):
+                    pass
+
+            qs = qs.order_by("distance")
+        elif zasieg_param:
+            # brak lokalizacji użytkownika – ignorujemy parametr zasięgu
             try:
-                max_distance = float(zasieg_param)
-                user_location = getattr(self.request.user, "location", None)
-                if user_location:
-                    qs = (
-                    qs.exclude(address__location__isnull=True)
-                    .filter(
-                        address__location__distance_lte=(
-                        user_location,
-                        D(m=max_distance)
-                        )
-                    )
-                    .annotate(
-                        distance=Distance("address__location", user_location)
-                    )
-                    .order_by("distance")
-                    )
+                float(zasieg_param)
             except (TypeError, ValueError):
                 pass
 
