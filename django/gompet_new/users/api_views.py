@@ -66,7 +66,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == "create":
             return UserCreateSerializer
-        if self.action in ("update", "partial_update"):
+        if self.action in ("update", "partial_update", "update_current"):
             return UserUpdateSerializer
         return UserSerializer
     
@@ -106,6 +106,24 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_200_OK, data={
             "detail": "Konto zostało usunięte (dezaktywowane i zanonimizowane)."
         })
+
+    def update_current(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return Response(
+                {"detail": "Authentication credentials were not provided."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        partial = request.method.lower() == "patch"
+        serializer = self.get_serializer(
+            request.user,
+            data=request.data,
+            partial=partial,
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data)
 
 
 class DeleteMeView(APIView):

@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.core.files.storage import default_storage
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
-from rest_framework import serializers
+from rest_framework import serializers, status
 from .serializers import Base64ImageField, UserUpdateSerializer
 
 
@@ -171,6 +171,67 @@ class DeleteUserAccountTests(TestCase):
         self.assertFalse(
             Session.objects.filter(session_key=session.session_key).exists()
         )
+
+
+class UserUpdateCurrentAPITests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_put_requires_authentication(self):
+        response = self.client.put(
+            "/users/users/",
+            {"first_name": "New"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_put_updates_current_user(self):
+        user = User.objects.create_user(
+            email="edit@example.com",
+            password="secret",
+            first_name="Old",
+            last_name="Name",
+        )
+        self.client.force_authenticate(user=user)
+
+        payload = {
+            "first_name": "Updated",
+            "last_name": "User",
+            "email": user.email,
+            "phone": "",
+            "role": user.role,
+            "location": None,
+            "is_active": True,
+            "is_staff": False,
+        }
+
+        response = self.client.put("/users/users/", payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertEqual(user.first_name, "Updated")
+        self.assertEqual(user.last_name, "User")
+
+    def test_patch_partially_updates_current_user(self):
+        user = User.objects.create_user(
+            email="patch@example.com",
+            password="secret",
+            first_name="Before",
+            last_name="Name",
+        )
+        self.client.force_authenticate(user=user)
+
+        response = self.client.patch(
+            "/users/users/",
+            {"first_name": "After"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertEqual(user.first_name, "After")
+        self.assertEqual(user.last_name, "Name")
 
 
 User = get_user_model()

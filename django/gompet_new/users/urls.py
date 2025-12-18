@@ -29,6 +29,8 @@ class UserRouter(routers.DefaultRouter):
                 # that expects a callable, not a key, so guard against it here.
                 if isinstance(route.mapping, dict) and route.mapping.get("get") == "list":
                     route.mapping["delete"] = "destroy_current"
+                    route.mapping["put"] = "update_current"
+                    route.mapping["patch"] = "update_current"
 
         return routes
 
