@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from django.contrib.auth import get_user_model
 from django.core.files.storage import default_storage
 from django.test import TestCase, override_settings
+from rest_framework.test import APIClient
 from rest_framework import serializers
 from .serializers import Base64ImageField, UserUpdateSerializer
 
@@ -19,6 +20,7 @@ from django.test import TestCase
 from rest_framework import serializers
 
 from .models import (
+    Address,
     MemberRole,
     Organization,
     OrganizationType,
@@ -270,3 +272,44 @@ class UserUpdateSerializerImageTests(TestCase):
 
         # When setting None, ensure image is cleared or remains falsy
         self.assertFalse(bool(updated.image))
+
+
+class OrganizationAddressViewSetTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_lists_addresses_with_organization_details(self):
+        owner = User.objects.create_user(
+            email="owner-address@example.com",
+            password="secret",
+            first_name="Owner",
+            last_name="Address",
+        )
+
+        organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Adresowa Organizacja",
+            email="org-address@example.com",
+            phone="",
+            user=owner,
+        )
+
+        address = Address.objects.create(
+            organization=organization,
+            city="Warszawa",
+            street="Testowa",
+            house_number="10",
+            zip_code="00-001",
+        )
+
+        response = self.client.get("/users/organization-addresses/")
+
+        self.assertEqual(response.status_code, 200)
+
+        results = response.data.get("results", response.data)
+        self.assertEqual(len(results), 1)
+
+        payload = results[0]
+        self.assertEqual(payload["organization_id"], organization.id)
+        self.assertEqual(payload["organization_name"], organization.name)
+        self.assertEqual(payload["city"], address.city)

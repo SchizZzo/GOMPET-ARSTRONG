@@ -168,8 +168,25 @@ class AddressSerializer(serializers.ModelSerializer):
         if dist is None and hasattr(obj, "organization"):
             dist = getattr(obj.organization, "distance", None)
         return None if dist is None else round(dist.m)  # zwraca odległość w metrach
-    
-    
+
+
+
+class OrganizationAddressSerializer(AddressSerializer):
+    """Serializer adresu organizacji rozszerzony o dane organizacji."""
+
+    organization_id = serializers.IntegerField(source="organization_id", read_only=True)
+    organization_name = serializers.CharField(source="organization.name", read_only=True)
+    organization_type = serializers.CharField(source="organization.type", read_only=True)
+
+    class Meta(AddressSerializer.Meta):
+        fields = [
+            "id",
+            "organization_id",
+            "organization_name",
+            "organization_type",
+            *AddressSerializer.Meta.fields,
+        ]
+
     
 
 

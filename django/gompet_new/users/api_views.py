@@ -11,11 +11,12 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView as SimpleJWTTokenRefreshView,
 )
 
-from .models import MemberRole, Organization, OrganizationMember, OrganizationType, Species, User
+from .models import Address, MemberRole, Organization, OrganizationMember, OrganizationType, Species, User
 from .serializers import (
     OrganizationTypeSerializer, UserSerializer, UserCreateSerializer, UserUpdateSerializer,
     OrganizationSerializer, OrganizationCreateSerializer, OrganizationUpdateSerializer,
-    OrganizationMemberSerializer, OrganizationMemberCreateSerializer, LatestOrganizationSerializer, SpeciesSerializer
+    OrganizationMemberSerializer, OrganizationMemberCreateSerializer, LatestOrganizationSerializer, SpeciesSerializer,
+    OrganizationAddressSerializer,
 )
 from .services import CannotDeleteUser, delete_user_account
 
@@ -512,6 +513,30 @@ class OrganizationFilteringAddedViewSet(viewsets.ReadOnlyModelViewSet):
 
         return qs.distinct()
     
+
+
+@extend_schema(tags=["organization_addresses"])
+class OrganizationAddressViewSet(viewsets.ReadOnlyModelViewSet):
+    """Endpoint do odczytu adresów organizacji."""
+
+    queryset = Address.objects.select_related("organization").prefetch_related("species")
+    serializer_class = OrganizationAddressSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+
+        city = self.request.query_params.get("city")
+        if city:
+            qs = qs.filter(city__iexact=city.strip())
+
+        org_type = self.request.query_params.get("organization-type")
+        if org_type:
+            org_types = [t.strip() for t in org_type.split(",") if t.strip()]
+            qs = qs.filter(organization__type__in=org_types)
+
+        return qs
+
 
 @extend_schema(
     tags=["species", "species_miots"],
