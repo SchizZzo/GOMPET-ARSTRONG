@@ -25,6 +25,7 @@ from .serializers import (
     
 )
 from drf_spectacular.utils import extend_schema
+from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -39,6 +40,7 @@ from django.contrib.gis.geos import GEOSGeometry, GEOSException
 from django.db.models import Q
 import json
 from django.core.exceptions import FieldError
+from common.models import Reaction, ReactionType
 
 class FamilyTreeNodeSerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -146,6 +148,35 @@ localhost/animals/animals/?size=MEDIUM
             if self.request.user and self.request.user.is_authenticated
             else None
         )
+
+
+        liked_by_param = params.get('liked_by') or params.get('liked-by')
+        liked_only_param = params.get('liked')
+        liked_user_id = None
+
+        if liked_by_param:
+            try:
+                liked_user_id = int(liked_by_param)
+            except (TypeError, ValueError):
+                liked_user_id = None
+        elif liked_only_param and str(liked_only_param).lower() in ("1", "true", "yes"):
+            liked_user_id = (
+                self.request.user.id if self.request.user and self.request.user.is_authenticated else None
+            )
+            if liked_user_id is None:
+                return Animal.objects.none()
+
+        if liked_user_id:
+            animal_content_type = ContentType.objects.get_for_model(Animal)
+            liked_animal_ids = (
+                Reaction.objects.filter(
+                    user_id=liked_user_id,
+                    reaction_type=ReactionType.LIKE,
+                    reactable_type=animal_content_type,
+                )
+                .values_list("reactable_id", flat=True)
+            )
+            qs = qs.filter(id__in=liked_animal_ids)
 
 
 
