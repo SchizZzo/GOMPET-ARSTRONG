@@ -31,7 +31,7 @@ class OrganizationMemberAdmin(admin.ModelAdmin):
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     ordering = ("-created_at",)
-    list_display = ("email", "role", "is_active", "created_at")
+    list_display = ("id", "email", "role", "is_active", "created_at")
     readonly_fields = ("created_at", "updated_at", "deleted_at")
     fieldsets = (
         (None, {"fields": ("email", "password")}),

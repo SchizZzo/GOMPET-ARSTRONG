@@ -150,6 +150,9 @@ localhost/animals/animals/?size=MEDIUM
         )
 
 
+
+
+
         liked_by_param = params.get('liked_by') or params.get('liked-by')
         liked_only_param = params.get('liked')
         liked_user_id = None
@@ -171,6 +174,18 @@ localhost/animals/animals/?size=MEDIUM
             liked_animal_ids = (
                 Reaction.objects.filter(
                     user_id=liked_user_id,
+                    reaction_type=ReactionType.LIKE,
+                    reactable_type=animal_content_type,
+                )
+                .values_list("reactable_id", flat=True)
+            )
+            qs = qs.filter(id__in=liked_animal_ids)
+
+        else:
+            animal_content_type = ContentType.objects.get_for_model(Animal)
+            liked_animal_ids = (
+                Reaction.objects.filter(
+                    user_id=self.request.user.id,
                     reaction_type=ReactionType.LIKE,
                     reactable_type=animal_content_type,
                 )
