@@ -72,6 +72,8 @@ class LikeCounterConsumer(AsyncJsonWebsocketConsumer):
 class NotificationConsumer(AsyncJsonWebsocketConsumer):
     """Powiadomienia realtime dla zalogowanego użytkownika."""
 
+    group_name: str | None = None
+
     async def connect(self) -> None:
         user = self.scope.get("user")
         if not user or not user.is_authenticated:
@@ -83,7 +85,8 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
         await self.accept()
 
     async def disconnect(self, code: int) -> None:  # noqa: D401 - API channels
-        await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        if self.group_name:
+            await self.channel_layer.group_discard(self.group_name, self.channel_name)
         await super().disconnect(code)
 
     async def notification_message(self, event: dict[str, Any]) -> None:
