@@ -4,11 +4,23 @@ from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 
 from animals.models import Animal, Gender, Size
 from common.models import Reaction, ReactionType
+from common import routing
 from common.notifications import broadcast_user_notification, make_user_group_name
+
+
+class NotificationRoutingTests(SimpleTestCase):
+    def setUp(self) -> None:
+        self.pattern = next(p for p in routing.websocket_urlpatterns if p.name == "notifications")
+
+    def test_notifications_route_without_user_id(self) -> None:
+        self.assertIsNotNone(self.pattern.pattern.match("ws/notifications/"))
+
+    def test_notifications_route_with_user_id(self) -> None:
+        self.assertIsNotNone(self.pattern.pattern.match("ws/notifications/6/"))
 
 
 class NotificationHelpersTests(TestCase):
