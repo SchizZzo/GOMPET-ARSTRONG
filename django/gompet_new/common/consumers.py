@@ -90,4 +90,10 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
         await super().disconnect(code)
 
     async def notification_message(self, event: dict[str, Any]) -> None:
-        await self.send_json(event["payload"])
+        await self.send_json(
+            {
+                "type": "notify",
+                "event": event.get("event"),
+                "payload": event.get("payload"),
+            }
+        )
