@@ -20,6 +20,22 @@ class TimeStampedModel(models.Model):
         self.save(update_fields=["deleted_at"])
 
 
+class ArticleCategory(TimeStampedModel):
+    """Category assigned to articles in the Knowledge section."""
+
+    id = models.BigAutoField(primary_key=True)
+    name = models.CharField(max_length=150, unique=True)
+    slug = models.SlugField(unique=True)
+    description = models.TextField(blank=True)
+
+    class Meta:
+        db_table = "article_categories"
+        ordering = ("name",)
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Article(TimeStampedModel):
     """
     Model zgodny z ERD (Articles):
@@ -54,6 +70,12 @@ class Article(TimeStampedModel):
         related_query_name="articles",
         content_type_field="reactable_type",
         object_id_field="reactable_id",
+    )
+
+    categories = models.ManyToManyField(
+        ArticleCategory,
+        related_name="articles",
+        blank=True,
     )
 
 

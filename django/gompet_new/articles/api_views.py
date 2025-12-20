@@ -1,9 +1,10 @@
 from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import serializers, viewsets, permissions, filters, status
 from rest_framework.response import Response
-from .models import Article
+from .models import Article, ArticleCategory
 
-from .serializers import ArticleSerializer, ArticlesLastSerializer
+from .serializers import ArticleSerializer, ArticlesLastSerializer, ArticleCategorySerializer
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
@@ -22,9 +23,13 @@ class ArticleViewSet(viewsets.ModelViewSet):
     queryset = Article.objects.filter(deleted_at__isnull=True)
     serializer_class = ArticleSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["title", "content", "author__username"]
     ordering_fields = ["created_at", "updated_at"]
+    filterset_fields = {
+        "categories": ["exact"],
+        "categories__slug": ["exact"],
+    }
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -82,3 +87,16 @@ class ArticlesLastViewSet(viewsets.ReadOnlyModelViewSet):
             limit = 10
 
         return queryset.order_by('-created_at')[:limit]
+
+
+@extend_schema(
+    tags=["article_categories"],
+    description="API endpoint for managing article categories.",
+)
+class ArticleCategoryViewSet(viewsets.ModelViewSet):
+    queryset = ArticleCategory.objects.filter(deleted_at__isnull=True)
+    serializer_class = ArticleCategorySerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name", "slug"]
+    ordering_fields = ["name", "created_at"]

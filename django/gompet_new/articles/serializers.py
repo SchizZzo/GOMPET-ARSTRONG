@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
 from users.serializers import UserSerializer
-from .models import Article
+from .models import Article, ArticleCategory
 
 User = get_user_model()
 
@@ -32,6 +32,13 @@ class ArticleSerializer(serializers.ModelSerializer):
     reactions = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     image = Base64ImageField(required=False, allow_null=True)
 
+    categories = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=ArticleCategory.objects.all(),
+        required=False,
+        allow_empty=True,
+    )
+
     author = UserSerializer(read_only=True)
 
     class Meta:
@@ -44,6 +51,8 @@ class ArticleSerializer(serializers.ModelSerializer):
             "image",
             "author",
 
+            "categories",
+
             "comments",
             "reactions",
             
@@ -55,11 +64,21 @@ class ArticleSerializer(serializers.ModelSerializer):
 
 
     def create(self, validated_data):
-        # Set the author to the current user
+        categories = validated_data.pop("categories", [])
         request = self.context.get("request")
         if request and hasattr(request, "user"):
             validated_data["author"] = request.user
-        return super().create(validated_data)
+        article = super().create(validated_data)
+        if categories:
+            article.categories.set(categories)
+        return article
+
+    def update(self, instance, validated_data):
+        categories = validated_data.pop("categories", None)
+        article = super().update(instance, validated_data)
+        if categories is not None:
+            article.categories.set(categories)
+        return article
     
 
 class ArticlesLastSerializer(serializers.ModelSerializer):
@@ -77,3 +96,18 @@ class ArticlesLastSerializer(serializers.ModelSerializer):
             "created_at",
         )
         read_only_fields = ("id", "created_at")
+
+
+class ArticleCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ArticleCategory
+        fields = (
+            "id",
+            "name",
+            "slug",
+            "description",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+        )
+        read_only_fields = ("id", "created_at", "updated_at", "deleted_at")
