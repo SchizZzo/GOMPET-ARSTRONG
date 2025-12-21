@@ -13,8 +13,10 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
+from animals.models import Animal
 from .like_counter import ReactableRef, build_payload, make_group_name, resolve_content_type
-from .models import Reaction, ReactionType
+from .models import Notification, Reaction, ReactionType
+from .notifications import broadcast_user_notification, build_notification_payload
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +83,8 @@ def handle_reaction_saved(sender, instance: Reaction, **kwargs: Any) -> None:
     if instance.reaction_type == ReactionType.LIKE or previous_type == ReactionType.LIKE:
         broadcast_like_count(instance.reactable_type, instance.reactable_id)
 
+    notify_owner_about_like(instance, previous_type)
+
     if hasattr(instance, "_previous_reaction_type"):
         delattr(instance, "_previous_reaction_type")
 
@@ -89,6 +93,45 @@ def handle_reaction_saved(sender, instance: Reaction, **kwargs: Any) -> None:
 def handle_reaction_deleted(sender, instance: Reaction, **kwargs: Any) -> None:
     if instance.reaction_type == ReactionType.LIKE:
         broadcast_like_count(instance.reactable_type, instance.reactable_id)
+
+
+def notify_owner_about_like(reaction: Reaction, previous_type: ReactionType | None = None) -> None:
+    if reaction.reaction_type != ReactionType.LIKE:
+        return
+
+    if previous_type == ReactionType.LIKE:
+        return
+
+    if not reaction.user_id:
+        return
+
+    try:
+        animal_content_type = ContentType.objects.get_for_model(Animal)
+    except ContentType.DoesNotExist:
+        return
+
+    if reaction.reactable_type_id != animal_content_type.id:
+        return
+
+    try:
+        animal = Animal.objects.get(pk=reaction.reactable_id)
+    except Animal.DoesNotExist:
+        return
+
+    if not animal.owner_id or animal.owner_id == reaction.user_id:
+        return
+
+    notification = Notification.objects.create(
+        recipient=animal.owner,
+        actor=reaction.user,
+        verb="polubił(a)",
+        target_type="animal",
+        target_id=animal.id,
+    )
+
+    broadcast_user_notification(
+        animal.owner_id, build_notification_payload(notification)
+    )
 
 
 __all__ = ["broadcast_like_count"]

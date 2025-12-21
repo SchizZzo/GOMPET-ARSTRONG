@@ -10,6 +10,8 @@ from channels.exceptions import InvalidChannelLayerError
 from channels.layers import get_channel_layer
 from django.core.exceptions import ImproperlyConfigured
 
+from common.models import Notification
+
 logger = logging.getLogger(__name__)
 
 
@@ -51,7 +53,26 @@ def broadcast_user_notification(user_id: int, payload: dict[str, Any]) -> bool:
     return True
 
 
+def build_notification_payload(notification: Notification) -> dict[str, Any]:
+    actor = notification.actor
+    return {
+        "id": notification.id,
+        "actor": {
+            "id": actor.id,
+            "first_name": actor.first_name,
+            "last_name": actor.last_name,
+            "email": actor.email,
+        },
+        "verb": notification.verb,
+        "target_type": notification.target_type,
+        "target_id": notification.target_id,
+        "is_read": notification.is_read,
+        "created_at": notification.created_at.isoformat(),
+    }
+
+
 __all__ = [
     "broadcast_user_notification",
+    "build_notification_payload",
     "make_user_group_name",
 ]

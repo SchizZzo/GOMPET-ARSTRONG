@@ -1,10 +1,5 @@
-from django.db import models
-
-# Create your models here.
-
-
-# common/models.py
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -123,3 +118,32 @@ class Reaction(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.user_id} {self.reaction_type} {self.reactable_type}.{self.reactable_id}"
+
+
+User = get_user_model()
+
+
+class Notification(models.Model):
+    """Prosta notyfikacja systemowa skierowana do konkretnego użytkownika."""
+
+    recipient = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="notifications"
+    )
+    actor = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="actor_notifications"
+    )
+    verb = models.CharField(max_length=255)
+    target_type = models.CharField(max_length=50)
+    target_id = models.PositiveIntegerField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "notifications"
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=("recipient", "is_read", "created_at"), name="idx_notification_recipient_read"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.recipient_id} ← {self.actor_id}: {self.verb} {self.target_type}#{self.target_id}"
