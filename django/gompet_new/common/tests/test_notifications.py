@@ -6,18 +6,20 @@ from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 from django.urls import reverse
+from rest_framework_simplejwt.tokens import AccessToken
 
 from animals.models import Animal, Gender, Size
+from common.consumers import NotificationConsumer
 from common.models import Notification, Reaction, ReactionType
 from common.notifications import (
     broadcast_user_notification,
     build_notification_payload,
     make_user_group_name,
 )
-from common.consumers import NotificationConsumer
 from channels.testing import WebsocketCommunicator
 from asgiref.sync import async_to_sync
 from rest_framework.test import APIClient
+from gompet_new.middleware import JWTAuthMiddleware
 
 
 class NotificationHelpersTests(TestCase):
@@ -232,5 +234,27 @@ class NotificationConsumerTests(TestCase):
 
         response = async_to_sync(communicator.receive_json_from)()
         self.assertEqual(response, {"hello": "world"})
+
+        async_to_sync(communicator.disconnect)()
+
+    def test_jwt_authenticated_user_receives_messages(self) -> None:
+        access_token = AccessToken.for_user(self.user)
+        communicator = WebsocketCommunicator(
+            JWTAuthMiddleware(NotificationConsumer.as_asgi()),
+            "/ws/notifications/",
+            headers=[(b"authorization", f"Bearer {access_token}".encode())],
+        )
+
+        connected, _ = async_to_sync(communicator.connect)()
+
+        self.assertTrue(connected)
+
+        async_to_sync(communicator.application_instance.channel_layer.group_send)(
+            make_user_group_name(self.user.id),
+            {"type": "notification_message", "payload": {"hello": "jwt"}},
+        )
+
+        response = async_to_sync(communicator.receive_json_from)()
+        self.assertEqual(response, {"hello": "jwt"})
 
         async_to_sync(communicator.disconnect)()
