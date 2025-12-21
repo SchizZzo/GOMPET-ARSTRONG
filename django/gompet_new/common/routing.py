@@ -14,7 +14,7 @@ websocket_urlpatterns = [
         name="like-counter",
     ),
     re_path(
-        r"^ws/notifications/(?:(?P<user_id>\d+)/)?$",
+        r"^ws/notifications/$",
         consumers.NotificationConsumer.as_asgi(),
         name="notifications",
     ),

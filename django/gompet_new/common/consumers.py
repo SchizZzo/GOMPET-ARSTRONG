@@ -80,17 +80,6 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
             await self.close(code=4401)
             return
 
-        user_id_raw = self.scope.get("url_route", {}).get("kwargs", {}).get("user_id")
-        if user_id_raw is not None:
-            try:
-                user_id = int(user_id_raw)
-            except (TypeError, ValueError):
-                await self.close(code=4400)
-                return
-            if user_id != user.pk:
-                await self.close(code=4403)
-                return
-
         self.group_name = make_user_group_name(user.pk)
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
