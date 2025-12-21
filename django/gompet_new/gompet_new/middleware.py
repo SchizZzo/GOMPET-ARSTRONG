@@ -6,7 +6,6 @@ import logging
 from typing import Iterable, Tuple
 from urllib.parse import parse_qs
 
-from django.contrib.auth.models import AnonymousUser
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import AuthenticationFailed, InvalidToken
 
@@ -42,8 +41,6 @@ class JWTAuthMiddleware:
                 logger.debug(
                     "Unexpected error during websocket JWT authentication: %s", exc, exc_info=True
                 )
-        else:
-            scope.setdefault("user", AnonymousUser())
 
         return await self.inner(scope, receive, send)
 
