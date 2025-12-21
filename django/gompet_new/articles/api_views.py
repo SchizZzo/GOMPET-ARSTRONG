@@ -29,7 +29,24 @@ class ArticleViewSet(viewsets.ModelViewSet):
     filterset_fields = {
         "categories": ["exact"],
         "categories__slug": ["exact"],
+        "categories__isnull": ["exact"],
     }
+
+    def get_queryset(self):
+        queryset = Article.objects.filter(deleted_at__isnull=True)
+
+        has_category_param = self.request.query_params.get("has_category")
+        if has_category_param is not None:
+            normalized = has_category_param.lower()
+            truthy = {"1", "true", "yes", "on"}
+            falsy = {"0", "false", "no", "off"}
+
+            if normalized in truthy:
+                queryset = queryset.filter(categories__isnull=False)
+            elif normalized in falsy:
+                queryset = queryset.filter(categories__isnull=True)
+
+        return queryset.distinct()
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
