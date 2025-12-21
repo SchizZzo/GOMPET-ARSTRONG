@@ -208,7 +208,7 @@ class NotificationConsumerTests(TestCase):
     def test_anonymous_user_is_rejected(self) -> None:
         communicator = WebsocketCommunicator(
             NotificationConsumer.as_asgi(),
-            "/ws/notifications/",
+            "/ws/notifications/1/",
         )
 
         connected, _ = async_to_sync(communicator.connect)()
@@ -219,7 +219,7 @@ class NotificationConsumerTests(TestCase):
     def test_authenticated_user_receives_messages(self) -> None:
         communicator = WebsocketCommunicator(
             NotificationConsumer.as_asgi(),
-            "/ws/notifications/",
+            f"/ws/notifications/{self.user.id}/",
         )
         communicator.scope["user"] = self.user
 
@@ -241,7 +241,7 @@ class NotificationConsumerTests(TestCase):
         access_token = AccessToken.for_user(self.user)
         communicator = WebsocketCommunicator(
             JWTAuthMiddleware(NotificationConsumer.as_asgi()),
-            "/ws/notifications/",
+            f"/ws/notifications/{self.user.id}/",
             headers=[(b"authorization", f"Bearer {access_token}".encode())],
         )
 
@@ -259,13 +259,32 @@ class NotificationConsumerTests(TestCase):
 
         async_to_sync(communicator.disconnect)()
 
+    def test_authenticated_user_cannot_subscribe_to_other_user(self) -> None:
+        other_user = get_user_model().objects.create_user(
+            email="other@example.com",
+            password="secret",
+            first_name="John",
+            last_name="Smith",
+        )
+
+        communicator = WebsocketCommunicator(
+            NotificationConsumer.as_asgi(),
+            f"/ws/notifications/{other_user.id}/",
+        )
+        communicator.scope["user"] = self.user
+
+        connected, _ = async_to_sync(communicator.connect)()
+
+        self.assertFalse(connected)
+        self.assertEqual(communicator.close_code, 4403)
+
     def test_session_authenticated_user_receives_messages(self) -> None:
         self.client.force_login(self.user)
         session_id = self.client.cookies["sessionid"].value
 
         communicator = WebsocketCommunicator(
             JWTAuthMiddlewareStack(NotificationConsumer.as_asgi()),
-            "/ws/notifications/",
+            f"/ws/notifications/{self.user.id}/",
             headers=[(b"cookie", f"sessionid={session_id}".encode())],
         )
 

@@ -81,6 +81,16 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
             await self.close(code=4401)
             return
 
+        try:
+            requested_user_id = int(self.scope["url_route"]["kwargs"]["user_id"])
+        except (KeyError, TypeError, ValueError):
+            await self.close(code=4400)
+            return
+
+        if requested_user_id != user.id:
+            await self.close(code=4403)
+            return
+
         self.group_name = make_user_group_name(user.id)
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
