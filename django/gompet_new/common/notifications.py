@@ -19,10 +19,10 @@ def make_user_group_name(user_id: int) -> str:
     return f"notifications.user.{user_id}"
 
 
-def broadcast_user_notification(user_id: int, event: str, payload: dict[str, Any]) -> bool:
+def broadcast_user_notification(user_id: int, payload: dict[str, Any]) -> bool:
     """Wysyła powiadomienie realtime do właściciela."""
 
-    if not user_id or not event:
+    if not user_id:
         return False
 
     try:
@@ -41,7 +41,6 @@ def broadcast_user_notification(user_id: int, event: str, payload: dict[str, Any
             group_name,
             {
                 "type": "notification_message",
-                "event": event,
                 "payload": payload,
             },
         )

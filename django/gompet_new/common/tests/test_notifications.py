@@ -19,13 +19,12 @@ class NotificationHelpersTests(TestCase):
         mocked_layer_getter.return_value = mocked_layer
 
         payload = {"foo": "bar"}
-        sent = broadcast_user_notification(5, "dummy.event", payload)
+        sent = broadcast_user_notification(5, payload)
 
         self.assertTrue(sent)
         mocked_layer.group_send.assert_awaited_once()
         args, _ = mocked_layer.group_send.await_args
         self.assertEqual(args[0], make_user_group_name(5))
-        self.assertEqual(args[1]["event"], "dummy.event")
         self.assertEqual(args[1]["payload"], payload)
 
 
@@ -63,9 +62,8 @@ class NotificationSignalTests(TestCase):
         )
 
         mocked_broadcast.assert_called_once()
-        owner_id, event, payload = mocked_broadcast.call_args.args
+        owner_id, payload = mocked_broadcast.call_args.args
         self.assertEqual(owner_id, self.owner.id)
-        self.assertEqual(event, "animal_liked")
         self.assertEqual(payload["animal_id"], self.animal.id)
         self.assertEqual(payload["liked_by"], self.liker.id)
 
