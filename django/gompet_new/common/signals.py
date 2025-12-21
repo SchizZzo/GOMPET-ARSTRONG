@@ -121,12 +121,13 @@ def _notify_animal_owner_about_like(reaction: Reaction) -> None:
 
     ref = ReactableRef(content_type=reaction.reactable_type, object_id=reaction.reactable_id)
     payload = {
+        "event": "animal_liked",
         "animal_id": reaction.reactable_id,
         "animal_name": getattr(animal, "name", ""),
         "liked_by": reaction.user_id,
         "total_likes": calculate_like_total(ref),
     }
-    broadcast_user_notification(animal.owner_id, "animal_liked", payload)
+    broadcast_user_notification(animal.owner_id, payload)
 
 
 __all__ = ["broadcast_like_count"]
