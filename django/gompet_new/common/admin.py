@@ -2,7 +2,8 @@ from django.contrib import admin
 
 # Register your models here.
 from django.contrib import admin
-from .models import Comment, Reaction
+from .models import Comment, Reaction, Notification
 
 admin.site.register(Comment)
 admin.site.register(Reaction)
+admin.site.register(Notification)

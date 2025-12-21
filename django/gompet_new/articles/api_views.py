@@ -29,13 +29,13 @@ class ArticleViewSet(viewsets.ModelViewSet):
     filterset_fields = {
         "categories": ["exact"],
         "categories__slug": ["exact"],
-        "categories__isnull": ["exact"],
+        
     }
 
     def get_queryset(self):
         queryset = Article.objects.filter(deleted_at__isnull=True)
 
-        has_category_param = self.request.query_params.get("has_category")
+        has_category_param = self.request.query_params.get("has-category")
         if has_category_param is not None:
             normalized = has_category_param.lower()
             truthy = {"1", "true", "yes", "on"}
@@ -55,6 +55,8 @@ class ArticleViewSet(viewsets.ModelViewSet):
         article = self.get_object()
         article.soft_delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+
     
     
     
