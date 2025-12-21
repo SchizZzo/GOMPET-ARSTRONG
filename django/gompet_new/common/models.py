@@ -142,7 +142,7 @@ class Notification(models.Model):
         db_table = "notifications"
         ordering = ("-created_at",)
         indexes = [
-            models.Index(fields=("recipient", "is_read", "created_at"), name="idx_notification_recipient_read"),
+            models.Index(fields=("recipient", "is_read", "created_at"), name="idx_notification_rec_read"),
         ]
 
     def __str__(self) -> str:
