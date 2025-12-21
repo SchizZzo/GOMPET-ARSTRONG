@@ -181,17 +181,7 @@ localhost/animals/animals/?size=MEDIUM
             )
             qs = qs.filter(id__in=liked_animal_ids)
 
-        else:
-            animal_content_type = ContentType.objects.get_for_model(Animal)
-            liked_animal_ids = (
-                Reaction.objects.filter(
-                    user_id=self.request.user.id,
-                    reaction_type=ReactionType.LIKE,
-                    reactable_type=animal_content_type,
-                )
-                .values_list("reactable_id", flat=True)
-            )
-            qs = qs.filter(id__in=liked_animal_ids)
+       
 
 
 

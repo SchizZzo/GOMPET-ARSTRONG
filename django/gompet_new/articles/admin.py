@@ -2,7 +2,7 @@ from django.contrib import admin
 
 # Register your models here.
 from django.contrib import admin
-from .models import Article
+from .models import Article, ArticleCategory
 
 
 @admin.register(Article)
@@ -16,10 +16,16 @@ class ArticleAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at", "deleted_at")
     fieldsets = (
         (None, {
-            "fields": ("title", "slug", "author", "content", "image")
+            "fields": ("title", "categories", "slug", "author", "content", "image")
         }),
         ("Date Information", {
             "fields": ("created_at", "updated_at", "deleted_at"),
             "classes": ("collapse",)
         }),
     )
+
+@admin.register(ArticleCategory)
+class ArticleCategoryAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "slug")
+    prepopulated_fields = {"slug": ("name",)}
+    ordering = ("name",)
