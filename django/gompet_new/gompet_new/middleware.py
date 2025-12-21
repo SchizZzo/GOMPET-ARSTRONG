@@ -80,7 +80,11 @@ def JWTAuthMiddlewareStack(inner):
 
     from channels.auth import AuthMiddlewareStack
 
-    return JWTAuthMiddleware(AuthMiddlewareStack(inner))
+    # ``AuthMiddlewareStack`` populates ``scope['user']`` based on the session.
+    # To allow JWT authentication to take precedence when provided, the JWT
+    # middleware must run **after** the auth stack so it can override the user
+    # set by session-based authentication.
+    return AuthMiddlewareStack(JWTAuthMiddleware(inner))
 
 
 __all__ = ["JWTAuthMiddleware", "JWTAuthMiddlewareStack"]
