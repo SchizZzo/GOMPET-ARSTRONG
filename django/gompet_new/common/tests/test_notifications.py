@@ -19,7 +19,7 @@ from common.notifications import (
 from channels.testing import WebsocketCommunicator
 from asgiref.sync import async_to_sync
 from rest_framework.test import APIClient
-from gompet_new.middleware import JWTAuthMiddleware
+from gompet_new.middleware import JWTAuthMiddleware, JWTAuthMiddlewareStack
 
 
 class NotificationHelpersTests(TestCase):
@@ -256,5 +256,29 @@ class NotificationConsumerTests(TestCase):
 
         response = async_to_sync(communicator.receive_json_from)()
         self.assertEqual(response, {"hello": "jwt"})
+
+        async_to_sync(communicator.disconnect)()
+
+    def test_session_authenticated_user_receives_messages(self) -> None:
+        self.client.force_login(self.user)
+        session_id = self.client.cookies["sessionid"].value
+
+        communicator = WebsocketCommunicator(
+            JWTAuthMiddlewareStack(NotificationConsumer.as_asgi()),
+            "/ws/notifications/",
+            headers=[(b"cookie", f"sessionid={session_id}".encode())],
+        )
+
+        connected, _ = async_to_sync(communicator.connect)()
+
+        self.assertTrue(connected)
+
+        async_to_sync(communicator.application_instance.channel_layer.group_send)(
+            make_user_group_name(self.user.id),
+            {"type": "notification_message", "payload": {"hello": "session"}},
+        )
+
+        response = async_to_sync(communicator.receive_json_from)()
+        self.assertEqual(response, {"hello": "session"})
 
         async_to_sync(communicator.disconnect)()
