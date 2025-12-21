@@ -1,4 +1,4 @@
-"""Websocket consumer obsługujący licznik polubień."""
+"""Websocket consumery obsługujące realtime w aplikacji ``common``."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 
 from .like_counter import ReactableRef, build_payload, make_group_name, resolve_content_type
+from .notifications import make_user_group_name
 
 logger = logging.getLogger(__name__)
 
@@ -65,4 +66,32 @@ class LikeCounterConsumer(AsyncJsonWebsocketConsumer):
         raise ValidationError("Ten websocket służy wyłącznie do odczytu.")
 
     async def like_count_update(self, event: dict[str, Any]) -> None:
+        await self.send_json(event["payload"])
+
+
+class NotificationConsumer(AsyncJsonWebsocketConsumer):
+    """Udostępnia realtime powiadomienia dla zalogowanego użytkownika."""
+
+    group_name: str
+
+    async def connect(self) -> None:
+        user = self.scope.get("user")
+
+        if not getattr(user, "is_authenticated", False):
+            await self.close(code=4401)
+            return
+
+        self.group_name = make_user_group_name(user.id)
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, code: int) -> None:  # noqa: D401 - API channels
+        if hasattr(self, "group_name"):
+            await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        await super().disconnect(code)
+
+    async def receive_json(self, content: Any, **kwargs: Any) -> None:  # pragma: no cover - API read-only
+        raise ValidationError("Ten websocket służy wyłącznie do odczytu.")
+
+    async def notification_message(self, event: dict[str, Any]) -> None:
         await self.send_json(event["payload"])

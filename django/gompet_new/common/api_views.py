@@ -6,9 +6,14 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from common.like_counter import resolve_content_type
-from common.models import Comment, Reaction, ReactionType
+from common.models import Comment, Notification, Reaction, ReactionType
 
-from .serializers import CommentSerializer, ContentTypeSerializer, ReactionSerializer
+from .serializers import (
+    CommentSerializer,
+    ContentTypeSerializer,
+    NotificationSerializer,
+    ReactionSerializer,
+)
 
 # common/api_serializers.py
 
@@ -282,5 +287,32 @@ class ReactionViewSet(viewsets.ModelViewSet):
         )
 
         return Response({"reaction_id": reaction_id or 0})
+
+
+@extend_schema(
+    tags=["notifications"],
+    description="Lista powiadomień zalogowanego użytkownika oraz oznaczanie ich jako przeczytane.",
+)
+class NotificationViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["get", "patch", "head", "options"]
+
+    def get_queryset(self):
+        return (
+            Notification.objects.filter(recipient=self.request.user)
+            .select_related("actor")
+            .order_by("-created_at")
+        )
+
+    def partial_update(self, request, *args, **kwargs):
+        disallowed_fields = set(request.data.keys()) - {"is_read"}
+        if disallowed_fields:
+            return Response(
+                {"detail": "Only 'is_read' can be updated."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return super().partial_update(request, *args, **kwargs)
 
 

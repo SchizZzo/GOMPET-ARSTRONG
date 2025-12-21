@@ -1,9 +1,7 @@
-
-from rest_framework import serializers
 from django.contrib.contenttypes.models import ContentType
-from common.models import Comment, Reaction, ReactionType
+from rest_framework import serializers
 
-
+from common.models import Comment, Notification, Reaction, ReactionType
 from users.serializers import UserSerializer
 
 
@@ -89,9 +87,26 @@ class ReactionSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return Reaction.objects.create(**validated_data)
-    
+
 
 class ContentTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContentType
         fields = ["id", "app_label", "model"]
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    actor = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Notification
+        fields = [
+            "id",
+            "actor",
+            "verb",
+            "target_type",
+            "target_id",
+            "is_read",
+            "created_at",
+        ]
+        read_only_fields = ["id", "actor", "verb", "target_type", "target_id", "created_at"]
