@@ -22,6 +22,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
     """
     queryset = Article.objects.filter(deleted_at__isnull=True)
     serializer_class = ArticleSerializer
+    lookup_field = "slug"
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["title", "content", "author__username"]
@@ -87,10 +88,14 @@ class ArticlesLastViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = Article.objects.filter(deleted_at__isnull=True).order_by('-created_at')[:10]
     serializer_class = ArticlesLastSerializer
+
+    lookup_field = "slug"
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["title"]
     ordering_fields = ["created_at"]
+    
+
 
     def get_queryset(self):
         queryset = Article.objects.filter(deleted_at__isnull=True)
