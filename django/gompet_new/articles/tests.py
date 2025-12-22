@@ -58,3 +58,40 @@ class ArticleDeletionTests(TestCase):
         self.assertFalse(Article.objects.filter(pk=article.pk).exists())
         self.assertFalse(Comment.objects.filter(pk=comment.pk).exists())
         self.assertFalse(Reaction.objects.filter(pk=reaction.pk).exists())
+
+
+class ArticleSlugTests(TestCase):
+    """Ensure slugs are automatically generated from titles."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            email="author@example.com",
+            password="testpass123",
+            first_name="Author",
+            last_name="User",
+        )
+
+    def test_slug_is_generated_from_title(self):
+        article = Article.objects.create(
+            title="My First Article",
+            content="Content",
+            author=self.user,
+        )
+
+        self.assertEqual(article.slug, "my-first-article")
+
+    def test_slug_is_unique(self):
+        Article.objects.create(
+            title="Duplicate Title",
+            content="Content",
+            author=self.user,
+        )
+
+        article = Article.objects.create(
+            title="Duplicate Title",
+            content="Content",
+            author=self.user,
+        )
+
+        self.assertEqual(article.slug, "duplicate-title-2")

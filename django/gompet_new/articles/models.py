@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models, router, transaction
 from django.utils import timezone
+from django.utils.text import slugify
 
 from common.models import Comment, Reaction
 
@@ -46,7 +47,7 @@ class Article(TimeStampedModel):
     """
 
     id      = models.BigAutoField(primary_key=True)
-    slug    = models.SlugField(unique=True)
+    slug    = models.SlugField(unique=True, blank=True)
     title   = models.CharField(max_length=255)
     content = models.TextField()
     image = models.ImageField(
@@ -121,3 +122,21 @@ class Article(TimeStampedModel):
             self.comments.using(db_alias).all().delete()
             self.reactions.using(db_alias).all().delete()
             return super().delete(using=db_alias, keep_parents=keep_parents)
+
+    def save(self, *args, **kwargs):
+        if not self.slug and self.title:
+            self.slug = self._generate_unique_slug()
+        super().save(*args, **kwargs)
+
+    def _generate_unique_slug(self) -> str:
+        base_slug = slugify(self.title) or "article"
+        slug = base_slug
+        db_alias = self._state.db or router.db_for_write(type(self), instance=self)
+        qs = type(self).objects.using(db_alias)
+
+        suffix = 2
+        while qs.filter(slug=slug).exclude(pk=self.pk).exists():
+            slug = f"{base_slug}-{suffix}"
+            suffix += 1
+
+        return slug
