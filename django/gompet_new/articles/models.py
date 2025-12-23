@@ -26,8 +26,13 @@ class ArticleCategory(TimeStampedModel):
 
     id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=150, unique=True)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(unique=True, blank=True)
     description = models.TextField(blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug and self.name:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
 
     class Meta:
         db_table = "article_categories"
