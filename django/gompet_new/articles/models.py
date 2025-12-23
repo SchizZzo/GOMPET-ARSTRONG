@@ -54,7 +54,7 @@ class Article(TimeStampedModel):
     id      = models.BigAutoField(primary_key=True)
     slug    = models.SlugField(unique=True, blank=True)
     title   = models.CharField(max_length=255)
-    content = models.TextField()
+    content = models.JSONField(blank=True, null=True, help_text="Treść artykułu w formacie JSON.")
     image = models.ImageField(
         upload_to="articles/images/",
         null=True, blank=True)
