@@ -124,10 +124,14 @@ class Command(BaseCommand):
 
         # create articles
         for i in range(20):
+            article_content = {
+                "type": "text",
+                "value": f"Sample content {i+1}",
+            }
             Article.objects.create(
                 slug=f"article-{i+1}",
                 title=f"Article {i+1}",
-                content="Sample content",
+                content=article_content,
                 author=user,
             )
 
