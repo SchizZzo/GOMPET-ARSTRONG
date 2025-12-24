@@ -1,5 +1,5 @@
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from .models import (
@@ -117,7 +117,7 @@ localhost/animals/animals/?size=MEDIUM
     """
     queryset = Animal.objects.all()
     serializer_class = AnimalSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
     # Disable pagination so list endpoints return plain arrays.
