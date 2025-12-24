@@ -75,6 +75,7 @@ class ArticleSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         categories = validated_data.pop("categories", None)
+        
         article = super().update(instance, validated_data)
         if categories is not None:
             article.categories.set(categories)

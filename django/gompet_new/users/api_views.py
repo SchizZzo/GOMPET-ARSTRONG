@@ -244,6 +244,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             organization=org,
             role=MemberRole.OWNER,
         )
+        
 
     def get_queryset(self):
         qs = Organization.objects.all().order_by('-created_at')

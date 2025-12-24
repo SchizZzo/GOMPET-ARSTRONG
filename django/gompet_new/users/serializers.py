@@ -290,6 +290,7 @@ class OrganizationCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization
         fields = [
+            "id",
             "type",
             "name",
             "email",
@@ -317,6 +318,7 @@ class OrganizationUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization
         fields = [
+            "id",
             "type",
             "name",
             "email",
