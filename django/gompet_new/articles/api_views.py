@@ -1,5 +1,6 @@
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models import Count
 from rest_framework import serializers, viewsets, permissions, filters, status
 from rest_framework.response import Response
 from .models import Article, ArticleCategory
@@ -42,10 +43,12 @@ class ArticleViewSet(viewsets.ModelViewSet):
             truthy = {"1", "true", "yes", "on"}
             falsy = {"0", "false", "no", "off"}
 
+            # Use annotation to reliably count many-to-many categories
+            queryset = queryset.annotate(_cat_count=Count('categories'))
             if normalized in truthy:
-                queryset = queryset.filter(categories__isnull=False)
+                queryset = queryset.filter(_cat_count__gt=0)
             elif normalized in falsy:
-                queryset = queryset.filter(categories__isnull=True)
+                queryset = queryset.filter(_cat_count=0)
 
         return queryset.distinct()
 
