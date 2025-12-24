@@ -27,7 +27,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["title", "content", "author__username"]
-    ordering_fields = ["created_at", "updated_at"]
+    ordering_fields = ["-created_at", "-updated_at"]
     filterset_fields = {
         "categories": ["exact"],
         "categories__slug": ["exact"],
@@ -50,7 +50,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
             elif normalized in falsy:
                 queryset = queryset.filter(_cat_count=0)
 
-        return queryset.distinct()
+        return queryset.distinct().order_by('-created_at')
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -96,7 +96,7 @@ class ArticlesLastViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["title"]
-    ordering_fields = ["created_at"]
+    ordering_fields = ["-created_at"]
     
 
 
