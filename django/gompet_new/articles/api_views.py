@@ -11,6 +11,17 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 
 def _split_csv_param(value):
+    if not value:
+        return []
+
+    if isinstance(value, (list, tuple)):
+        items = []
+        for entry in value:
+            if not entry:
+                continue
+            items.extend([item.strip() for item in entry.split(",") if item.strip()])
+        return items
+
     return [item.strip() for item in value.split(",") if item.strip()]
 
 @extend_schema(
@@ -53,29 +64,25 @@ class ArticleViewSet(viewsets.ModelViewSet):
             elif normalized in falsy:
                 queryset = queryset.filter(_cat_count=0)
 
-        category_param = self.request.query_params.get("category")
-        if category_param:
-            category_ids = _split_csv_param(category_param)
-            if category_ids:
-                queryset = queryset.filter(categories__id__in=category_ids)
+        category_param = self.request.query_params.getlist("category")
+        category_ids = _split_csv_param(category_param)
+        if category_ids:
+            queryset = queryset.filter(categories__id__in=category_ids)
 
-        category_slug_param = self.request.query_params.get("category-slug")
-        if category_slug_param:
-            category_slugs = _split_csv_param(category_slug_param)
-            if category_slugs:
-                queryset = queryset.filter(categories__slug__in=category_slugs)
+        category_slug_param = self.request.query_params.getlist("category-slug")
+        category_slugs = _split_csv_param(category_slug_param)
+        if category_slugs:
+            queryset = queryset.filter(categories__slug__in=category_slugs)
 
-        categories_param = self.request.query_params.get("categories")
-        if categories_param:
-            categories_ids = _split_csv_param(categories_param)
-            if categories_ids:
-                queryset = queryset.filter(categories__id__in=categories_ids)
+        categories_param = self.request.query_params.getlist("categories")
+        categories_ids = _split_csv_param(categories_param)
+        if categories_ids:
+            queryset = queryset.filter(categories__id__in=categories_ids)
 
-        categories_slug_param = self.request.query_params.get("categories__slug")
-        if categories_slug_param:
-            categories_slugs = _split_csv_param(categories_slug_param)
-            if categories_slugs:
-                queryset = queryset.filter(categories__slug__in=categories_slugs)
+        categories_slug_param = self.request.query_params.getlist("categories__slug")
+        categories_slugs = _split_csv_param(categories_slug_param)
+        if categories_slugs:
+            queryset = queryset.filter(categories__slug__in=categories_slugs)
 
         return queryset.distinct().order_by('-created_at')
     
@@ -142,17 +149,15 @@ class ArticlesLastViewSet(viewsets.ReadOnlyModelViewSet):
         if author:
             queryset = queryset.filter(author__first_name__icontains=author)
 
-        categories_param = self.request.query_params.get("categories")
-        if categories_param:
-            categories_ids = _split_csv_param(categories_param)
-            if categories_ids:
-                queryset = queryset.filter(categories__id__in=categories_ids)
+        categories_param = self.request.query_params.getlist("categories")
+        categories_ids = _split_csv_param(categories_param)
+        if categories_ids:
+            queryset = queryset.filter(categories__id__in=categories_ids)
 
-        categories_slug_param = self.request.query_params.get("categories__slug")
-        if categories_slug_param:
-            categories_slugs = _split_csv_param(categories_slug_param)
-            if categories_slugs:
-                queryset = queryset.filter(categories__slug__in=categories_slugs)
+        categories_slug_param = self.request.query_params.getlist("categories__slug")
+        categories_slugs = _split_csv_param(categories_slug_param)
+        if categories_slugs:
+            queryset = queryset.filter(categories__slug__in=categories_slugs)
 
         return queryset.distinct().order_by('-created_at')
 
