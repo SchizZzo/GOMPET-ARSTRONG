@@ -76,12 +76,15 @@ class ArticlesLastViewSet(viewsets.ReadOnlyModelViewSet):
 
     ## Parametry zapytania
     - `author` (str, opcjonalnie): filtr częściowy (case-insensitive) na nazwę użytkownika autora artykułu.
+    - `categories` (int, opcjonalnie): filtruje po identyfikatorze kategorii.
+    - `categories__slug` (str, opcjonalnie): filtruje po slug kategorii.
     - `limit` (int, opcjonalnie): maksymalna liczba zwracanych artykułów (domyślnie 10, jeśli brak lub nieprawidłowy).
 
     ## Funkcjonalności
     - Uwzględnia tylko artykuły, których `deleted_at` jest null.
     - Wspiera wyszukiwanie po tytule za pomocą standardowego parametru `search`.
     - Wspiera sortowanie po `created_at` za pomocą standardowego parametru `ordering`.
+    - Wspiera filtrowanie po kategoriach.
     - Zastosowanie uprawnień `IsAuthenticatedOrReadOnly`.
 
     ## Przykład zapytania
@@ -89,14 +92,18 @@ class ArticlesLastViewSet(viewsets.ReadOnlyModelViewSet):
     GET /articles-latest/?author=johndoe&limit=5
     ```
     """
-    queryset = Article.objects.filter(deleted_at__isnull=True).order_by('-created_at')[:10]
+    queryset = Article.objects.filter(deleted_at__isnull=True).order_by('-created_at')
     serializer_class = ArticlesLastSerializer
 
     lookup_field = "slug"
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["title"]
     ordering_fields = ["-created_at"]
+    filterset_fields = {
+        "categories": ["exact"],
+        "categories__slug": ["exact"],
+    }
     
 
 
@@ -106,14 +113,26 @@ class ArticlesLastViewSet(viewsets.ReadOnlyModelViewSet):
         if author:
             queryset = queryset.filter(author__first_name__icontains=author)
 
-        # read `limit` param, default to 10
-        limit_param = self.request.query_params.get('limit')
+        return queryset.order_by('-created_at')
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        limit_param = request.query_params.get('limit')
         try:
             limit = int(limit_param) if limit_param is not None else 10
         except ValueError:
             limit = 10
 
-        return queryset.order_by('-created_at')[:limit]
+        queryset = queryset[:limit]
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 @extend_schema(
