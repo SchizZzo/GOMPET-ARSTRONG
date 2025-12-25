@@ -157,17 +157,17 @@ localhost/animals/animals/?size=MEDIUM
         liked_only_param = params.get('liked')
         liked_user_id = None
 
+        # If requester is not authenticated, do not show any liked animals
+        if (liked_by_param or liked_only_param) and not (self.request.user and self.request.user.is_authenticated):
+            return Animal.objects.none()
+
         if liked_by_param:
             try:
                 liked_user_id = int(liked_by_param)
             except (TypeError, ValueError):
                 liked_user_id = None
         elif liked_only_param and str(liked_only_param).lower() in ("1", "true", "yes"):
-            liked_user_id = (
-                self.request.user.id if self.request.user and self.request.user.is_authenticated else None
-            )
-            if liked_user_id is None:
-                return Animal.objects.none()
+            liked_user_id = self.request.user.id
 
         if liked_user_id:
             animal_content_type = ContentType.objects.get_for_model(Animal)
