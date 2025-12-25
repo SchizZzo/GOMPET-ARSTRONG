@@ -10,6 +10,9 @@ from .serializers import ArticleSerializer, ArticlesLastSerializer, ArticleCateg
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 
+def _split_csv_param(value):
+    return [item.strip() for item in value.split(",") if item.strip()]
+
 @extend_schema(
     tags=["articles"],
     description="API endpoint that allows Articles to be viewed or edited. Supports soft-delete on destroy."
@@ -52,15 +55,27 @@ class ArticleViewSet(viewsets.ModelViewSet):
 
         category_param = self.request.query_params.get("category")
         if category_param:
-            category_ids = [value.strip() for value in category_param.split(",") if value.strip()]
+            category_ids = _split_csv_param(category_param)
             if category_ids:
                 queryset = queryset.filter(categories__id__in=category_ids)
 
         category_slug_param = self.request.query_params.get("category-slug")
         if category_slug_param:
-            category_slugs = [value.strip() for value in category_slug_param.split(",") if value.strip()]
+            category_slugs = _split_csv_param(category_slug_param)
             if category_slugs:
                 queryset = queryset.filter(categories__slug__in=category_slugs)
+
+        categories_param = self.request.query_params.get("categories")
+        if categories_param:
+            categories_ids = _split_csv_param(categories_param)
+            if categories_ids:
+                queryset = queryset.filter(categories__id__in=categories_ids)
+
+        categories_slug_param = self.request.query_params.get("categories__slug")
+        if categories_slug_param:
+            categories_slugs = _split_csv_param(categories_slug_param)
+            if categories_slugs:
+                queryset = queryset.filter(categories__slug__in=categories_slugs)
 
         return queryset.distinct().order_by('-created_at')
     
@@ -127,7 +142,19 @@ class ArticlesLastViewSet(viewsets.ReadOnlyModelViewSet):
         if author:
             queryset = queryset.filter(author__first_name__icontains=author)
 
-        return queryset.order_by('-created_at')
+        categories_param = self.request.query_params.get("categories")
+        if categories_param:
+            categories_ids = _split_csv_param(categories_param)
+            if categories_ids:
+                queryset = queryset.filter(categories__id__in=categories_ids)
+
+        categories_slug_param = self.request.query_params.get("categories__slug")
+        if categories_slug_param:
+            categories_slugs = _split_csv_param(categories_slug_param)
+            if categories_slugs:
+                queryset = queryset.filter(categories__slug__in=categories_slugs)
+
+        return queryset.distinct().order_by('-created_at')
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
