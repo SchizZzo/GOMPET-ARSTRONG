@@ -50,6 +50,18 @@ class ArticleViewSet(viewsets.ModelViewSet):
             elif normalized in falsy:
                 queryset = queryset.filter(_cat_count=0)
 
+        category_param = self.request.query_params.get("category")
+        if category_param:
+            category_ids = [value.strip() for value in category_param.split(",") if value.strip()]
+            if category_ids:
+                queryset = queryset.filter(categories__id__in=category_ids)
+
+        category_slug_param = self.request.query_params.get("category_slug")
+        if category_slug_param:
+            category_slugs = [value.strip() for value in category_slug_param.split(",") if value.strip()]
+            if category_slugs:
+                queryset = queryset.filter(categories__slug__in=category_slugs)
+
         return queryset.distinct().order_by('-created_at')
     
         
