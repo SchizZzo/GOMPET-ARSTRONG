@@ -33,3 +33,4 @@ class ArticleCategoryAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "slug")
     prepopulated_fields = {"slug": ("name",)}
     ordering = ("name",)
+    readonly_fields = ("created_at", "updated_at", "deleted_at")
