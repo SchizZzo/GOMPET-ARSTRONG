@@ -1,0 +1,22 @@
+{
+  "title": "Paczka NextJS",
+  "subtitle": "Strona w wersji {locale}",
+  "withLink": "Przejdź do <link>logowania</link>.",
+  "animalsScroll": {
+    "title": "Poszukują <highlight>nowego</highlight> domu",
+    "seeAll": "Zobacz wszystkie"
+  },
+  "organizationsScroll": {
+    "title": "Współpracujemy z",
+    "seeAll": "Zobacz wszystkie"
+  },
+  "knowledgeScroll": {
+    "title": "Najnowsze <highlight>publikacje</highlight>",
+    "seeAll": "Przejdź do bloga"
+  },
+  "footer": {
+    "rules": "Regulamin",
+    "privatePolitic": "Polityka prywatności",
+    "toCnange": "Wszelkie prawa zastrzeżone"
+  }
+}

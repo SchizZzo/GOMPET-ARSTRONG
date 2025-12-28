@@ -1,0 +1,19 @@
+@import 'styles';
+
+.container{
+    // width: 100%;
+    // margin: 0 auto;
+    @include element-flex(column, center, center);
+    gap: $spacing-6;
+    width: 100%;
+}
+
+.header {  
+    .title {
+      @include title3;
+    }
+  
+    .highlight {
+      color: $color-primary;
+    }
+}

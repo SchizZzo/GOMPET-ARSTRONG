@@ -1,0 +1,29 @@
+@import 'styles';
+
+.container {
+  @include element-flex(column, flex-start, stretch);
+  gap: $spacing-7;
+  width: 100%;
+}
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(30rem, 1fr));
+  gap: $spacing-4;
+  width: 100%;
+}
+
+.categories {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(25rem, 1fr));
+  gap: $spacing-4;
+  margin-top: 2rem;///
+}
+
+.modalBlackBg{
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0,0,0,0.6);
+  z-index: 100;
+  pointer-events: auto; /* albo po prostu usuń */
+}
