@@ -20,6 +20,7 @@ from channels.testing import WebsocketCommunicator
 from asgiref.sync import async_to_sync
 from rest_framework.test import APIClient
 from gompet_new.middleware import JWTAuthMiddleware, JWTAuthMiddlewareStack
+from posts.models import Post
 
 
 class NotificationHelpersTests(TestCase):
@@ -86,7 +87,13 @@ class NotificationSignalTests(TestCase):
             size=Size.MEDIUM,
             owner=self.owner,
         )
+        self.post = Post.objects.create(
+            content="Testowy post",
+            author=self.owner,
+            animal=self.animal,
+        )
         self.content_type = ContentType.objects.get_for_model(Animal)
+        self.post_content_type = ContentType.objects.get_for_model(Post)
 
     @mock.patch("common.signals.broadcast_user_notification")
     def test_like_on_animal_notifies_owner(self, mocked_broadcast: mock.Mock) -> None:
@@ -119,6 +126,25 @@ class NotificationSignalTests(TestCase):
         mocked_broadcast.assert_not_called()
 
         self.assertFalse(Notification.objects.filter(recipient=self.owner).exists())
+
+    @mock.patch("common.signals.broadcast_user_notification")
+    def test_like_on_post_notifies_author(self, mocked_broadcast: mock.Mock) -> None:
+        Reaction.objects.create(
+            user=self.liker,
+            reaction_type=ReactionType.LIKE,
+            reactable_type=self.post_content_type,
+            reactable_id=self.post.id,
+        )
+
+        notification = Notification.objects.get(recipient=self.owner)
+
+        mocked_broadcast.assert_called_once()
+        author_id, payload = mocked_broadcast.call_args.args
+        self.assertEqual(author_id, self.owner.id)
+        self.assertEqual(payload["id"], notification.id)
+        self.assertEqual(payload["target_id"], self.post.id)
+        self.assertEqual(payload["actor"]["id"], self.liker.id)
+        self.assertEqual(payload["verb"], "polubił(a)")
 
 
 class NotificationApiTests(TestCase):
