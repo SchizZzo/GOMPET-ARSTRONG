@@ -86,9 +86,26 @@ class ArticleViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(categories__slug__in=categories_slugs)
 
         return queryset.distinct().order_by('-created_at')
-    
-        
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        limit_param = request.query_params.get('limit')
+        if limit_param is not None:
+            try:
+                limit = int(limit_param)
+            except ValueError:
+                limit = None
+            if limit is not None and limit >= 0:
+                queryset = queryset[:limit]
+    
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
