@@ -15,7 +15,9 @@ from django.dispatch import receiver
 
 from animals.models import Animal
 from .like_counter import ReactableRef, build_payload, make_group_name, resolve_content_type
-from .models import Notification, Reaction, ReactionType
+from posts.models import Post
+
+from .models import Comment, Notification, Reaction, ReactionType
 from .notifications import broadcast_user_notification, build_notification_payload
 
 logger = logging.getLogger(__name__)
@@ -89,6 +91,14 @@ def handle_reaction_saved(sender, instance: Reaction, **kwargs: Any) -> None:
         delattr(instance, "_previous_reaction_type")
 
 
+@receiver(post_save, sender=Comment)
+def handle_comment_saved(sender, instance: Comment, created: bool, **kwargs: Any) -> None:
+    if not created:
+        return
+
+    notify_post_author_about_comment(instance)
+
+
 @receiver(post_delete, sender=Reaction)
 def handle_reaction_deleted(sender, instance: Reaction, **kwargs: Any) -> None:
     if instance.reaction_type == ReactionType.LIKE:
@@ -131,6 +141,39 @@ def notify_owner_about_like(reaction: Reaction, previous_type: ReactionType | No
 
     broadcast_user_notification(
         animal.owner_id, build_notification_payload(notification)
+    )
+
+
+def notify_post_author_about_comment(comment: Comment) -> None:
+    if not comment.user_id:
+        return
+
+    try:
+        post_content_type = ContentType.objects.get_for_model(Post)
+    except ContentType.DoesNotExist:
+        return
+
+    if comment.content_type_id != post_content_type.id:
+        return
+
+    try:
+        post = Post.objects.get(pk=comment.object_id)
+    except Post.DoesNotExist:
+        return
+
+    if not post.author_id or post.author_id == comment.user_id:
+        return
+
+    notification = Notification.objects.create(
+        recipient=post.author,
+        actor=comment.user,
+        verb="skomentował(a)",
+        target_type="post",
+        target_id=post.id,
+    )
+
+    broadcast_user_notification(
+        post.author_id, build_notification_payload(notification)
     )
 
 
