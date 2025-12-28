@@ -3,8 +3,7 @@ import style from './MobileMenu.module.scss';
 
 import Notifications from '../Header/components/Notifications';
 import UserMenu from '../Header/components/UserMenu';
-import { logout } from 'src/app/[locale]/auth/logout/actions';
-import { useSession } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { RouteItemType } from '../Sidebar/components/RouteItem';
 import { Routes } from 'src/constants/routes';
@@ -76,7 +75,7 @@ const MobileMenu = ({setShowMenu}: MenuProps) => {
     },
     {
       title: t('navigation.sidebar.logout'),
-      onClick: () => logout(),
+      onClick: () => signOut(),
       icon: 'logout',
       hidden: session.status !== 'authenticated'
     }
