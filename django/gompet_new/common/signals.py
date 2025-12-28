@@ -117,30 +117,48 @@ def notify_owner_about_like(reaction: Reaction, previous_type: ReactionType | No
 
     try:
         animal_content_type = ContentType.objects.get_for_model(Animal)
+        post_content_type = ContentType.objects.get_for_model(Post)
     except ContentType.DoesNotExist:
         return
 
-    if reaction.reactable_type_id != animal_content_type.id:
+    recipient = None
+    target_type = None
+    target_id = None
+
+    if reaction.reactable_type_id == animal_content_type.id:
+        try:
+            animal = Animal.objects.get(pk=reaction.reactable_id)
+        except Animal.DoesNotExist:
+            return
+
+        recipient = animal.owner
+        target_type = "animal"
+        target_id = animal.id
+    elif reaction.reactable_type_id == post_content_type.id:
+        try:
+            post = Post.objects.get(pk=reaction.reactable_id)
+        except Post.DoesNotExist:
+            return
+
+        recipient = post.author
+        target_type = "post"
+        target_id = post.id
+    else:
         return
 
-    try:
-        animal = Animal.objects.get(pk=reaction.reactable_id)
-    except Animal.DoesNotExist:
-        return
-
-    if not animal.owner_id or animal.owner_id == reaction.user_id:
+    if not recipient or recipient.id == reaction.user_id:
         return
 
     notification = Notification.objects.create(
-        recipient=animal.owner,
+        recipient=recipient,
         actor=reaction.user,
         verb="polubił(a)",
-        target_type="animal",
-        target_id=animal.id,
+        target_type=target_type,
+        target_id=target_id,
     )
 
     broadcast_user_notification(
-        animal.owner_id, build_notification_payload(notification)
+        recipient.id, build_notification_payload(notification)
     )
 
 
