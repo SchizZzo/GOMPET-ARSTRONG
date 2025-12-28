@@ -17,7 +17,16 @@ const testPagesRegex = (pages: string[], pathname: string) => {
   return new RegExp(regex, 'i').test(pathname);
 };
 
+const withCurrentPath = (req: NextRequest, response: NextResponse) => {
+  response.headers.set('x-current-path', req.nextUrl.pathname);
+  return response;
+};
+
 const handleAuth = async (req: NextRequest, isPublicOnlyPage: boolean, isProtectedPage: boolean) => {
+  if (!isPublicOnlyPage && !isProtectedPage) {
+    return withCurrentPath(req, intlMiddleware(req));
+  }
+
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const isAuth = Boolean(token?.access_token || token?.user);
 
@@ -27,22 +36,14 @@ const handleAuth = async (req: NextRequest, isPublicOnlyPage: boolean, isProtect
       from += req.nextUrl.search;
     }
 
-    const response = NextResponse.redirect(new URL(`${Routes.LOGIN}?from=${encodeURIComponent(from)}`, req.url));
-    response.headers.set('x-current-path', req.nextUrl.pathname);
-
-    return response;
+    return withCurrentPath(req, NextResponse.redirect(new URL(`${Routes.LOGIN}?from=${encodeURIComponent(from)}`, req.url)));
   }
 
   if (isAuth && isPublicOnlyPage) {
-    const response = NextResponse.redirect(new URL(Routes.LANDING, req.nextUrl));
-    response.headers.set('x-current-path', req.nextUrl.pathname);
-    return response;
+    return withCurrentPath(req, NextResponse.redirect(new URL(Routes.LANDING, req.nextUrl)));
   }
 
-  const response = intlMiddleware(req);
-  response.headers.set('x-current-path', req.nextUrl.pathname);
-
-  return response;
+  return withCurrentPath(req, intlMiddleware(req));
 };
 
 export default async function middleware(req: NextRequest) {
