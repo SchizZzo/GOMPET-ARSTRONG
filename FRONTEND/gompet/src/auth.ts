@@ -1,7 +1,9 @@
 import { isAxiosError } from 'axios';
 import { jwtDecode } from 'jwt-decode';
-import NextAuth from 'next-auth';
+import NextAuth, { NextAuthOptions } from 'next-auth';
 import { AdapterUser } from 'next-auth/adapters';
+import { getServerSession } from 'next-auth/next';
+import { signIn, signOut } from 'next-auth/react';
 import credentials from 'next-auth/providers/credentials';
 
 import { AuthApi } from './api';
@@ -49,7 +51,7 @@ const refreshAccessToken = async (refreshToken: string) => {
   }
 };
 
-export const { auth, handlers, signIn, signOut } = NextAuth({
+export const authOptions: NextAuthOptions = {
   providers: [
     credentials({
       credentials: {
@@ -204,4 +206,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     strategy: 'jwt',
     maxAge: 60 * 60 * 24 // 1 day
   }
-});
+};
+
+export const auth = () => getServerSession(authOptions);
+
+export { signIn, signOut };
