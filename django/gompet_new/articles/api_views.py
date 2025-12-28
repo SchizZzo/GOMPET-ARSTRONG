@@ -38,6 +38,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
     queryset = Article.objects.filter(deleted_at__isnull=True)
     serializer_class = ArticleSerializer
     lookup_field = "slug"
+    http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["title", "content", "author__username"]
