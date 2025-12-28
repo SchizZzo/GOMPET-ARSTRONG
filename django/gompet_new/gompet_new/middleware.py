@@ -6,6 +6,7 @@ import logging
 from typing import Iterable, Tuple
 from urllib.parse import parse_qs
 
+from channels.db import database_sync_to_async
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import AuthenticationFailed, InvalidToken
 
@@ -34,7 +35,9 @@ class JWTAuthMiddleware:
         if token is not None:
             try:
                 validated_token = self.jwt_auth.get_validated_token(token)
-                scope["user"] = self.jwt_auth.get_user(validated_token)
+                scope["user"] = await database_sync_to_async(self.jwt_auth.get_user)(
+                    validated_token
+                )
             except (InvalidToken, AuthenticationFailed) as exc:  # pragma: no cover - defensive
                 logger.debug("JWT authentication failed during websocket handshake: %s", exc)
             except Exception as exc:  # pragma: no cover - defensive
