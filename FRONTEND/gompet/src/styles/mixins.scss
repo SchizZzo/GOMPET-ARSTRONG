@@ -1,6 +1,6 @@
-@import './vars';
-@import './responsive';
-@import './colors';
+@import 'vars';
+@import 'responsive';
+@import 'colors';
 
 @mixin line-height($font-size) {
   line-height: calc($font-size * 1.5);

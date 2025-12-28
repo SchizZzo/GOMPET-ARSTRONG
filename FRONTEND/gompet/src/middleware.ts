@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
 import createIntlMiddleware from 'next-intl/middleware';
+
+import { auth } from 'src/auth';
 
 import { PROTECTED_ROUTES, PUBLIC_ONLY_ROUTES, Routes } from './constants/routes';
 
@@ -18,8 +19,8 @@ const testPagesRegex = (pages: string[], pathname: string) => {
 };
 
 const handleAuth = async (req: NextRequest, isPublicOnlyPage: boolean, isProtectedPage: boolean) => {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  const isAuth = Boolean(token?.access_token || token?.user);
+  const session = await auth();
+  const isAuth = !!session?.user;
 
   if (!isAuth && isProtectedPage) {
     let from = req.nextUrl.pathname;
