@@ -370,9 +370,16 @@ localhost/animals/animals/?size=MEDIUM
         if size_param:
             size_param = [loc.strip() for loc in size_param.split(',') if loc.strip()]
             qs = qs.filter(size__in=size_param)
-                
+
 
         
+
+        user_animals_param = params.get('user-animals') or params.get('user_animals')
+        if user_animals_param and self.request.user and self.request.user.is_authenticated:
+            if str(user_animals_param).lower() in ("1", "true", "yes"):
+                qs = qs.filter(owner=self.request.user)        
+
+
 
 
         return qs

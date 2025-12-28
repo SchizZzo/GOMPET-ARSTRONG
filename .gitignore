@@ -19,3 +19,6 @@ __pycache__
 settings.py
 django.zip
 endpoints.txt
+.next
+node_modules   
+FRONTEND/gompet/*

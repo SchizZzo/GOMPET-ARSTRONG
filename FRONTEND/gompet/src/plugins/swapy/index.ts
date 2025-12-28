@@ -1,1 +1,0 @@
-export { createSwapy } from './instance';
