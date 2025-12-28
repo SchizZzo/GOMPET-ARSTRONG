@@ -1,6 +1,7 @@
 from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 
+from animals.models import Animal
 from common.models import Comment, Notification, Reaction, ReactionType
 from users.serializers import UserSerializer
 
@@ -97,6 +98,7 @@ class ContentTypeSerializer(serializers.ModelSerializer):
 
 class NotificationSerializer(serializers.ModelSerializer):
     actor = UserSerializer(read_only=True)
+    target_label = serializers.SerializerMethodField()
 
     class Meta:
         model = Notification
@@ -106,7 +108,27 @@ class NotificationSerializer(serializers.ModelSerializer):
             "verb",
             "target_type",
             "target_id",
+            "target_label",
             "is_read",
             "created_at",
         ]
-        read_only_fields = ["id", "actor", "verb", "target_type", "target_id", "created_at"]
+        read_only_fields = [
+            "id",
+            "actor",
+            "verb",
+            "target_type",
+            "target_id",
+            "target_label",
+            "created_at",
+        ]
+
+    def get_target_label(self, obj: Notification) -> str | None:
+        if obj.target_type != "animal":
+            return None
+
+        try:
+            animal = Animal.objects.only("name").get(pk=obj.target_id)
+        except Animal.DoesNotExist:
+            return None
+
+        return animal.name
