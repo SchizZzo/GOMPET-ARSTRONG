@@ -1,7 +1,7 @@
 import { Store } from '@reduxjs/toolkit';
 import axios, { AxiosRequestConfig } from 'axios';
+import { signOut } from 'next-auth/react';
 
-import { logout } from 'src/app/[locale]/auth/logout/actions';
 import { refreshTokens } from 'src/app/[locale]/auth/slice';
 
 import { isNetworkError } from './utils';
@@ -82,7 +82,9 @@ client.interceptors.response.use(
         return client(originalRequest);
       } catch (err) {
         Promise.reject(error);
-        logout();
+        if (typeof window !== 'undefined') {
+          signOut();
+        }
       }
     }
     return Promise.reject(error);

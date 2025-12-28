@@ -19,7 +19,7 @@ const testPagesRegex = (pages: string[], pathname: string) => {
 };
 
 const handleAuth = async (req: NextRequest, isPublicOnlyPage: boolean, isProtectedPage: boolean) => {
-  const session = await auth();
+  const session = await auth(req);
   const isAuth = !!session?.user;
 
   if (!isAuth && isProtectedPage) {

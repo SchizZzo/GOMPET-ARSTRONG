@@ -2,10 +2,9 @@
 
 import React, { useEffect, useRef } from 'react';
 import { Provider } from 'react-redux';
-import { useSession } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 
 import { injectStore } from 'src/api/client';
-import { logout } from 'src/app/[locale]/auth/logout/actions';
 import { clearAuth, setAuth } from 'src/app/[locale]/auth/slice';
 import { AppStore, makeStore } from 'src/lib/store';
 
@@ -99,7 +98,7 @@ export default function StoreProvider({ children }: { children: React.ReactNode 
       if (storeToken && storeToken !== sessionToken) {
         session.update({ access_token: storeToken }).catch(() => {
           store.dispatch(clearAuth());
-          logout();
+          signOut();
         });
       }
     });

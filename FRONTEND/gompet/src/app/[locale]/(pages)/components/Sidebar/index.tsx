@@ -1,12 +1,11 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { useSession } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 
 import Logo from 'assets/images/logo.png';
 
-import { logout } from 'src/app/[locale]/auth/logout/actions';
 import { Routes } from 'src/constants/routes';
 import { Link } from 'src/navigation';
 
@@ -95,7 +94,7 @@ const Sidebar = () => {
     },
     {
       title: t('navigation.sidebar.logout'),
-      onClick: () => logout(),
+      onClick: () => signOut(),
       icon: 'logout',
       hidden:  session.status !== 'authenticated' //showLoginOut
     }
