@@ -85,6 +85,9 @@ class ArticleViewSet(viewsets.ModelViewSet):
         if categories_slugs:
             queryset = queryset.filter(categories__slug__in=categories_slugs)
 
+
+        
+
         return queryset.distinct().order_by('-created_at')
     
         
