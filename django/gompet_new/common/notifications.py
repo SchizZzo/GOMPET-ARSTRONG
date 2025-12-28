@@ -10,6 +10,7 @@ from channels.exceptions import InvalidChannelLayerError
 from channels.layers import get_channel_layer
 from django.core.exceptions import ImproperlyConfigured
 
+from animals.models import Animal
 from common.models import Notification
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,18 @@ def broadcast_user_notification(user_id: int, payload: dict[str, Any]) -> bool:
     return True
 
 
+def _get_target_label(notification: Notification) -> str | None:
+    if notification.target_type != "animal":
+        return None
+
+    try:
+        animal = Animal.objects.only("name").get(pk=notification.target_id)
+    except Animal.DoesNotExist:
+        return None
+
+    return animal.name
+
+
 def build_notification_payload(notification: Notification) -> dict[str, Any]:
     actor = notification.actor
     return {
@@ -66,6 +79,7 @@ def build_notification_payload(notification: Notification) -> dict[str, Any]:
         "verb": notification.verb,
         "target_type": notification.target_type,
         "target_id": notification.target_id,
+        "target_label": _get_target_label(notification),
         "is_read": notification.is_read,
         "created_at": notification.created_at.isoformat(),
     }
