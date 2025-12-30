@@ -15,6 +15,7 @@ from django.dispatch import receiver
 
 from animals.models import Animal
 from .like_counter import ReactableRef, build_payload, make_group_name, resolve_content_type
+from articles.models import Article
 from posts.models import Post
 
 from .models import Comment, Notification, Reaction, ReactionType
@@ -96,7 +97,7 @@ def handle_comment_saved(sender, instance: Comment, created: bool, **kwargs: Any
     if not created:
         return
 
-    notify_post_author_about_comment(instance)
+    notify_content_author_about_comment(instance)
 
 
 @receiver(post_delete, sender=Reaction)
@@ -162,36 +163,54 @@ def notify_owner_about_like(reaction: Reaction, previous_type: ReactionType | No
     )
 
 
-def notify_post_author_about_comment(comment: Comment) -> None:
+def notify_content_author_about_comment(comment: Comment) -> None:
     if not comment.user_id:
         return
 
     try:
+        article_content_type = ContentType.objects.get_for_model(Article)
         post_content_type = ContentType.objects.get_for_model(Post)
     except ContentType.DoesNotExist:
         return
 
-    if comment.content_type_id != post_content_type.id:
+    recipient = None
+    target_type = None
+    target_id = None
+
+    if comment.content_type_id == post_content_type.id:
+        try:
+            post = Post.objects.get(pk=comment.object_id)
+        except Post.DoesNotExist:
+            return
+
+        recipient = post.author
+        target_type = "post"
+        target_id = post.id
+    elif comment.content_type_id == article_content_type.id:
+        try:
+            article = Article.objects.get(pk=comment.object_id)
+        except Article.DoesNotExist:
+            return
+
+        recipient = article.author
+        target_type = "article"
+        target_id = article.id
+    else:
         return
 
-    try:
-        post = Post.objects.get(pk=comment.object_id)
-    except Post.DoesNotExist:
-        return
-
-    if not post.author_id or post.author_id == comment.user_id:
+    if not recipient or recipient.id == comment.user_id:
         return
 
     notification = Notification.objects.create(
-        recipient=post.author,
+        recipient=recipient,
         actor=comment.user,
         verb="skomentował(a)",
-        target_type="post",
-        target_id=post.id,
+        target_type=target_type,
+        target_id=target_id,
     )
 
     broadcast_user_notification(
-        post.author_id, build_notification_payload(notification)
+        recipient.id, build_notification_payload(notification)
     )
 
 
