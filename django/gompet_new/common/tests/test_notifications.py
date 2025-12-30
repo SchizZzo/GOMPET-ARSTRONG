@@ -267,8 +267,7 @@ class NotificationConsumerTests(TestCase):
         access_token = AccessToken.for_user(self.user)
         communicator = WebsocketCommunicator(
             JWTAuthMiddleware(NotificationConsumer.as_asgi()),
-            f"/ws/notifications/{self.user.id}/",
-            headers=[(b"authorization", f"Bearer {access_token}".encode())],
+            f"/ws/notifications/{self.user.id}/?token={access_token}",
         )
 
         connected, _ = async_to_sync(communicator.connect)()
