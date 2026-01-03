@@ -390,7 +390,7 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
         queryset = OrganizationMember.objects.all()
         only_mine = self.request.query_params.get("mine")
         if only_mine and only_mine.lower() in ("1", "true", "yes"):
-            queryset = queryset.filter(user=self.request.user)
+            queryset = queryset.filter(user=self.request.user, role = MemberRole.OWNER or MemberRole.STAFF)
         return queryset
     
 
