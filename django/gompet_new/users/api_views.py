@@ -385,6 +385,13 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
         if self.action in ("update", "partial_update"):
             return OrganizationMemberCreateSerializer
         return OrganizationMemberSerializer
+
+    def get_queryset(self):
+        queryset = OrganizationMember.objects.all()
+        only_mine = self.request.query_params.get("mine")
+        if only_mine and only_mine.lower() in ("1", "true", "yes"):
+            queryset = queryset.filter(user=self.request.user)
+        return queryset
     
 
 
