@@ -12,6 +12,7 @@ from .models import (
 from django.contrib.gis.measure import Distance as D
 from django.contrib.gis.db.models.functions import Distance
 
+from users.models import Organization, OrganizationMember
 from users.serializers import OrganizationSerializer
 
 from .models import ParentRelation
@@ -178,6 +179,13 @@ class AnimalSerializer(serializers.ModelSerializer):
     reactions = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     distance = serializers.SerializerMethodField(read_only=True)
     organization = serializers.SerializerMethodField(read_only=True)
+    organization_id = serializers.PrimaryKeyRelatedField(
+        source="organization",
+        queryset=Organization.objects.all(),
+        required=False,
+        allow_null=True,
+        write_only=True,
+    )
 
     # ``characteristicBoard`` is a JSON field on the model with a default value,
     # therefore it should not be required when creating an animal via the API.
@@ -221,6 +229,7 @@ class AnimalSerializer(serializers.ModelSerializer):
             "comments",
             "reactions",
             "organization",
+            "organization_id",
             "created_at",
             "updated_at",
         )
@@ -240,7 +249,10 @@ class AnimalSerializer(serializers.ModelSerializer):
         return None if dist is None else round(dist.m)  # zwraca odległość w metrach
     
     def get_organization(self, obj):
-        """Return organization data via owner memberships."""
+        """Return organization data via explicit relation or owner membership."""
+        organization = getattr(obj, "organization", None)
+        if organization:
+            return OrganizationSerializer(organization).data
         user = getattr(obj, "owner", None)
         if not user:
             return None
@@ -248,6 +260,24 @@ class AnimalSerializer(serializers.ModelSerializer):
         if not membership:
             return None
         return OrganizationSerializer(membership.organization).data
+
+    def validate_organization_id(self, organization):
+        if organization is None:
+            return organization
+        request = self.context.get("request")
+        if not request or not request.user or not request.user.is_authenticated:
+            raise serializers.ValidationError(
+                "Musisz być zalogowany, aby przypisać organizację."
+            )
+        is_member = OrganizationMember.objects.filter(
+            user=request.user,
+            organization=organization,
+        ).exists()
+        if not is_member:
+            raise serializers.ValidationError(
+                "Nie należysz do wskazanej organizacji."
+            )
+        return organization
 
     def get_parents(self, obj):
         qs = AnimalParent.objects.filter(animal=obj)
@@ -434,4 +464,3 @@ class AnimalsBreedGroupsSerializer(serializers.ModelSerializer):
         
 
     
-
