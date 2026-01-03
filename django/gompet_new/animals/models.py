@@ -15,7 +15,7 @@ from django.contrib.postgres.fields import ArrayField
 
 from django.contrib.postgres.indexes import GinIndex
 
-from users.models import Species
+from users.models import Species, Organization
 
 from datetime import date
 
@@ -102,6 +102,13 @@ class Animal(models.Model):
     # właściciel (np. użytkownik lub organizacja – tutaj user)
     owner       = models.ForeignKey(
         settings.AUTH_USER_MODEL,
+        related_name="animals",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    organization = models.ForeignKey(
+        Organization,
         related_name="animals",
         on_delete=models.SET_NULL,
         null=True,
