@@ -136,15 +136,29 @@ localhost/animals/animals/?size=MEDIUM
         # jeśli zwierzę jest przypisane do organizacji, ustaw ownera na właściciela organizacji
         # i przypisz lokalizację organizacji, jeśli jest dostępna
         organization = serializer.validated_data.get("organization")
+        location = serializer.validated_data.get("location")
+        save_kwargs = {}
         if organization:
-            address = getattr(organization, "address", None)
-            organization_location = getattr(address, "location", None)
-            serializer.save(
-                owner=organization.user,
-                location=organization_location,
-            )
+            owner = organization.user
+            save_kwargs["owner"] = owner
+            if location is None:
+                address = getattr(organization, "address", None)
+                organization_location = getattr(address, "location", None)
+                location = organization_location or getattr(owner, "location", None)
+            if location is not None:
+                save_kwargs["location"] = location
+            serializer.save(**save_kwargs)
             return
-        serializer.save(owner=self.request.user)
+        owner = self.request.user if self.request.user.is_authenticated else None
+        if owner:
+            save_kwargs["owner"] = owner
+            if location is None:
+                owner_location = getattr(owner, "location", None)
+                if owner_location is not None:
+                    save_kwargs["location"] = owner_location
+            serializer.save(**save_kwargs)
+            return
+        serializer.save()
 
     def get_queryset(self):
         qs = Animal.objects.all().order_by('-created_at')
