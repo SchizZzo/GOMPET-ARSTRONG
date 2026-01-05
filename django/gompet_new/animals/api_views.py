@@ -160,6 +160,12 @@ localhost/animals/animals/?size=MEDIUM
             return
         serializer.save()
 
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+
     def get_queryset(self):
         qs = Animal.objects.all().order_by('-created_at')
         params = self.request.query_params
