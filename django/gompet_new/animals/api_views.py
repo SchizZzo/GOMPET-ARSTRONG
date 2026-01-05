@@ -43,6 +43,7 @@ from django.db.models import Q
 import json
 from django.core.exceptions import FieldError
 from common.models import Reaction, ReactionType
+from django.contrib.auth import get_user_model
 
 class FamilyTreeNodeSerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -173,11 +174,30 @@ localhost/animals/animals/?size=MEDIUM
         save_kwargs = {}
         location = serializer.validated_data.get("location")
         organization_provided = "organization" in serializer.validated_data
-        owner_provided = "owner" in serializer.validated_data
+        owner_from_request = None
+        owner_from_request_provided = False
+        if "owner" in self.request.data or "owner_id" in self.request.data:
+            owner_from_request_provided = True
+            owner_id = self.request.data.get("owner") or self.request.data.get("owner_id")
+            if owner_id in (None, "", "null"):
+                owner_from_request = None
+            else:
+                user_model = get_user_model()
+                try:
+                    owner_from_request = user_model.objects.get(pk=owner_id)
+                except (user_model.DoesNotExist, TypeError, ValueError) as exc:
+                    raise serializers.ValidationError(
+                        {"owner": "Nieprawidłowy identyfikator właściciela."}
+                    ) from exc
+        owner_provided = "owner" in serializer.validated_data or owner_from_request_provided
         organization = serializer.validated_data.get(
             "organization", instance.organization
         )
         owner = serializer.validated_data.get("owner", instance.owner)
+
+        if owner_from_request_provided:
+            owner = owner_from_request
+            save_kwargs["owner"] = owner
 
         if organization_provided and organization != instance.organization:
             if organization:
@@ -188,7 +208,11 @@ localhost/animals/animals/?size=MEDIUM
                     organization_location = getattr(address, "location", None)
                     location = organization_location or getattr(owner, "location", None)
             elif location is None and owner:
-                if self.request.user and self.request.user.is_authenticated:
+                if (
+                    not owner_from_request_provided
+                    and self.request.user
+                    and self.request.user.is_authenticated
+                ):
                     owner = self.request.user
                     save_kwargs["owner"] = owner
                 location = getattr(owner, "location", None)
