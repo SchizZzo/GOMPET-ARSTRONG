@@ -197,14 +197,7 @@ localhost/animals/animals/?size=MEDIUM
             org_ids = [oid.strip() for oid in org_id_param.split(',') if oid.strip()]
             qs = qs.filter(owner__memberships__organization__id__in=org_ids)
 
-        animals_in_org_param = params.get('animals-in-organization') or params.get('animals_in_organization')
-        if animals_in_org_param:
-            animals_in_org_ids = [
-                org_id.strip()
-                for org_id in animals_in_org_param.split(',')
-                if org_id.strip()
-            ]
-            qs = qs.filter(organization__id__in=animals_in_org_ids)
+        
 
        
 
@@ -706,13 +699,7 @@ class AnimalFilterViewSet(viewsets.ReadOnlyModelViewSet):
             org_ids = [oid.strip() for oid in org_id_param.split(',') if oid.strip()]
             qs = qs.filter(owner__memberships__organization__id__in=org_ids).distinct()
 
-        animals_in_organization_param = params.get('animals-in-organization') or params.get('animals_in_organization')
-        if animals_in_organization_param:
-            try:
-                org_id = int(animals_in_organization_param)
-                qs = qs.filter(owner__memberships__organization__id=org_id).distinct()
-            except (TypeError, ValueError):
-                pass
+        
             
         # filtrowanie po zasięgu (parametr "zasieg" – wartość w metrach)
         zasieg_param = params.get('range')
