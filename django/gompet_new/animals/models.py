@@ -176,6 +176,13 @@ class Animal(models.Model):
         ordering = ("-created_at",)
         indexes = [GinIndex(fields=['characteristic_board'])]
 
+    def save(self, *args, **kwargs):
+        if self.location is None and self.owner:
+            owner_location = getattr(self.owner, "location", None)
+            if owner_location is not None:
+                self.location = owner_location
+        super().save(*args, **kwargs)
+
     def __str__(self) -> str:
         return self.name
     
