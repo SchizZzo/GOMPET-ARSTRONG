@@ -186,6 +186,9 @@ localhost/animals/animals/?size=MEDIUM
                     organization_location = getattr(address, "location", None)
                     location = organization_location or getattr(owner, "location", None)
             elif location is None and owner:
+                if self.request.user and self.request.user.is_authenticated:
+                    owner = self.request.user
+                    save_kwargs["owner"] = owner
                 location = getattr(owner, "location", None)
 
         if (
