@@ -135,6 +135,17 @@ localhost/animals/animals/?size=MEDIUM
 
     def perform_create(self, serializer):
         # automatycznie ustawia właściciela na zalogowanego użytkownika
+        # jeśli zwierzę jest przypisane do organizacji, ustaw ownera na właściciela organizacji
+        # i przypisz lokalizację organizacji, jeśli jest dostępna
+        organization = serializer.validated_data.get("organization")
+        if organization:
+            address = getattr(organization, "address", None)
+            organization_location = getattr(address, "location", None)
+            serializer.save(
+                owner=organization.user,
+                location=organization_location,
+            )
+            return
         serializer.save(owner=self.request.user)
 
     def get_queryset(self):
