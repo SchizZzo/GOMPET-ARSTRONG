@@ -696,7 +696,15 @@ class AnimalFilterViewSet(viewsets.ReadOnlyModelViewSet):
         org_id_param = params.get('organization-id')
         if org_id_param:
             org_ids = [oid.strip() for oid in org_id_param.split(',') if oid.strip()]
-            qs = qs.filter(owner__memberships__organization__id__in=org_ids)
+            qs = qs.filter(owner__memberships__organization__id__in=org_ids).distinct()
+
+        animals_in_organization_param = params.get('animals-in-organization') or params.get('animals_in_organization')
+        if animals_in_organization_param:
+            try:
+                org_id = int(animals_in_organization_param)
+                qs = qs.filter(owner__memberships__organization__id=org_id).distinct()
+            except (TypeError, ValueError):
+                pass
             
         # filtrowanie po zasięgu (parametr "zasieg" – wartość w metrach)
         zasieg_param = params.get('range')

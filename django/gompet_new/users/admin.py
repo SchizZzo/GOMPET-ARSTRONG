@@ -23,7 +23,7 @@ class AddressAdmin(admin.ModelAdmin):
 
 @admin.register(OrganizationMember)
 class OrganizationMemberAdmin(admin.ModelAdmin):
-    list_display = ("user", "organization", "role", "joined_at")
+    list_display = ("id", "user", "organization", "role", "joined_at")
     list_filter  = ("role",)
 
 
