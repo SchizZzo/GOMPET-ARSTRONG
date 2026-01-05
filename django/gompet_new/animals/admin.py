@@ -22,7 +22,7 @@ class AnimalAdmin(admin.ModelAdmin):
     list_display = (
         'id', 'name', 'species', 'breed', 'gender',
         'size', 'status', 'owner', 'price', 'location', 'city',
-        'created_at',
+        'created_at', 'organization'
     )
     list_filter = ('species', 'status', 'gender', 'size', 'owner')
     search_fields = ('name', 'breed', 'location', 'owner__username')
@@ -33,7 +33,8 @@ class AnimalAdmin(admin.ModelAdmin):
             'fields': (
                 'name', 'image', 'species', 'breed',
                 'gender', 'size', 'birth_date', 'age', 'life_period',
-                'animal_breed_groups', 'characteristic_board'
+                'animal_breed_groups', 'characteristic_board',
+                'organization',
             )
         }),
         ('Ownership & Status', {

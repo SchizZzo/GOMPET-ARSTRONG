@@ -109,7 +109,7 @@ class Animal(models.Model):
     )
     organization = models.ForeignKey(
         Organization,
-        related_name="animals",
+        related_name="animals_org",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
