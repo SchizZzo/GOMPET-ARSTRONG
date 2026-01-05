@@ -197,6 +197,14 @@ localhost/animals/animals/?size=MEDIUM
             org_ids = [oid.strip() for oid in org_id_param.split(',') if oid.strip()]
             qs = qs.filter(owner__memberships__organization__id__in=org_ids)
 
+        animals_in_org_param = params.get('animals-in-organization') or params.get('animals_in_organization')
+        if animals_in_org_param:
+            animals_in_org_ids = [
+                org_id.strip()
+                for org_id in animals_in_org_param.split(',')
+                if org_id.strip()
+            ]
+            qs = qs.filter(organization__id__in=animals_in_org_ids)
 
        
 
