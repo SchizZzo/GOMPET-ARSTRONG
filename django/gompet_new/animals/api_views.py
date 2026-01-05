@@ -202,12 +202,7 @@ localhost/animals/animals/?size=MEDIUM
         org_id_param2 = params.get('organization-ids')
         if org_id_param2:
             org_ids = [oid.strip() for oid in org_id_param2.split(',') if oid.strip()]
-            
-            qs = qs.filter(organization__in=Organization.objects.filter(id__in=org_ids))
-
-
-        
-
+            qs = qs.filter(organization__in=org_ids)
 
         
 
@@ -710,6 +705,11 @@ class AnimalFilterViewSet(viewsets.ReadOnlyModelViewSet):
         if org_id_param:
             org_ids = [oid.strip() for oid in org_id_param.split(',') if oid.strip()]
             qs = qs.filter(owner__memberships__organization__id__in=org_ids).distinct()
+
+        org_id_param2 = params.get('organization-ids')
+        if org_id_param2:
+            org_ids = [oid.strip() for oid in org_id_param2.split(',') if oid.strip()]
+            qs = qs.filter(organization__id__in=org_ids)
 
         
             
