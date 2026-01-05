@@ -168,6 +168,41 @@ localhost/animals/animals/?size=MEDIUM
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
 
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        save_kwargs = {}
+        location = serializer.validated_data.get("location")
+        organization_provided = "organization" in serializer.validated_data
+        owner_provided = "owner" in serializer.validated_data
+        organization = serializer.validated_data.get(
+            "organization", instance.organization
+        )
+        owner = serializer.validated_data.get("owner", instance.owner)
+
+        if organization_provided and organization != instance.organization:
+            if organization:
+                owner = organization.user
+                save_kwargs["owner"] = owner
+                if location is None:
+                    address = getattr(organization, "address", None)
+                    organization_location = getattr(address, "location", None)
+                    location = organization_location or getattr(owner, "location", None)
+            elif location is None and owner:
+                location = getattr(owner, "location", None)
+
+        if (
+            owner_provided
+            and owner != instance.owner
+            and not organization_provided
+            and location is None
+        ):
+            location = getattr(owner, "location", None)
+
+        if location is not None:
+            save_kwargs["location"] = location
+
+        serializer.save(**save_kwargs)
+
     def get_queryset(self):
         qs = Animal.objects.all().order_by('-created_at')
         params = self.request.query_params
