@@ -45,7 +45,7 @@ INSTALLED_APPS = [
 
     'corsheaders',
 
-    'users',
+    'users.apps.UsersConfig',
     'animals',
     'litters',
     'common',
@@ -356,6 +356,5 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS  # 🔹 Aby uniknąć duplikacji
-
 
 

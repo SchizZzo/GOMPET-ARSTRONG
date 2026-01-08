@@ -21,6 +21,7 @@ from .serializers import (
     OrganizationAddressSerializer,
 )
 from .services import CannotDeleteUser, delete_user_account
+from .role_permissions import sync_user_member_role_groups
 
 @extend_schema(tags=["auth"])
 class TokenCreateView(SimpleJWTTokenObtainPairView):
@@ -80,7 +81,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         user = self.get_object()
 
-        if request.user != user and not request.user.is_staff and not request.user.is_superuser:
+        if request.user != user and not request.user.has_perm("users.delete_user"):
             return Response(
                 {"detail": "Nie masz uprawnień do usunięcia tego konta."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -246,6 +247,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             organization=org,
             role=MemberRole.OWNER,
         )
+        sync_user_member_role_groups(self.request.user)
         
 
     def get_queryset(self):
@@ -408,6 +410,7 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         member = serializer.save()
+        sync_user_member_role_groups(member.user)
         organization = member.organization
         owner = organization.user if organization else None
         if not owner or owner.id == self.request.user.id:
@@ -424,6 +427,10 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
         broadcast_user_notification(
             owner.id, build_notification_payload(notification)
         )
+
+    def perform_update(self, serializer):
+        member = serializer.save()
+        sync_user_member_role_groups(member.user)
     
 
 

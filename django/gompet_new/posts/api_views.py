@@ -82,7 +82,7 @@ class PostViewSet(viewsets.ModelViewSet):
 
         if (
             animal
-            and not self.request.user.is_staff
+            and not self.request.user.has_perm("animals.change_animal")
             and animal.owner_id != self.request.user.id
         ):
             raise PermissionDenied(
@@ -109,10 +109,9 @@ class PostViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         user = self.request.user
-        if not user.is_staff and instance.author_id != user.id:
+        if not user.has_perm("posts.delete_post") and instance.author_id != user.id:
             raise PermissionDenied(
                 "Tylko autor posta lub administrator może go usunąć."
             )
         super().perform_destroy(instance)
-
 
