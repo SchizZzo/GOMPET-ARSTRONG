@@ -348,6 +348,8 @@ class OrganizationMemberSerializer(serializers.ModelSerializer):
             "user",
             "organization",
             "role",
+            "invitation_message",
+            "invitation_confirmed",
             "joined_at",
             "updated_at",
             "deleted_at",
@@ -362,6 +364,7 @@ class OrganizationMemberCreateSerializer(serializers.ModelSerializer):
             "user",
             "organization",
             "role",
+            "invitation_message",
         ]
 
     def create(self, validated_data):
