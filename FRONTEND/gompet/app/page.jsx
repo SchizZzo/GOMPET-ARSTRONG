@@ -41,6 +41,12 @@ export default function Home() {
     const actor = payload.actor ?? {};
     const actorLabel = [actor.first_name, actor.last_name].filter(Boolean).join(" ");
     const targetLabel = payload.target_label || payload.target_type;
+    const origin = payload.origin ?? {};
+    const originLabel = origin.label || targetLabel;
+    const originId = origin.id ?? payload.target_id;
+    const originText = originLabel
+      ? `${originLabel}${originId ? ` #${originId}` : ""}`
+      : null;
     const textParts = [
       actorLabel || "Ktoś",
       payload.verb || "wykonał(a) akcję",
@@ -55,6 +61,7 @@ export default function Home() {
       text: textParts.join(" "),
       linkUrl: buildTargetLink(payload),
       linkLabel: targetLabel ? `Otwórz ${targetLabel}` : "Otwórz źródło",
+      originText,
     };
   };
 
@@ -176,6 +183,11 @@ export default function Home() {
                       {message.linkLabel}
                     </a>
                   </>
+                ) : null}
+                {message.originText ? (
+                  <div style={{ color: "#555", fontSize: "0.9rem", marginTop: "0.25rem" }}>
+                    Źródło: {message.originText}
+                  </div>
                 ) : null}
               </li>
             ))}
