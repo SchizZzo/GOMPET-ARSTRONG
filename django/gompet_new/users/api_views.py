@@ -393,7 +393,18 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
         only_mine = self.request.query_params.get("mine")
         if only_mine and only_mine.lower() in ("1", "true", "yes"):
             queryset = queryset.filter(user=self.request.user, role = MemberRole.OWNER or MemberRole.STAFF)
+
+        organization_id = self.request.query_params.get("organization-id")
+        if organization_id:
+            queryset = queryset.filter(organization_id=organization_id)
+
+        organization_id_confirmed = self.request.query_params.get("organization-id-confirmed")
+        if organization_id_confirmed:
+            queryset = queryset.filter(organization_id=organization_id_confirmed, invitation_confirmed=True)
+        
         return queryset
+    
+
 
     def perform_create(self, serializer):
         member = serializer.save()
