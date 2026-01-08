@@ -30,6 +30,7 @@ class TokenCreateSerializer(TokenObtainPairSerializer):
         user = getattr(self, "user", None)
         if user:
             sync_user_member_role_groups(user)
+            data["permissions"] = sorted(user.get_all_permissions())
         return data
 
 @extend_schema(tags=["auth"])
