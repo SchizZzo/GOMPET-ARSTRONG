@@ -300,6 +300,11 @@ class OrganizationMember(models.Model):
         choices=MemberRole.choices,
         default=MemberRole.STAFF,
     )
+    invitation_message = models.TextField(
+        blank=True,
+        default="",
+    )
+    invitation_confirmed = models.BooleanField(default=False)
 
     
 
