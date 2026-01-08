@@ -120,7 +120,7 @@ localhost/animals/animals/?size=MEDIUM
     """
     queryset = Animal.objects.all()
     serializer_class = AnimalSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    #permission_classes = [IsAuthenticatedOrReadOnly]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
     # Disable pagination so list endpoints return plain arrays.
