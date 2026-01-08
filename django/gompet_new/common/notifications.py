@@ -68,6 +68,8 @@ def _get_target_label(notification: Notification) -> str | None:
 
 def build_notification_payload(notification: Notification) -> dict[str, Any]:
     actor = notification.actor
+    target_label = _get_target_label(notification)
+    origin_label = target_label or notification.target_type
     return {
         "id": notification.id,
         "actor": {
@@ -79,7 +81,12 @@ def build_notification_payload(notification: Notification) -> dict[str, Any]:
         "verb": notification.verb,
         "target_type": notification.target_type,
         "target_id": notification.target_id,
-        "target_label": _get_target_label(notification),
+        "target_label": target_label,
+        "origin": {
+            "type": notification.target_type,
+            "id": notification.target_id,
+            "label": origin_label,
+        },
         "is_read": notification.is_read,
         "created_at": notification.created_at.isoformat(),
     }
