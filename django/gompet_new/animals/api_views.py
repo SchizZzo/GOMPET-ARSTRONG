@@ -120,11 +120,7 @@ localhost/animals/animals/?size=MEDIUM
     """
     queryset = Animal.objects.all()
     serializer_class = AnimalSerializer
-<<<<<<< HEAD
-    #permission_classes = [IsAuthenticatedOrReadOnly]
-=======
-    permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
->>>>>>> 9b8bd03cf6f34091ec161f9a301a2c4c8962739c
+    #permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
     # Disable pagination so list endpoints return plain arrays.
