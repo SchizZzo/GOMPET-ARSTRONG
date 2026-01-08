@@ -44,7 +44,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     """
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.DjangoModelPermissionsOrAnonReadOnly]
 
     def get_queryset(self):
         """
@@ -144,7 +144,7 @@ class ReactionViewSet(viewsets.ModelViewSet):
     """
     queryset = Reaction.objects.all()
     serializer_class = ReactionSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.DjangoModelPermissionsOrAnonReadOnly]
     http_method_names = ["get", "post", "put", "patch", "delete"]
 
 
@@ -314,5 +314,4 @@ class NotificationViewSet(viewsets.ModelViewSet):
             )
 
         return super().partial_update(request, *args, **kwargs)
-
 
