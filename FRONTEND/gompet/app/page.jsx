@@ -11,8 +11,51 @@ export default function Home() {
   const [status, setStatus] = useState("rozłączony");
   const [messages, setMessages] = useState([]);
 
+  const createMessageId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
   const appendMessage = (message) => {
     setMessages((prev) => [message, ...prev].slice(0, 20));
+  };
+
+  const buildTargetLink = (payload) => {
+    if (!payload?.target_type || !payload?.target_id) {
+      return null;
+    }
+
+    const targetRoutes = {
+      animal: "/animals/animals/",
+      post: "/posts/posts/",
+      article: "/articles/articles/",
+      organization: "/users/organizations/",
+    };
+
+    const route = targetRoutes[payload.target_type];
+    if (!route) {
+      return null;
+    }
+
+    return `${window.location.origin}${route}${payload.target_id}/`;
+  };
+
+  const buildNotificationMessage = (payload) => {
+    const actor = payload.actor ?? {};
+    const actorLabel = [actor.first_name, actor.last_name].filter(Boolean).join(" ");
+    const targetLabel = payload.target_label || payload.target_type;
+    const textParts = [
+      actorLabel || "Ktoś",
+      payload.verb || "wykonał(a) akcję",
+    ];
+
+    if (targetLabel) {
+      textParts.push(`→ ${targetLabel}`);
+    }
+
+    return {
+      id: payload.id ?? createMessageId(),
+      text: textParts.join(" "),
+      linkUrl: buildTargetLink(payload),
+      linkLabel: targetLabel ? `Otwórz ${targetLabel}` : "Otwórz źródło",
+    };
   };
 
   const connect = () => {
@@ -28,21 +71,31 @@ export default function Home() {
 
     ws.addEventListener("open", () => {
       setStatus("połączony");
-      appendMessage("✅ Połączono z WebSocket.");
+      appendMessage({ id: createMessageId(), text: "✅ Połączono z WebSocket." });
     });
 
     ws.addEventListener("message", (event) => {
-      appendMessage(`📩 ${event.data}`);
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload && typeof payload === "object") {
+          appendMessage(buildNotificationMessage(payload));
+          return;
+        }
+      } catch (error) {
+        // fallback for non-JSON payloads
+      }
+
+      appendMessage({ id: createMessageId(), text: `📩 ${event.data}` });
     });
 
     ws.addEventListener("close", () => {
       setStatus("rozłączony");
-      appendMessage("⚠️ Połączenie zamknięte.");
+      appendMessage({ id: createMessageId(), text: "⚠️ Połączenie zamknięte." });
     });
 
     ws.addEventListener("error", () => {
       setStatus("błąd");
-      appendMessage("❌ Wystąpił błąd WebSocket.");
+      appendMessage({ id: createMessageId(), text: "❌ Wystąpił błąd WebSocket." });
     });
   };
 
@@ -113,8 +166,18 @@ export default function Home() {
           <p>Brak wiadomości.</p>
         ) : (
           <ul>
-            {messages.map((message, index) => (
-              <li key={`${message}-${index}`}>{message}</li>
+            {messages.map((message) => (
+              <li key={message.id}>
+                <span>{message.text}</span>
+                {message.linkUrl ? (
+                  <>
+                    {" "}
+                    <a href={message.linkUrl} target="_blank" rel="noreferrer">
+                      {message.linkLabel}
+                    </a>
+                  </>
+                ) : null}
+              </li>
             ))}
           </ul>
         )}
