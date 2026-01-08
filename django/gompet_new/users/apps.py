@@ -1,8 +1,6 @@
 from django.apps import AppConfig
 from django.db.models.signals import post_migrate
 
-from .role_permissions import ensure_member_role_groups
-
 
 class UsersConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
@@ -17,4 +15,6 @@ class UsersConfig(AppConfig):
 
 
 def create_member_role_groups(**kwargs) -> None:
+    from .role_permissions import ensure_member_role_groups
+
     ensure_member_role_groups(using=kwargs.get("using"))
