@@ -18,6 +18,7 @@ from django.contrib.sessions.backends.db import SessionStore
 from django.contrib.sessions.models import Session
 from django.test import TestCase
 from rest_framework import serializers
+from common.models import Notification
 
 from .models import (
     Address,
@@ -171,6 +172,58 @@ class DeleteUserAccountTests(TestCase):
         self.assertFalse(
             Session.objects.filter(session_key=session.session_key).exists()
         )
+
+
+class OrganizationMemberNotificationTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_invite_sends_notification_to_owner(self):
+        owner = User.objects.create_user(
+            email="owner-invite@example.com",
+            password="secret",
+            first_name="Owner",
+            last_name="Invite",
+        )
+        org = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Invite Shelter",
+            email="invite-shelter@example.com",
+            image="",
+            phone="",
+            user=owner,
+        )
+        OrganizationMember.objects.create(
+            user=owner,
+            organization=org,
+            role=MemberRole.OWNER,
+        )
+        inviter = User.objects.create_user(
+            email="inviter@example.com",
+            password="secret",
+            first_name="Inviter",
+            last_name="User",
+        )
+        invited = User.objects.create_user(
+            email="invitee@example.com",
+            password="secret",
+            first_name="Invitee",
+            last_name="User",
+        )
+        self.client.force_authenticate(user=inviter)
+
+        response = self.client.post(
+            "/users/organization-members/",
+            {"user": invited.id, "organization": org.id, "role": MemberRole.STAFF},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        notification = Notification.objects.get(recipient=owner)
+        self.assertEqual(notification.actor, inviter)
+        self.assertEqual(notification.verb, "wysłał(a) zaproszenie do organizacji")
+        self.assertEqual(notification.target_type, "organization")
+        self.assertEqual(notification.target_id, org.id)
 
 
 class UserUpdateCurrentAPITests(TestCase):

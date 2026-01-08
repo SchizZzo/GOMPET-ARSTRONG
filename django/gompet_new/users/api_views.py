@@ -11,6 +11,8 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView as SimpleJWTTokenRefreshView,
 )
 
+from common.models import Notification
+from common.notifications import broadcast_user_notification, build_notification_payload
 from .models import Address, MemberRole, Organization, OrganizationMember, OrganizationType, Species, User
 from .serializers import (
     OrganizationTypeSerializer, UserSerializer, UserCreateSerializer, UserUpdateSerializer,
@@ -392,6 +394,24 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
         if only_mine and only_mine.lower() in ("1", "true", "yes"):
             queryset = queryset.filter(user=self.request.user, role = MemberRole.OWNER or MemberRole.STAFF)
         return queryset
+
+    def perform_create(self, serializer):
+        member = serializer.save()
+        organization = member.organization
+        owner = organization.user if organization else None
+        if not owner or owner.id == self.request.user.id:
+            return
+
+        notification = Notification.objects.create(
+            recipient=owner,
+            actor=self.request.user,
+            verb="wysłał(a) zaproszenie do organizacji",
+            target_type="organization",
+            target_id=organization.id,
+        )
+        broadcast_user_notification(
+            owner.id, build_notification_payload(notification)
+        )
     
 
 
