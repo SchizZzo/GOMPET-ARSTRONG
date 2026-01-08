@@ -35,6 +35,11 @@ ACTIONS_VIEW = ("view",)
 ACTIONS_EDIT = ("add", "change", "view")
 ACTIONS_FULL = ("add", "change", "delete", "view")
 
+# Opis akcji (permissions):
+# - ACTIONS_VIEW: tylko prawo do podglądu obiektów (read-only).
+# - ACTIONS_EDIT: prawa do dodawania, edycji i podglądu (create/update/read).
+# - ACTIONS_FULL: pełne prawa obejmujące tworzenie, edycję, usuwanie i podgląd (CRUD).
+
 
 def _build_permissions(app_label: str, models: Iterable[str], actions: Iterable[str]) -> list[str]:
     return [f"{app_label}.{action}_{model}" for model in models for action in actions]
@@ -70,10 +75,14 @@ POSTS_MODERATE_PERMISSIONS = _build_permissions("posts", ["post"], ("change", "d
 
 
 ROLE_PERMISSIONS = {
+    # OWNER: pełne uprawnienia do wszystkich modeli aplikacji oraz
+    # dodatkowe uprawnienia administracyjne do modelu użytkownika.
     MemberRole.OWNER: [
         *ALL_FULL_PERMISSIONS,
         *USERS_ADMIN_PERMISSIONS,
     ],
+    # STAFF: dostęp do podglądu wszystkiego oraz prawa edycyjne do
+    # użytkowników/organizacji, zwierząt, postów, artykułów, miotów i wspólnych zasobów.
     MemberRole.STAFF: [
         *ALL_VIEW_PERMISSIONS,
         *USERS_EDIT_PERMISSIONS,
@@ -83,26 +92,32 @@ ROLE_PERMISSIONS = {
         *LITTERS_EDIT_PERMISSIONS,
         *COMMON_EDIT_PERMISSIONS,
     ],
+    # VOLUNTEER: tylko prawo do podglądu wszystkich zasobów.
     MemberRole.VOLUNTEER: [
         *ALL_VIEW_PERMISSIONS,
     ],
+    # MODERATOR: prawo do podglądu oraz moderacji postów i komentarzy (zmiana/usuwanie).
     MemberRole.MODERATOR: [
         *ALL_VIEW_PERMISSIONS,
         *POSTS_MODERATE_PERMISSIONS,
         *COMMON_MODERATE_PERMISSIONS,
     ],
+    # PARTNER: tylko prawo do podglądu wszystkich zasobów.
     MemberRole.PARTNER: [
         *ALL_VIEW_PERMISSIONS,
     ],
+    # FINANCE: prawo do podglądu oraz edycji wybranych zasobów związanych z użytkownikami/organizacją.
     MemberRole.FINANCE: [
         *ALL_VIEW_PERMISSIONS,
         *USERS_EDIT_PERMISSIONS,
     ],
+    # CONTENT: prawo do podglądu oraz edycji treści (posty i artykuły).
     MemberRole.CONTENT: [
         *ALL_VIEW_PERMISSIONS,
         *POSTS_EDIT_PERMISSIONS,
         *ARTICLES_EDIT_PERMISSIONS,
     ],
+    # VIEWER: tylko prawo do podglądu wszystkich zasobów (read-only), podobne do VOLUNTEER.
     MemberRole.VIEWER: [
         *ALL_VIEW_PERMISSIONS,
     ],

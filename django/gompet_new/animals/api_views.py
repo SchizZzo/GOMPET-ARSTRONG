@@ -1,5 +1,4 @@
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated, DjangoModelPermissionsOrAnonReadOnly
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from users.models import Organization
@@ -120,7 +119,6 @@ localhost/animals/animals/?size=MEDIUM
     """
     queryset = Animal.objects.all()
     serializer_class = AnimalSerializer
-    #permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
     # Disable pagination so list endpoints return plain arrays.
@@ -550,7 +548,6 @@ class AnimalRecentlyAddedViewSet(viewsets.ReadOnlyModelViewSet):
     
     
     serializer_class = RecentlyAddedAnimalSerializer
-    permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description']
     ordering_fields = ['created_at', 'id']
@@ -699,7 +696,6 @@ class AnimalFilterViewSet(viewsets.ReadOnlyModelViewSet):
 
 
     serializer_class = RecentlyAddedAnimalSerializer
-    permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description']
     ordering_fields = ['created_at', 'id']
@@ -859,7 +855,6 @@ class AnimalCharacteristicViewSet(viewsets.ModelViewSet):
     """
     queryset = AnimalCharacteristic.objects.all()
     serializer_class = AnimalCharacteristicSerializer
-    permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
 
 
 @extend_schema(
@@ -871,7 +866,6 @@ class CharacteristicsViewSet(viewsets.ModelViewSet):
     """
     queryset = Characteristics.objects.all()
     serializer_class = CharacteristicsSerializer
-    permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
     
     def get_queryset(self):
         return super().get_queryset()
@@ -890,7 +884,6 @@ class AnimalGalleryViewSet(viewsets.ModelViewSet):
     """
     queryset = AnimalGallery.objects.all()
     serializer_class = AnimalGallerySerializer
-    permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
 
 @extend_schema(
     tags=["animal_parentages"],
@@ -906,7 +899,6 @@ class AnimalParentViewSet(viewsets.ModelViewSet):
     """
     queryset = AnimalParent.objects.all()
     serializer_class = AnimalParentSerializer
-    permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
     #http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
 
 
@@ -921,7 +913,6 @@ class AnimalFamilyTreeViewSet(viewsets.ViewSet):
     Read-only view for retrieving a simple family tree of an animal.
     """
     queryset = Animal.objects.all()
-    permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
     serializer_class = FamilyTreeNodeSerializer
 
     def retrieve(self, request, pk=None):
@@ -974,6 +965,5 @@ class AnimalsBreedGroupsViewSet(viewsets.ModelViewSet):
     """
     queryset = AnimalsBreedGroups.objects.all()
     serializer_class = AnimalsBreedGroupsSerializer
-    permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
 
     
