@@ -172,9 +172,55 @@ class OrganizationType(models.TextChoices):
 
 
 class MemberRole(models.TextChoices):
+    """
+    Role członków organizacji - szczegółowy opis uprawnień i odpowiedzialności:
+
+    OWNER (Właściciel / Kierownik):
+        - Pełna odpowiedzialność za organizację (strategia, polityki, decyzje operacyjne).
+        - Pełne uprawnienia administracyjne: edycja profilu organizacji, zarządzanie członkami,
+          przydzielanie i odbieranie ról, dostęp do ustawień konta oraz funkcji usuwania/archiwizacji.
+        - Zazwyczaj właściciel prawny lub kierownik organizacji.
+
+    STAFF (Pracownik):
+        - Stały personel wykonujący codzienne zadania operacyjne (opieka nad zwierzętami, administracja wewnętrzna).
+        - Może tworzyć i edytować wpisy, zarządzać przypadkami oraz korzystać z narzędzi wewnętrznych.
+        - Ograniczone prawa w stosunku do właściciela (brak zarządzania rolami i ustawieniami globalnymi).
+
+    VOLUNTEER (Wolontariusz):
+        - Osoba wspierająca organizację na zasadzie wolontariatu.
+        - Dostęp do przydzielonych zadań, terminarzy i raportów; ograniczona możliwość edycji treści.
+        - Brak uprawnień administracyjnych.
+
+    MODERATOR (Moderator):
+        - Odpowiada za moderację treści i zachowań w ramach organizacji (zatwierdzanie/usuń postów, zarządzanie komentarzami).
+        - Może ograniczać dostęp użytkowników w kontekście organizacji, lecz nie ma pełnych uprawnień właściciela.
+
+    PARTNER (Partner):
+        - Zewnętrzny współpracownik / organizacja partnerska.
+        - Dostęp do współpracy, komunikacji i wybranych raportów; możliwość dodawania ofert współpracy.
+        - Brak praw do zarządzania członkami i ustawieniami organizacji.
+
+    FINANCE (Finanse):
+        - Odpowiedzialny za kwestie finansowe: zarządzanie darowiznami, płatnościami, fakturami i budżetem.
+        - Dostęp do raportów finansowych i narzędzi rozliczeniowych; ograniczony dostęp do danych personalnych.
+
+    CONTENT (Twórca treści):
+        - Tworzy i edytuje materiały marketingowe i informacyjne (posty, opisy, galerie zdjęć).
+        - Może publikować treści w imieniu organizacji; nie posiada uprawnień administracyjnych.
+
+    VIEWER (Obserwator):
+        - Rola tylko do podglądu: przeglądanie informacji o organizacji, raportów i treści bez możliwości edycji.
+        - Przydatna dla zewnętrznych audytorów, partnerów lub osób zainteresowanych śledzeniem działalności.
+    """
+
     OWNER   = "OWNER",   "Właściciel / Kierownik"
     STAFF   = "STAFF",   "Pracownik"
     VOLUNTEER = "VOLUNTEER", "Wolontariusz"
+    MODERATOR = "MODERATOR", "Moderator"
+    PARTNER   = "PARTNER",   "Partner"
+    FINANCE   = "FINANCE",   "Finanse"
+    CONTENT   = "CONTENT",   "Twórca treści"
+    VIEWER    = "VIEWER",    "Obserwator"
 
 
 # ────────────────────────────────────────────────────────────────────
@@ -254,6 +300,9 @@ class OrganizationMember(models.Model):
         choices=MemberRole.choices,
         default=MemberRole.STAFF,
     )
+
+    
+
     joined_at      = models.DateTimeField(default=timezone.now)
 
     updated_at     = models.DateTimeField(auto_now=True)
