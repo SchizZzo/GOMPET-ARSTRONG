@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import DjangoModelPermissionsOrAnonReadOnly
 from .models import Post
 from .serializers import PostSerializer
 
@@ -72,7 +72,7 @@ class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
     permission_classes = [
-        IsAuthenticatedOrReadOnly,
+        DjangoModelPermissionsOrAnonReadOnly,
     ] # Każdy może czytać, ale tworzyć/edytować tylko zalogowani
 
     def _ensure_user_can_modify_animal(self, serializer):
