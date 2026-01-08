@@ -10,6 +10,7 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView as SimpleJWTTokenObtainPairView,
     TokenRefreshView as SimpleJWTTokenRefreshView,
 )
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from common.models import Notification
 from common.notifications import broadcast_user_notification, build_notification_payload
@@ -23,11 +24,20 @@ from .serializers import (
 from .services import CannotDeleteUser, delete_user_account
 from .role_permissions import sync_user_member_role_groups
 
+class TokenCreateSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        user = getattr(self, "user", None)
+        if user:
+            sync_user_member_role_groups(user)
+        return data
+
 @extend_schema(tags=["auth"])
 class TokenCreateView(SimpleJWTTokenObtainPairView):
     """Endpoint do generowania pary tokenów JWT."""
 
     permission_classes = [permissions.AllowAny]
+    serializer_class = TokenCreateSerializer
 
 
 @extend_schema(tags=["auth"])
