@@ -156,6 +156,7 @@ def notify_owner_about_like(reaction: Reaction, previous_type: ReactionType | No
         verb="polubił(a)",
         target_type=target_type,
         target_id=target_id,
+        created_object_id=reaction.id,
     )
 
     broadcast_user_notification(
@@ -207,6 +208,7 @@ def notify_content_author_about_comment(comment: Comment) -> None:
         verb="skomentował(a)",
         target_type=target_type,
         target_id=target_id,
+        created_object_id=comment.id,
     )
 
     broadcast_user_notification(
