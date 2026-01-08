@@ -136,6 +136,7 @@ def ensure_member_role_groups(using: str | None = None) -> None:
 
 
 def sync_user_member_role_groups(user, using: str | None = None) -> None:
+    ensure_member_role_groups(using=using)
     role_values = set(
         OrganizationMember.objects.using(using)
         .filter(user=user)
