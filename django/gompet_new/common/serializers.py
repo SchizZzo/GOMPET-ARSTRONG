@@ -108,6 +108,7 @@ class NotificationSerializer(serializers.ModelSerializer):
             "verb",
             "target_type",
             "target_id",
+            "created_object_id",
             "target_label",
             "is_read",
             "created_at",
@@ -118,6 +119,7 @@ class NotificationSerializer(serializers.ModelSerializer):
             "verb",
             "target_type",
             "target_id",
+            "created_object_id",
             "target_label",
             "created_at",
         ]

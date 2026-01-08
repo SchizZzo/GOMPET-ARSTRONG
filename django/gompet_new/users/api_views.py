@@ -408,6 +408,7 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
             verb="wysłał(a) zaproszenie do organizacji",
             target_type="organization",
             target_id=organization.id,
+            created_object_id=member.id,
         )
         broadcast_user_notification(
             owner.id, build_notification_payload(notification)
