@@ -135,6 +135,7 @@ class Notification(models.Model):
     verb = models.CharField(max_length=255)
     target_type = models.CharField(max_length=50)
     target_id = models.PositiveIntegerField()
+    created_object_id = models.PositiveBigIntegerField(null=True, blank=True)
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -63,6 +63,7 @@ class NotificationHelpersTests(TestCase):
         self.assertEqual(payload["verb"], "polubił(a)")
         self.assertEqual(payload["target_type"], "animal")
         self.assertEqual(payload["target_id"], 1)
+        self.assertIsNone(payload["created_object_id"])
 
 
 class NotificationSignalTests(TestCase):

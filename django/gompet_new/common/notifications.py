@@ -66,11 +66,14 @@ def _get_target_label(notification: Notification) -> str | None:
     return animal.name
 
 
-def build_notification_payload(notification: Notification) -> dict[str, Any]:
+def build_notification_payload(
+    notification: Notification,
+    extra_payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     actor = notification.actor
     target_label = _get_target_label(notification)
     origin_label = target_label or notification.target_type
-    return {
+    payload = {
         "id": notification.id,
         "actor": {
             "id": actor.id,
@@ -81,6 +84,7 @@ def build_notification_payload(notification: Notification) -> dict[str, Any]:
         "verb": notification.verb,
         "target_type": notification.target_type,
         "target_id": notification.target_id,
+        "created_object_id": notification.created_object_id,
         "target_label": target_label,
         "origin": {
             "type": notification.target_type,
@@ -90,6 +94,9 @@ def build_notification_payload(notification: Notification) -> dict[str, Any]:
         "is_read": notification.is_read,
         "created_at": notification.created_at.isoformat(),
     }
+    if extra_payload:
+        payload.update(extra_payload)
+    return payload
 
 
 __all__ = [
