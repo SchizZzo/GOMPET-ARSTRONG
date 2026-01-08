@@ -39,7 +39,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
     serializer_class = ArticleSerializer
     lookup_field = "slug"
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.DjangoModelPermissionsOrAnonReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["title", "content", "author__username"]
     ordering_fields = ["-created_at", "-updated_at"]
@@ -142,7 +142,7 @@ class ArticlesLastViewSet(viewsets.ReadOnlyModelViewSet):
     - Wspiera wyszukiwanie po tytule za pomocą standardowego parametru `search`.
     - Wspiera sortowanie po `created_at` za pomocą standardowego parametru `ordering`.
     - Wspiera filtrowanie po kategoriach.
-    - Zastosowanie uprawnień `IsAuthenticatedOrReadOnly`.
+    - Zastosowanie uprawnień `DjangoModelPermissionsOrAnonReadOnly`.
 
     ## Przykład zapytania
     ```http
@@ -153,7 +153,7 @@ class ArticlesLastViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ArticlesLastSerializer
 
     lookup_field = "slug"
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.DjangoModelPermissionsOrAnonReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["title"]
     ordering_fields = ["-created_at"]
@@ -209,7 +209,7 @@ class ArticlesLastViewSet(viewsets.ReadOnlyModelViewSet):
 class ArticleCategoryViewSet(viewsets.ModelViewSet):
     queryset = ArticleCategory.objects.filter(deleted_at__isnull=True)
     serializer_class = ArticleCategorySerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.DjangoModelPermissionsOrAnonReadOnly]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["name", "slug"]
     ordering_fields = ["name", "created_at"]
