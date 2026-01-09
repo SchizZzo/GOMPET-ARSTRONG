@@ -1,4 +1,4 @@
-from django.db import connection, models
+from django.db import models
 
 # Create your models here.
 
@@ -176,6 +176,13 @@ class Animal(models.Model):
         ordering = ("-created_at",)
         indexes = [GinIndex(fields=['characteristic_board'])]
 
+    def save(self, *args, **kwargs):
+        if self.location is None and self.owner:
+            owner_location = getattr(self.owner, "location", None)
+            if owner_location is not None:
+                self.location = owner_location
+        super().save(*args, **kwargs)
+
     def __str__(self) -> str:
         return self.name
     
@@ -189,29 +196,6 @@ class Animal(models.Model):
 
     def save(self, *args, **kwargs):
         """Calculate age from birth_date before saving."""
-        if self.location is None and self.owner:
-            owner_location = getattr(self.owner, "location", None)
-            if owner_location is not None:
-                self.location = owner_location
-
-        if not self.city and self.location:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    """
-                    SELECT name
-                    FROM cities
-                    WHERE ST_Contains(
-                        geom,
-                        ST_SetSRID(ST_Point(%s, %s), 4326)
-                    )
-                    LIMIT 1
-                    """,
-                    [self.location.x, self.location.y],
-                )
-                row = cursor.fetchone()
-                if row:
-                    self.city = row[0]
-
         if self.birth_date:
             today = timezone.now().date()
             self.age = today.year - self.birth_date.year - (
