@@ -123,6 +123,13 @@ ROLE_PERMISSIONS = {
     ],
 }
 
+# Basic user roles outside of organization membership.
+USER_ROLE_PERMISSIONS = {
+    "LIMITED": [
+        *ALL_VIEW_PERMISSIONS,
+    ],
+}
+
 
 def member_role_group_name(role: str) -> str:
     return f"{ROLE_GROUP_PREFIX}{role}"

@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
-from users.models import Organization
+from users.models import Organization, UserRole
 
 from .models import (
     Animal,
@@ -138,6 +138,21 @@ localhost/animals/animals/?size=MEDIUM
         # i przypisz lokalizację organizacji, jeśli jest dostępna
         organization = serializer.validated_data.get("organization")
         location = serializer.validated_data.get("location")
+        if (
+            organization is None
+            and self.request.user
+            and self.request.user.is_authenticated
+            and self.request.user.role == UserRole.LIMITED
+        ):
+            owned_animals = self.request.user.animals.filter(
+                organization__isnull=True
+            ).count()
+            if owned_animals >= 3:
+                raise serializers.ValidationError(
+                    {
+                        "detail": "Użytkownik z rolą LIMITED może dodać maksymalnie 3 zwierzęta bez organizacji."
+                    }
+                )
         save_kwargs = {}
         if organization:
             owner = organization.user

@@ -7,7 +7,7 @@ from django.core.files.base import ContentFile
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 
-from .models import User
+from .models import User, UserRole
 from .models import Organization, Address, OrganizationMember, BreedingTypeOrganizations, \
       BreedingType, Species
 from .models import OrganizationType
@@ -300,6 +300,15 @@ class OrganizationCreateSerializer(serializers.ModelSerializer):
             "rating",
             "address",
         ]
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        if request and request.user and request.user.is_authenticated:
+            if request.user.role == UserRole.LIMITED:
+                raise serializers.ValidationError(
+                    {"detail": "Użytkownik z rolą LIMITED nie może tworzyć organizacji."}
+                )
+        return attrs
 
     def create(self, validated_data):
         address_data = validated_data.pop("address")
