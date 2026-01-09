@@ -2,9 +2,10 @@ from typing import Iterable
 
 from django.contrib.auth.models import Group, Permission
 
-from .models import MemberRole, OrganizationMember
+from .models import MemberRole, OrganizationMember, UserRole
 
 ROLE_GROUP_PREFIX = "member_role_"
+USER_ROLE_GROUP_PREFIX = "user_role_"
 
 APP_MODELS = {
     "users": [
@@ -135,6 +136,10 @@ def member_role_group_name(role: str) -> str:
     return f"{ROLE_GROUP_PREFIX}{role}"
 
 
+def user_role_group_name(role: str) -> str:
+    return f"{USER_ROLE_GROUP_PREFIX}{role}"
+
+
 def _resolve_permissions(permission_codes: Iterable[str], using: str | None = None):
     permissions = []
     for permission_code in permission_codes:
@@ -157,6 +162,17 @@ def ensure_member_role_groups(using: str | None = None) -> None:
         group.permissions.set(permissions)
 
 
+def ensure_user_role_groups(using: str | None = None) -> None:
+    for role in UserRole:
+        group, _ = Group.objects.using(using).get_or_create(
+            name=user_role_group_name(role.value)
+        )
+        permissions = _resolve_permissions(
+            USER_ROLE_PERMISSIONS.get(role.value, []), using=using
+        )
+        group.permissions.set(permissions)
+
+
 def sync_user_member_role_groups(user, using: str | None = None) -> None:
     ensure_member_role_groups(using=using)
     role_values = set(
@@ -169,6 +185,18 @@ def sync_user_member_role_groups(user, using: str | None = None) -> None:
             name=member_role_group_name(role.value)
         )
         if role.value in role_values:
+            user.groups.add(group)
+        else:
+            user.groups.remove(group)
+
+
+def sync_user_role_groups(user, using: str | None = None) -> None:
+    ensure_user_role_groups(using=using)
+    for role in UserRole:
+        group, _ = Group.objects.using(using).get_or_create(
+            name=user_role_group_name(role.value)
+        )
+        if user.role == role.value:
             user.groups.add(group)
         else:
             user.groups.remove(group)
