@@ -22,7 +22,7 @@ from .serializers import (
     OrganizationAddressSerializer,
 )
 from .services import CannotDeleteUser, delete_user_account
-from .role_permissions import sync_user_member_role_groups
+from .role_permissions import sync_user_member_role_groups, sync_user_role_groups
 
 class TokenCreateSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -30,6 +30,7 @@ class TokenCreateSerializer(TokenObtainPairSerializer):
         user = getattr(self, "user", None)
         if user:
             sync_user_member_role_groups(user)
+            sync_user_role_groups(user)
             data["permissions"] = sorted(user.get_all_permissions())
         return data
 
@@ -259,6 +260,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             role=MemberRole.OWNER,
         )
         sync_user_member_role_groups(self.request.user)
+        sync_user_role_groups(self.request.user)
         
 
     def get_queryset(self):
@@ -425,6 +427,7 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         member = serializer.save()
         sync_user_member_role_groups(member.user)
+        sync_user_role_groups(member.user)
         organization = member.organization
         owner = organization.user if organization else None
         if not owner or owner.id == self.request.user.id:
@@ -445,6 +448,7 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         member = serializer.save()
         sync_user_member_role_groups(member.user)
+        sync_user_role_groups(member.user)
     
 
 
