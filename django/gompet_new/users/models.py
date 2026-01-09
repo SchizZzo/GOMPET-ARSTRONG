@@ -55,6 +55,7 @@ class UserRole(models.TextChoices):
     ADMIN      = "ADMIN",      "Admin"
     STAFF      = "STAFF",      "Staff"
     USER       = "USER",       "User"
+    LIMITED    = "LIMITED",    "Limited"
 
 
 phone_validator = RegexValidator(
@@ -76,7 +77,7 @@ class UserManager(BaseUserManager):
         return user
 
     def create_user(self, email: str, password: str | None = None, **extra_fields):
-        extra_fields.setdefault("role", UserRole.USER)
+        extra_fields.setdefault("role", UserRole.LIMITED)
         return self._create_user(email, password, **extra_fields)
 
     def create_superuser(self, email: str, password: str | None = None, **extra_fields):
@@ -99,7 +100,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     first_name  = models.CharField(max_length=150)
     last_name   = models.CharField(max_length=150, blank=True, default="")
     phone       = models.CharField(max_length=20, blank=True, validators=[phone_validator])
-    role        = models.CharField(max_length=20, choices=UserRole.choices, default=UserRole.USER)
+    role        = models.CharField(max_length=20, choices=UserRole.choices, default=UserRole.LIMITED)
 
     location    = gis_models.PointField(null=True, blank=True, geography=True)  # możesz zamienić na ForeignKey→Address
 
