@@ -3,6 +3,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from users.models import Organization, UserRole
 
+from .permissions import OrganizationRolePermissions
 from .models import (
     Animal,
     AnimalCharacteristic,
@@ -120,6 +121,7 @@ localhost/animals/animals/?size=MEDIUM
     queryset = Animal.objects.all()
     serializer_class = AnimalSerializer
     parser_classes = (MultiPartParser, FormParser, JSONParser)
+    permission_classes = [OrganizationRolePermissions]
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
     # Disable pagination so list endpoints return plain arrays.
     #pagination_class = None
@@ -560,8 +562,8 @@ class AnimalRecentlyAddedViewSet(viewsets.ReadOnlyModelViewSet):
     Zwraca maks. 20 najnowszych psów lub kotów należących do schronisk,
     które są przyjazne i zaszczepione.
     """
-    
-    
+
+    permission_classes = [OrganizationRolePermissions]
     serializer_class = RecentlyAddedAnimalSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description']
@@ -709,7 +711,7 @@ class AnimalFilterViewSet(viewsets.ReadOnlyModelViewSet):
     http://localhost/animals/filtering/?breed=Mixed
     """
 
-
+    permission_classes = [OrganizationRolePermissions]
     serializer_class = RecentlyAddedAnimalSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description']
@@ -870,6 +872,7 @@ class AnimalCharacteristicViewSet(viewsets.ModelViewSet):
     """
     queryset = AnimalCharacteristic.objects.all()
     serializer_class = AnimalCharacteristicSerializer
+    permission_classes = [OrganizationRolePermissions]
 
 
 @extend_schema(
@@ -881,6 +884,7 @@ class CharacteristicsViewSet(viewsets.ModelViewSet):
     """
     queryset = Characteristics.objects.all()
     serializer_class = CharacteristicsSerializer
+    permission_classes = [OrganizationRolePermissions]
     
     def get_queryset(self):
         return super().get_queryset()
@@ -899,6 +903,7 @@ class AnimalGalleryViewSet(viewsets.ModelViewSet):
     """
     queryset = AnimalGallery.objects.all()
     serializer_class = AnimalGallerySerializer
+    permission_classes = [OrganizationRolePermissions]
 
 @extend_schema(
     tags=["animal_parentages"],
@@ -914,6 +919,7 @@ class AnimalParentViewSet(viewsets.ModelViewSet):
     """
     queryset = AnimalParent.objects.all()
     serializer_class = AnimalParentSerializer
+    permission_classes = [OrganizationRolePermissions]
     #http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
 
 
@@ -929,6 +935,7 @@ class AnimalFamilyTreeViewSet(viewsets.ViewSet):
     """
     queryset = Animal.objects.all()
     serializer_class = FamilyTreeNodeSerializer
+    permission_classes = [OrganizationRolePermissions]
 
     def retrieve(self, request, pk=None):
         # get the target animal
@@ -980,5 +987,6 @@ class AnimalsBreedGroupsViewSet(viewsets.ModelViewSet):
     """
     queryset = AnimalsBreedGroups.objects.all()
     serializer_class = AnimalsBreedGroupsSerializer
+    permission_classes = [OrganizationRolePermissions]
 
     
