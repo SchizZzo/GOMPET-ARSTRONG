@@ -37,14 +37,18 @@ class OrganizationRolePermissions(BasePermission):
             return False
 
         required_perms = self._get_required_perms(request.method, view)
+        organization = self._get_organization(request, view=view)
+        if organization:
+            if user.is_superuser:
+                return True
+            return self._has_role_permissions(user, organization, required_perms)
+
         if required_perms and user.has_perms(required_perms):
             return True
-
-        organization = self._get_organization(request, view=view)
         if not organization:
             return True
 
-        return self._has_role_permissions(user, organization, required_perms)
+        return False
 
     def has_object_permission(self, request, view, obj):
         if request.method in SAFE_METHODS:
@@ -55,14 +59,18 @@ class OrganizationRolePermissions(BasePermission):
             return False
 
         required_perms = self._get_required_perms(request.method, view)
+        organization = self._get_organization(request, view=view, obj=obj)
+        if organization:
+            if user.is_superuser:
+                return True
+            return self._has_role_permissions(user, organization, required_perms)
+
         if required_perms and user.has_perms(required_perms):
             return True
-
-        organization = self._get_organization(request, view=view, obj=obj)
         if not organization:
             return False
 
-        return self._has_role_permissions(user, organization, required_perms)
+        return False
 
     def _get_required_perms(self, method: str, view) -> list[str]:
         model = self._get_model(view)
