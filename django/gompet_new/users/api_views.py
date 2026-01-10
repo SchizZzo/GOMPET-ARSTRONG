@@ -390,7 +390,7 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
     - update/partial_update: OrganizationMemberCreateSerializer
     """
     queryset = OrganizationMember.objects.all()
-    permission_classes = [IsAuthenticated, OrganizationRolePermissions]
+    permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
         if self.action == "create":
