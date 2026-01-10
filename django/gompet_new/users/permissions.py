@@ -94,6 +94,8 @@ class OrganizationRolePermissions(BasePermission):
             if hasattr(request, "data")
             else None
         )
+        if organization_id is None and hasattr(request, "data"):
+            organization_id = request.data.get("organization_id")
         organization_id = organization_id or request.query_params.get("organization-id")
         organization_id = organization_id or request.query_params.get("organization")
         if organization_id:

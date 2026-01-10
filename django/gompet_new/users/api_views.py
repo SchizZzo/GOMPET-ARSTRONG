@@ -401,6 +401,12 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = OrganizationMember.objects.all()
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return queryset.none()
+        if not user.is_superuser:
+            queryset = queryset.filter(organization__members__user=user).distinct()
+
         only_mine = self.request.query_params.get("mine")
         if only_mine and only_mine.lower() in ("1", "true", "yes"):
             queryset = queryset.filter(
