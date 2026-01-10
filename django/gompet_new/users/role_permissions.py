@@ -128,6 +128,7 @@ ROLE_PERMISSIONS = {
 USER_ROLE_PERMISSIONS = {
     "LIMITED": [
         *ALL_FULL_PERMISSIONS,
+        
     ],
 }
 
