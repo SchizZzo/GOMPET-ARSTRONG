@@ -43,7 +43,11 @@ class OrganizationRolePermissions(BasePermission):
                 return True
             return self._has_role_permissions(user, organization, required_perms)
 
-        if required_perms and user.has_perms(required_perms):
+        if (
+            required_perms
+            and user.has_perms(required_perms)
+            and not self._is_org_scoped_model(view)
+        ):
             return True
         if not organization:
             return True
@@ -65,7 +69,11 @@ class OrganizationRolePermissions(BasePermission):
                 return True
             return self._has_role_permissions(user, organization, required_perms)
 
-        if required_perms and user.has_perms(required_perms):
+        if (
+            required_perms
+            and user.has_perms(required_perms)
+            and not self._is_org_scoped_model(view, obj=obj)
+        ):
             return True
         if not organization:
             return False
@@ -89,6 +97,12 @@ class OrganizationRolePermissions(BasePermission):
         if hasattr(view, "get_queryset"):
             return view.get_queryset().model
         return None
+
+    def _is_org_scoped_model(self, view, obj=None) -> bool:
+        model = self._get_model(view)
+        if model is None and obj is not None:
+            model = obj.__class__
+        return model in {Organization, OrganizationMember}
 
     def _get_organization(self, request, view=None, obj=None) -> Organization | None:
         if obj is not None:
