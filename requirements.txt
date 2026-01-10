@@ -26,3 +26,4 @@ channels-redis #do obsługi websocketów (nie wiem czy sie przyda)
 django-extensions  
 graphviz
 pydot
+requests
