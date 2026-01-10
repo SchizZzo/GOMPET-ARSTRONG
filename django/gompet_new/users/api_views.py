@@ -21,6 +21,7 @@ from .serializers import (
     OrganizationMemberSerializer, OrganizationMemberCreateSerializer, LatestOrganizationSerializer, SpeciesSerializer,
     OrganizationAddressSerializer,
 )
+from .permissions import OrganizationRolePermissions
 from .services import CannotDeleteUser, delete_user_account
 from .role_permissions import sync_user_member_role_groups, sync_user_role_groups
 
@@ -219,7 +220,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     """
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticatedOrReadOnly, OrganizationRolePermissions]
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
 
 
@@ -229,11 +230,6 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         if self.action in {"update", "partial_update"}:
             return OrganizationUpdateSerializer
         return super().get_serializer_class()
-
-    def get_permissions(self):
-        if self.action in {"create", "update", "partial_update", "destroy"}:
-            return [permissions.IsAuthenticated()]
-        return super().get_permissions()
 
     def update(self, request, *args, **kwargs):
         kwargs["partial"] = False
@@ -394,7 +390,7 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
     - update/partial_update: OrganizationMemberCreateSerializer
     """
     queryset = OrganizationMember.objects.all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, OrganizationRolePermissions]
 
     def get_serializer_class(self):
         if self.action == "create":
