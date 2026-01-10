@@ -127,8 +127,8 @@ ROLE_PERMISSIONS = {
 # Basic user roles outside of organization membership.
 USER_ROLE_PERMISSIONS = {
     "LIMITED": [
-        *ALL_FULL_PERMISSIONS,
-        
+        *_build_permissions("users", ["organization"], ("add", "view")),
+        *_build_permissions("animals", ["animal"], ("add", "view")),
     ],
 }
 
