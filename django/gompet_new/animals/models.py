@@ -15,6 +15,8 @@ from django.contrib.postgres.fields import ArrayField
 
 from django.contrib.postgres.indexes import GinIndex
 
+import requests
+
 from users.models import Species, Organization
 
 from datetime import date
@@ -176,12 +178,25 @@ class Animal(models.Model):
         ordering = ("-created_at",)
         indexes = [GinIndex(fields=['characteristic_board'])]
 
-    def save(self, *args, **kwargs):
-        if self.location is None and self.owner:
-            owner_location = getattr(self.owner, "location", None)
-            if owner_location is not None:
-                self.location = owner_location
-        super().save(*args, **kwargs)
+    @staticmethod
+    def get_city(lat, lon):
+        url = "https://nominatim.openstreetmap.org/reverse"
+        params = {
+            "lat": lat,
+            "lon": lon,
+            "format": "json",
+            "addressdetails": 1,
+        }
+        headers = {"User-Agent": "Gompet"}
+        response = requests.get(url, params=params, headers=headers, timeout=5)
+        response.raise_for_status()
+        addr = response.json().get("address", {})
+        return (
+            addr.get("city")
+            or addr.get("town")
+            or addr.get("village")
+            or addr.get("municipality")
+        )
 
     def __str__(self) -> str:
         return self.name
@@ -196,6 +211,17 @@ class Animal(models.Model):
 
     def save(self, *args, **kwargs):
         """Calculate age from birth_date before saving."""
+        if self.location is None and self.owner:
+            owner_location = getattr(self.owner, "location", None)
+            if owner_location is not None:
+                self.location = owner_location
+
+        if self.location and not self.city:
+            try:
+                self.city = self.get_city(self.location.y, self.location.x)
+            except requests.RequestException:
+                self.city = self.city or ""
+
         if self.birth_date:
             today = timezone.now().date()
             self.age = today.year - self.birth_date.year - (
