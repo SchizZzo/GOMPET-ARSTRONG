@@ -13,7 +13,7 @@ from django.contrib.gis.measure import Distance as D
 from django.contrib.gis.db.models.functions import Distance
 
 from users.models import Organization, OrganizationMember
-from users.serializers import OrganizationSerializer
+from users.serializers import OrganizationSerializer, UserSerializer
 
 from .models import ParentRelation
 
@@ -162,6 +162,7 @@ class CharacterItemSerializer(serializers.Serializer):
 
 class AnimalSerializer(serializers.ModelSerializer):
     owner = serializers.PrimaryKeyRelatedField(read_only=True)
+    owner_info = UserSerializer(source="owner", read_only=True)
     age = serializers.IntegerField(read_only=True)
     image = Base64ImageField(required=False, allow_null=True)
     # use the correct related name to retrieve characteristic values
@@ -210,6 +211,7 @@ class AnimalSerializer(serializers.ModelSerializer):
             "size",
             "birth_date",
             "owner",
+            "owner_info",
             "status",
             "price",
             "city",
