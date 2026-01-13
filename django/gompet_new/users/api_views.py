@@ -421,10 +421,11 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
                 organization_id=organization_id,
                 user=user,
                 role=MemberRole.OWNER,
+                
             ).exists()
             if not is_owner:
                 return queryset.none()
-            queryset = queryset.filter(organization_id=organization_id)
+            queryset = queryset.filter(organization_id=organization_id, invitation_confirmed=False)
 
         organization_id_confirmed = self.request.query_params.get("organization-id-confirmed")
         if organization_id_confirmed:
