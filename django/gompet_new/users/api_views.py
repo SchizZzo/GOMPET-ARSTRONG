@@ -391,7 +391,7 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
     """
     queryset = OrganizationMember.objects.all()
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
-    permission_classes = [IsAuthenticated, OrganizationRolePermissions]
+    permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
         if self.action == "create":
