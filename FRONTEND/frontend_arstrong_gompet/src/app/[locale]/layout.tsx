@@ -21,7 +21,8 @@ const raleway = Raleway({
   subsets: ['latin', 'latin-ext']
 });
 
-export async function generateMetadata({ params: { locale } }: { params: { locale: Locale } }) {
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params;
   const t = await getTranslations({ locale });
 
   return {
@@ -36,11 +37,12 @@ export async function generateStaticParams() {
 
 const RootLayout = async ({
   children,
-  params: { locale, ssrIsMobile = true }
+  params
 }: Readonly<{
   children: React.ReactNode;
-  params: { locale: Locale; ssrIsMobile: boolean };
+  params: Promise<{ locale: Locale; ssrIsMobile?: boolean }>;
 }>) => {
+  const { locale, ssrIsMobile = true } = await params;
   setRequestLocale(locale);
   const messages = await getMessages();
   const session = await auth();
