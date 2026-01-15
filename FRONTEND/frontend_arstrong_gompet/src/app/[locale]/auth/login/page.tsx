@@ -1,5 +1,5 @@
 import React from 'react';
-import { unstable_setRequestLocale } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 
 import { Card, LabelLink } from 'src/components';
 import { Routes } from 'src/constants/routes';
@@ -11,7 +11,7 @@ import backgroundImage from '../../../../assets/gompet.png'
 import style from './Login.module.scss';
 
 const Login = async ({ params: { locale } }: Readonly<{ params: { locale: Locale } }>) => {
-  unstable_setRequestLocale(locale);
+  setRequestLocale(locale);
 
   return (
     <Card className={style.card}>

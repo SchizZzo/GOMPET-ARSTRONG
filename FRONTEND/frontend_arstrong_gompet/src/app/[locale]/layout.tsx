@@ -4,7 +4,7 @@ import { APIProvider } from '@vis.gl/react-google-maps';
 import { Raleway } from 'next/font/google';
 import { SessionProvider } from 'next-auth/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages, getTranslations, unstable_setRequestLocale } from 'next-intl/server';
+import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 
 import { auth } from 'src/auth';
 import { toastsConfig } from 'src/config/toasts';
@@ -41,7 +41,7 @@ const RootLayout = async ({
   children: React.ReactNode;
   params: { locale: Locale; ssrIsMobile: boolean };
 }>) => {
-  unstable_setRequestLocale(locale);
+  setRequestLocale(locale);
   const messages = await getMessages();
   const session = await auth();
 

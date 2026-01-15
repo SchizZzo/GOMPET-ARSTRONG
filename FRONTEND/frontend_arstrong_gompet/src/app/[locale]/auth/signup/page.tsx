@@ -1,5 +1,5 @@
 import React from 'react';
-import { unstable_setRequestLocale } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 
 import { Card, LabelLink } from 'src/components';
 import { Routes } from 'src/constants/routes';
@@ -10,7 +10,7 @@ import SignUpForm from './form';
 import style from './SignUp.module.scss';
 
 const SignUp = ({ params: { locale } }: Readonly<{ params: { locale: Locale } }>) => {
-  unstable_setRequestLocale(locale);
+  setRequestLocale(locale);
 
   return (
     <div className={style.container}>
