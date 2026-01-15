@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
@@ -19,7 +19,7 @@ const LoginForm = () => {
   const t = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [state, action] = useFormState<LoginFormState>(login, {
+  const [state, action] = React.useActionState<LoginFormState>(login, {
     message: '',
     errors: undefined,
     fields: {
