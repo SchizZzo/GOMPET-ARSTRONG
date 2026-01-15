@@ -28,7 +28,8 @@
   "organization": {
     "SHELTER": "Schronisko",
     "FUND": "Fundacja",
-    "BREEDER": "Hodowla"
+    "BREEDER": "Hodowla",
+    "UNKNOWN": "Nieznany typ"
   },
   "noLocation": "Brak lokalizacji"
 }
