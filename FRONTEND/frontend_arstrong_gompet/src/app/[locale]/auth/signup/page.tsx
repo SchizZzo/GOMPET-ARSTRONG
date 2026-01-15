@@ -9,7 +9,10 @@ import SignUpForm from './form';
 
 import style from './SignUp.module.scss';
 
-const SignUp = ({ params: { locale } }: Readonly<{ params: { locale: Locale } }>) => {
+const SignUp = async ({
+  params
+}: Readonly<{ params: Promise<{ locale: Locale }> }>) => {
+  const { locale } = await params;
   setRequestLocale(locale);
 
   return (

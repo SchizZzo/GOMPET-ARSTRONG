@@ -19,7 +19,12 @@ const getData = cache(async (slug: string) => {
   return articlesMock[0];
 });
 
-export const generateMetadata = async ({ params: { slug } }: { params: { slug: string } }) => {
+export const generateMetadata = async ({
+  params
+}: {
+  params: Promise<{ slug: string }>;
+}) => {
+  const { slug } = await params;
   const data = await getData(slug);
 
   return {
@@ -33,8 +38,9 @@ export const generateMetadata = async ({ params: { slug } }: { params: { slug: s
 };
 
 const BlogArticlePage = async ({
-  params: { locale, slug }
-}: Readonly<{ params: { locale: Locale; slug: string } }>) => {
+  params
+}: Readonly<{ params: Promise<{ locale: Locale; slug: string }> }>) => {
+  const { locale, slug } = await params;
   setRequestLocale(locale);
   const session = await auth();
   const data = await getData(slug);

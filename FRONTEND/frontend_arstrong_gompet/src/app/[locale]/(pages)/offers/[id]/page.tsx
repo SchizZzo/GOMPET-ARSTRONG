@@ -17,7 +17,12 @@ const getData = cache(async (id: number) => {
   return data;
 });
 
-export const generateMetadata = async ({ params: { id } }: { params: { id: string } }) => {
+export const generateMetadata = async ({
+  params
+}: {
+  params: Promise<{ id: string }>;
+}) => {
+  const { id } = await params;
   const data = await getData(+id);
 
   return {
@@ -30,7 +35,10 @@ export const generateMetadata = async ({ params: { id } }: { params: { id: strin
   };
 };
 
-const Offer = async ({ params: { locale, id } }: Readonly<{ params: { locale: Locale; id: string } }>) => {
+const Offer = async ({
+  params
+}: Readonly<{ params: Promise<{ locale: Locale; id: string }> }>) => {
+  const { locale, id } = await params;
   setRequestLocale(locale);
   const session = await auth();
   const data = await getData(+id);

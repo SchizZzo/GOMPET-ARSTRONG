@@ -13,7 +13,10 @@ import Footer from './components/Footer';
 import TextBlock from './components/TextBlock';
 import KnowledgeScroll from './components/KnowledgeScroll';
 
-const Landing = ({ params: { locale } }: Readonly<{ params: { locale: Locale } }>) => {
+const Landing = async ({
+  params
+}: Readonly<{ params: Promise<{ locale: Locale }> }>) => {
+  const { locale } = await params;
   setRequestLocale(locale);
 
   const t = useTranslations('pages.landing');
