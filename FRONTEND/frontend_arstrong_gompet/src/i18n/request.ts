@@ -10,9 +10,11 @@ const loaders: Record<Locale, () => Promise<any>> = {
     navigation: (await import('../../locales/pl/navigation.json')).default,
     notifications: (await import('../../locales/pl/notifications.json')).default,
 
-    landing: (await import('../../locales/pl/pages/landing.json')).default,
-    animals: (await import('../../locales/pl/pages/animals.json')).default,
-    organizations: (await import('../../locales/pl/pages/organizations.json')).default,
+    pages: {
+      landing: (await import('../../locales/pl/pages/landing.json')).default,
+      animals: (await import('../../locales/pl/pages/animals.json')).default,
+      organizations: (await import('../../locales/pl/pages/organizations.json')).default
+    },
 
     authLogin: (await import('../../locales/pl/pages/auth/login.json')).default,
     authSignup: (await import('../../locales/pl/pages/auth/signup.json')).default,
