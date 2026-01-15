@@ -24,10 +24,11 @@ const loaders: Record<Locale, () => Promise<any>> = {
 };
 
 export default getRequestConfig(async ({ locale }) => {
-  if (!locales.includes(locale as Locale)) notFound();
-  const l = locale as Locale;
+  const isValidLocale = locales.includes(locale as Locale);
+  if (!isValidLocale && locale) notFound();
 
-  const messages = await loaders[l]();
+  const resolvedLocale = (isValidLocale ? locale : locales[0]) as Locale;
+  const messages = await loaders[resolvedLocale]();
 
-  return { messages };
+  return { locale: resolvedLocale, messages };
 });
