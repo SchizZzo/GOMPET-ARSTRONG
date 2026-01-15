@@ -44,7 +44,12 @@ const getCommentData = async (id: number): Promise<IComment | undefined> => {
   }
 };
 
-export const generateMetadata = async ({ params: { id } }: { params: { id: string } }) => {
+export const generateMetadata = async ({
+  params
+}: {
+  params: Promise<{ id: string }>;
+}) => {
+  const { id } = await params;
   const animalData = await getAnimalData(Number(id));
   
   return {
@@ -56,10 +61,11 @@ export const generateMetadata = async ({ params: { id } }: { params: { id: strin
   };
 };
 
-const AnimalDetailPage = async ({ params }: { params: { id: string } }) => {
-  const animal = await getAnimalData(Number(params.id));
-  const familyTree = await getAnimalFamilyTree(Number(params.id))
-  const comments = await getCommentData(Number(params.id));
+const AnimalDetailPage = async ({ params }: { params: Promise<{ id: string }> }) => {
+  const { id } = await params;
+  const animal = await getAnimalData(Number(id));
+  const familyTree = await getAnimalFamilyTree(Number(id))
+  const comments = await getCommentData(Number(id));
   // const posts = await getAnimalPosts(Number(params.id))
 
   if (!animal) {

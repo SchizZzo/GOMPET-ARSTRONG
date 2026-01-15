@@ -8,7 +8,10 @@ import { Locale } from 'src/navigation';
 
 import style from './VerifyEmail.module.scss';
 
-const VerifyEmail = ({ params: { locale } }: Readonly<{ params: { locale: Locale } }>) => {
+const VerifyEmail = async ({
+  params
+}: Readonly<{ params: Promise<{ locale: Locale }> }>) => {
+  const { locale } = await params;
   setRequestLocale(locale);
 
   const t = useTranslations();

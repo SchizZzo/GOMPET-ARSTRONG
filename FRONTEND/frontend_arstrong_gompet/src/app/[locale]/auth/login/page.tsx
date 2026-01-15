@@ -10,7 +10,10 @@ import backgroundImage from '../../../../assets/gompet.png'
 
 import style from './Login.module.scss';
 
-const Login = async ({ params: { locale } }: Readonly<{ params: { locale: Locale } }>) => {
+const Login = async ({
+  params
+}: Readonly<{ params: Promise<{ locale: Locale }> }>) => {
+  const { locale } = await params;
   setRequestLocale(locale);
 
   return (

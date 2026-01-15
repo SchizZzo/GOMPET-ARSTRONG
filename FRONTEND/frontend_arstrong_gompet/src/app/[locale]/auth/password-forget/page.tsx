@@ -10,7 +10,10 @@ import PasswordForgetForm from './form';
 
 import style from './PasswordForget.module.scss';
 
-const PasswordForget = ({ params: { locale } }: Readonly<{ params: { locale: Locale } }>) => {
+const PasswordForget = async ({
+  params
+}: Readonly<{ params: Promise<{ locale: Locale }> }>) => {
+  const { locale } = await params;
   setRequestLocale(locale);
 
   const t = useTranslations();
