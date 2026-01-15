@@ -1,6 +1,6 @@
-@import 'vars';
-@import 'colors';
-@import 'mixins';
+@use './vars' as *;
+@use './colors' as *;
+@use './mixins' as *;
 
 .ltr {
   text-align: left;
