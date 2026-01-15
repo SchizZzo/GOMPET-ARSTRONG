@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useActionState, useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
@@ -9,7 +10,7 @@ import { Params } from 'src/constants/params';
 import { Routes } from 'src/constants/routes';
 import { useRouter } from 'src/navigation';
 
-import { login } from './actions';
+import { login, LoginFormState } from './actions';
 
 import style from './Login.module.scss';
 import toast from 'react-hot-toast';
@@ -18,7 +19,7 @@ const LoginForm = () => {
   const t = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [state, action, isPending] = useActionState(login, {
+  const [state, action] = useFormState<LoginFormState>(login, {
     message: '',
     errors: undefined,
     fields: {
@@ -54,6 +55,16 @@ const LoginForm = () => {
       className={style.form}
       action={action}
     >
+      <LoginFields state={state} />
+    </form>
+  );
+};
+
+const LoginFields = ({ state }: { state: LoginFormState }) => {
+  const { pending } = useFormStatus();
+
+  return (
+    <>
       <Input
         type='email'
         key={'email'}
@@ -61,7 +72,7 @@ const LoginForm = () => {
         label='Email'
         placeholder='Wpisz swój email'
         defaultValue={state.fields.email}
-        disabled={isPending}
+        disabled={pending}
       />
       <Input
         type='password'
@@ -70,14 +81,14 @@ const LoginForm = () => {
         label='Hasło'
         placeholder='Podaj hasło'
         defaultValue={state.fields.password}
-        disabled={isPending}
+        disabled={pending}
       />
       <Button
         type='submit'
         label='Zaloguj się'
-        isLoading={isPending}
+        isLoading={pending}
       />
-    </form>
+    </>
   );
 };
 

@@ -1,18 +1,19 @@
 'use client';
 
-import React, { useActionState } from 'react';
+import React from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
 import { useTranslations } from 'next-intl';
 
 import { Button, Input, Loader } from 'src/components';
 
-import { passwordReset } from './actions';
+import { passwordReset, PasswordResetFormState } from './actions';
 
 import style from './PasswordForgetReset.module.scss';
 
 const PasswordForgetResetForm = () => {
   const t = useTranslations();
 
-  const [state, action, isPending] = useActionState(passwordReset, {
+  const [state, action] = useFormState<PasswordResetFormState>(passwordReset, {
     message: '',
     errors: undefined,
     fields: {
@@ -26,6 +27,16 @@ const PasswordForgetResetForm = () => {
       className={style.form}
       action={action}
     >
+      <PasswordResetFields state={state} />
+    </form>
+  );
+};
+
+const PasswordResetFields = ({ state }: { state: PasswordResetFormState }) => {
+  const { pending } = useFormStatus();
+
+  return (
+    <>
       <Input
         type='password'
         key={'password'}
@@ -45,9 +56,10 @@ const PasswordForgetResetForm = () => {
       <Button
         type='submit'
         label='Ustaw nowe hasło'
+        isLoading={pending}
       />
-      {isPending && <Loader />}
-    </form>
+      {pending && <Loader />}
+    </>
   );
 };
 
