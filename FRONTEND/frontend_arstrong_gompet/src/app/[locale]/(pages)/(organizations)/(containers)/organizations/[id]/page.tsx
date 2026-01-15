@@ -1,7 +1,7 @@
 import React, { cache } from 'react';
 import { setRequestLocale } from 'next-intl/server';
 
-import { OffersApi, OrganizationsApi } from 'src/api';
+import { OrganizationsApi } from 'src/api';
 import { injectToken } from 'src/api/client';
 import { auth } from 'src/auth';
 import { Loader } from 'src/components';
@@ -16,7 +16,7 @@ const getData = cache(async (id: number) => {
   const session = await auth();
   injectToken(session?.access_token);
   try {
-    const { data } = await OffersApi.getOffer(id);
+    const { data } = await OrganizationsApi.getOrganizationProfile(id);
     return data;
   } catch (error) {
     throw error;
@@ -32,7 +32,7 @@ export const generateMetadata = async ({
   const data = await getData(+id);
 
   return {
-    title: data.title,
+    title: data.name,
     description: data.description,
     image: data.image,
     openGraph: {
@@ -46,7 +46,6 @@ const OrganizationPage = async ({
 }: Readonly<{ params: Promise<{ locale: Locale; id: string }> }>) => {
   const { locale, id } = await params;
   setRequestLocale(locale);
-  const session = await auth();
   const data = await getData(+id);
   // const data = organizationsMock[0];
 
