@@ -19,14 +19,14 @@ type OrganizationOnMapProps = {
   organizations?: IOrganization[];
 };
 
-const OrganizationOnMap = ({ organizations=[], className }: OrganizationOnMapProps) => {
-  if (!organizations.length || !organizations[0].address) return null
-
+const OrganizationOnMap = ({ organizations = [], className }: OrganizationOnMapProps) => {
   const router = useRouter();
   const { push } = router;
   const session = useSession();
   const user = session.data?.user;
   console.log("user::", user);
+
+  if (!organizations.length || !organizations[0].address) return null;
   // const center = {
   //   lat: +organizations[0].address.lat,
   //   lng: +organizations[0].address.lng,
@@ -118,13 +118,15 @@ const OrganizationOnMap = ({ organizations=[], className }: OrganizationOnMapPro
                   overflow: 'hidden',
                   border: '2px solid green',
                 }}>
-                <img
-                    src={org.image || ''}
-                    style={{
-                      width: '60px',
-                      height: '60px',
-                    }}
-                />
+                {org.image && (
+                  <img
+                      src={org.image}
+                      style={{
+                        width: '60px',
+                        height: '60px',
+                      }}
+                  />
+                )}
               </div>
               <div style={{
                 position: 'absolute',
