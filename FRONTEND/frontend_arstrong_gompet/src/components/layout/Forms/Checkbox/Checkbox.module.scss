@@ -58,6 +58,9 @@
   @include body1;
   cursor: pointer;
   margin-top: $spacing-1;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 
   &.small {
     @include body2;
