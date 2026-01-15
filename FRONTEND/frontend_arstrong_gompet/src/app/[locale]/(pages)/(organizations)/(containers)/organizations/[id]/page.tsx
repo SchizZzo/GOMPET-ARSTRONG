@@ -1,5 +1,5 @@
 import React, { cache } from 'react';
-import { unstable_setRequestLocale } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 
 import { OffersApi, OrganizationsApi } from 'src/api';
 import { injectToken } from 'src/api/client';
@@ -37,7 +37,7 @@ export const generateMetadata = async ({ params: { id } }: { params: { id: strin
 };
 
 const OrganizationPage = async ({ params: { locale, id } }: Readonly<{ params: { locale: Locale; id: string } }>) => {
-  unstable_setRequestLocale(locale);
+  setRequestLocale(locale);
   const session = await auth();
   const data = await getData(+id);
   // const data = organizationsMock[0];

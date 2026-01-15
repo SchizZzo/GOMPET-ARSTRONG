@@ -1,5 +1,5 @@
 import React, { cache } from 'react';
-import { unstable_setRequestLocale } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 
 import { injectToken } from 'src/api/client';
 import { auth } from 'src/auth';
@@ -35,7 +35,7 @@ export const generateMetadata = async ({ params: { slug } }: { params: { slug: s
 const BlogArticlePage = async ({
   params: { locale, slug }
 }: Readonly<{ params: { locale: Locale; slug: string } }>) => {
-  unstable_setRequestLocale(locale);
+  setRequestLocale(locale);
   const session = await auth();
   const data = await getData(slug);
 

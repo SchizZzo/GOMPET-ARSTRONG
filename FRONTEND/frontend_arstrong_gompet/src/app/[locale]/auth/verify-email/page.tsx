@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { unstable_setRequestLocale } from 'next-intl/server';
+import { setRequestLocale } from 'next-intl/server';
 
 import { Button, Card, LabelLink } from 'src/components';
 import { Routes } from 'src/constants/routes';
@@ -9,7 +9,7 @@ import { Locale } from 'src/navigation';
 import style from './VerifyEmail.module.scss';
 
 const VerifyEmail = ({ params: { locale } }: Readonly<{ params: { locale: Locale } }>) => {
-  unstable_setRequestLocale(locale);
+  setRequestLocale(locale);
 
   const t = useTranslations();
 
