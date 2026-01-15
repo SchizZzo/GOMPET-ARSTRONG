@@ -31,6 +31,8 @@ const PostCard = ({ post, className }: PostCardProps) => {
     author, 
   } = post;  //comments
 
+  const postBody = typeof content === 'string' && content.trim().length > 0 ? content : text;
+
   console.log("post:::", post)
   const [showComments, setShowComments] = useState<boolean>(false);
   const [showCopyLink, setShowCopyLink] = useState<boolean>(false);
@@ -125,24 +127,23 @@ useEffect(() => {
         <Button icon="starFilled" label={'Obserwujesz'} gray />
       </header>
 
-      <p className={style.text}>
-
-      {slug && title && (
-        <SectionHeader
-          title={slug}
-          subtitle={title}
-          margin
-        />
-      )}
+      <div className={style.text}>
+        {slug && title && (
+          <SectionHeader
+            title={slug}
+            subtitle={title}
+            margin
+          />
+        )}
 
         <div className={style.postContent}>
-          {content || text}
+          {postBody}
 
           {image && (
             <img className={style.image} src={image} alt={text} width={300} height={400} />
           )}
         </div>
-      </p>
+      </div>
 
       <footer className={style.footer}>
         <span className={style.time}>
