@@ -1,6 +1,6 @@
-@use './vars' as *;
-@use './responsive' as *;
-@use './colors' as *;
+@use 'styles/vars' as *;
+@use 'styles/responsive' as *;
+@use 'styles/colors' as *;
 
 @mixin line-height($font-size) {
   line-height: calc($font-size * 1.5);
