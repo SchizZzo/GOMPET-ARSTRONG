@@ -1,5 +1,5 @@
-@import 'functions';
-@import 'colors';
-@import 'responsive';
-@import 'vars';
-@import 'mixins';
+@forward './functions';
+@forward './colors';
+@forward './responsive';
+@forward './vars';
+@forward './mixins';
