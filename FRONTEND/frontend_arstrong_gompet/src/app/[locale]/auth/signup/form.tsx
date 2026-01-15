@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useActionState, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
 import { useTranslations } from 'next-intl';
 
 import { Button, Checkbox, Input, Loader } from 'src/components';
 import { Routes } from 'src/constants/routes';
 import { Link } from 'src/navigation';
 
-import { signup } from './actions';
+import { signup, SignupFormState } from './actions';
 
 import style from './SignUp.module.scss';
 import { useRouter } from 'next/navigation';
@@ -18,7 +19,7 @@ const SignUpForm = () => {
   const t = useTranslations();
   const router = useRouter();
 
-  const [state, action, isPending] = useActionState(signup, {
+  const [state, action] = useFormState<SignupFormState>(signup, {
     message: '',
     errors: undefined,
     text: '',
@@ -39,24 +40,6 @@ const SignUpForm = () => {
   } | null>(null);
 
 
-  const getLocation = (): Promise<GeolocationPosition> => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('Geolocation not supported'));
-        return;
-      }
-  
-      navigator.geolocation.getCurrentPosition(
-        (position) => resolve(position),
-        (error) => reject(error),
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-        }
-      );
-    });
-  };
-  
   useEffect(() => {
     if(state.message == 'error'){
       toast.error(state.errors?.email || "Wystąpił błąd.");
@@ -74,6 +57,45 @@ const SignUpForm = () => {
       className={style.form}
       action={action}
     >
+      <SignUpFields
+        state={state}
+        location={location}
+        locationAlowed={locationAlowed}
+        setLocationAllowed={setLocationAllowed}
+        setLocation={setLocation}
+        t={t}
+      />
+    </form>
+  );
+};
+
+const SignUpFields = ({
+  state,
+  location,
+  locationAlowed,
+  setLocationAllowed,
+  setLocation,
+  t,
+}: {
+  state: SignupFormState;
+  location: {
+    type: 'Point';
+    coordinates: [number, number];
+  } | null;
+  locationAlowed: boolean;
+  setLocationAllowed: React.Dispatch<React.SetStateAction<boolean>>;
+  setLocation: React.Dispatch<
+    React.SetStateAction<{
+      type: 'Point';
+      coordinates: [number, number];
+    } | null>
+  >;
+  t: ReturnType<typeof useTranslations>;
+}) => {
+  const { pending } = useFormStatus();
+
+  return (
+    <>
       <Input
         type='email'
         key={'email'}
@@ -112,7 +134,6 @@ const SignUpForm = () => {
         placeholder='Powtórz hasło'
         defaultValue={state.fields.passwordRepeat}
       />
-
       <Checkbox
         id="location"
         label="Czy możemy korzystać z twojej lokalizacji"
@@ -127,7 +148,21 @@ const SignUpForm = () => {
           }
 
           try {
-            const pos = await getLocation();
+            const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+              if (!navigator.geolocation) {
+                reject(new Error('Geolocation not supported'));
+                return;
+              }
+
+              navigator.geolocation.getCurrentPosition(
+                (position) => resolve(position),
+                (error) => reject(error),
+                {
+                  enableHighAccuracy: true,
+                  timeout: 10000,
+                }
+              );
+            });
             setLocation({
               type: 'Point',
               coordinates: [
@@ -174,9 +209,10 @@ const SignUpForm = () => {
       <Button
         type='submit'
         label='Utwórz konto'
+        isLoading={pending}
       />
-      {isPending && <Loader />}
-    </form>
+      {pending && <Loader />}
+    </>
   );
 };
 
