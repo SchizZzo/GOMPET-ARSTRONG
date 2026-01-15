@@ -1,5 +1,6 @@
-@use "styles" as *;
-
+@import 'vars';
+@import 'colors';
+@import 'mixins';
 
 .ltr {
   text-align: left;
@@ -288,7 +289,7 @@ pre::-webkit-scrollbar-thumb {
   background-color: rgba(150, 150, 150, 0.4);
 }
 
-.emoji-inner::-moz-selection {
+.emoji-inner::moz-selection {
   color: transparent;
   background-color: rgba(150, 150, 150, 0.4);
 }

@@ -1,4 +1,6 @@
-@use "styles" as *;
+@import 'vars';
+@import 'colors';
+@import 'mixins';
 
 html {
   font-size: 62.5%; // 1rem = 10px
