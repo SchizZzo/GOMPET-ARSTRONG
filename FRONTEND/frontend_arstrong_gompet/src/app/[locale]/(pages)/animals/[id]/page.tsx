@@ -1,8 +1,7 @@
-import { IAnimal, IPost } from 'src/constants/types';
-import { IComment } from 'src/constants/types';
-import { commentsMock } from 'src/mocks/comments';
+import axios from 'axios';
+import { IAnimal, IComment } from 'src/constants/types';
 import style from './AnimalProfile.module.scss';
-import { AnimalsApi, PostsApi } from 'src/api';
+import { AnimalsApi } from 'src/api';
 import TabView from '../components/AnimalProfile/TabView';
 
 const getAnimalData = async (id: number): Promise<IAnimal | undefined> => {
@@ -34,13 +33,16 @@ const getAnimalFamilyTree = async (id: number): Promise<IAnimal | undefined> => 
 //   }
 // }
 
-const getCommentData = async (id: number): Promise<IComment | undefined> => {
+const getCommentData = async (id: number): Promise<IComment[]> => {
   try {
     const animalCommentsRes = await AnimalsApi.getAnimalComments(id);
-    return animalCommentsRes.data
+    return animalCommentsRes.data || [];
   } catch (error) {
-    console.error('Error fetching animal:', error);
-    return undefined;
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return [];
+    }
+    console.error('Error fetching animal comments:', error);
+    return [];
   }
 };
 

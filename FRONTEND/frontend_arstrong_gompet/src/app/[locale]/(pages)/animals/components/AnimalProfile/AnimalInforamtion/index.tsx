@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useRef } from 'react'
+import React from 'react'
 import Image from 'next/image';
 import { IAnimal, IComment } from 'src/constants/types';
-import { useTranslations } from 'next-intl';
 import dayjs from 'dayjs';
 
 import style from './AnimalProfile.module.scss';
@@ -25,8 +24,9 @@ type AnimalProfileProps = {
 
 const AnimalInformation = ({ animal, comments }: AnimalProfileProps) => {
 
-    const t = useTranslations('pages.animals');
     const router = useRouter();
+    const ownerImage = animal.owner?.image;
+    const commentsList = comments?.length ? comments : animal.comments || [];
 
     const formatDate = (dateString: string) => {
         return dayjs(dateString).format('DD.MM.YYYY, godz. HH:mm');
@@ -58,7 +58,11 @@ const AnimalInformation = ({ animal, comments }: AnimalProfileProps) => {
                             <OrganizationTypeName type={animal.owner.type} />
                             </div>
                             <div className={style.logoHelp}>
-                                <Image src={animal.owner.image} alt='animals-help-image' width={90} height={40} />
+                                {ownerImage ? (
+                                    <Image src={ownerImage} alt='animals-help-image' width={90} height={40} />
+                                ) : (
+                                    <div className={style.logoHelpPlaceholder} aria-hidden="true" />
+                                )}
                             </div>
                             <p>Ratujemy zwierzaki</p>
                         </div>
@@ -123,7 +127,7 @@ const AnimalInformation = ({ animal, comments }: AnimalProfileProps) => {
                 // isLoading={isLoading}
                 emptyText="Brak komentarzy"
             >
-                {animal.comments.map((comment: any) => (
+                {commentsList.map((comment: any) => (
                     <Comment key={comment.id} comment={comment} /> 
                 ))}
             </List>

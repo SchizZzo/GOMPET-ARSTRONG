@@ -150,6 +150,13 @@
     //   }
     }
   }
+
+  .logoHelpPlaceholder {
+    width: 90px;
+    height: 40px;
+    border-radius: $radius-s;
+    background-color: $color-gray-200;
+  }
   
   .contactInfo {
     @include element-flex(column, flex);
