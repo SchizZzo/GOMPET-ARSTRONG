@@ -1,6 +1,7 @@
 @use 'styles/vars' as *;
 @use 'styles/responsive' as *;
 @use 'styles/colors' as *;
+@use 'sass:string';
 
 @mixin line-height($font-size) {
   line-height: calc($font-size * 1.5);
@@ -135,8 +136,8 @@
 @mixin element-flex($direction, $justify: 'flex-start', $align: 'flex-start') {
   display: flex;
   flex-direction: $direction;
-  justify-content: unquote($justify);
-  align-items: unquote($align);
+  justify-content: string.unquote($justify);
+  align-items: string.unquote($align);
 }
 
 @mixin flex-center {
