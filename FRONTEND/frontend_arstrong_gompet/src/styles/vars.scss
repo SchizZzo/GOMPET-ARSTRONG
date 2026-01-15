@@ -1,4 +1,4 @@
-@import 'functions';
+@use './functions' as *;
 
 // Fonts
 $main-font: 'Raleway', sans-serif;
