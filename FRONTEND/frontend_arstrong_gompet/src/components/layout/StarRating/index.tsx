@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import classNames from 'classnames';
 import { range } from 'lodash';
 
-import { Icons } from 'src/assets/icons';
+import Icon from 'src/components/layout/Icon';
 
 import style from './StarRating.module.scss';
 
@@ -17,15 +17,14 @@ type StarIconProps = {
 
 const Star = ({ percentage = 0, size = 24 }: StarIconProps) => {
   const classes = classNames(style.starIcon);
-  const props = {
+  const svgProps = {
     height: size,
-    width: size,
-    className: classes
+    width: size
   };
 
-  if (percentage <= 25) return <Icons.bone {...props} />;
-  if (percentage > 25 && percentage < 100) return <Icons.bone {...props} />;
-  return <Icons.boneFilled {...props} />;
+  if (percentage <= 25) return <Icon name="bone" className={classes} svgProps={svgProps} />;
+  if (percentage > 25 && percentage < 100) return <Icon name="bone" className={classes} svgProps={svgProps} />;
+  return <Icon name="boneFilled" className={classes} svgProps={svgProps} />;
 };
 
 type StarRatingProps = {

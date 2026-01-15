@@ -1,4 +1,5 @@
 import classNames from 'classnames';
+import type { ComponentType, ImgHTMLAttributes, SVGProps } from 'react';
 
 import { IconNames, Icons } from 'src/assets/icons';
 import { Link } from 'src/navigation';
@@ -10,7 +11,7 @@ interface IconProps extends Partial<HTMLAnchorElement> {
   href?: string;
   hrefOutside?: string;
   small?: boolean;
-  svgProps?: object;
+  svgProps?: SVGProps<SVGSVGElement>;
   gray?: boolean;
   dark?: boolean;
   white?: boolean;
@@ -50,9 +51,58 @@ const Icon = (props: IconProps) => {
     ...svgProps
   };
 
-  const IconComponent = Icons[name];
+  const IconComponent = Icons[name] as
+    | ComponentType<SVGProps<SVGSVGElement>>
+    | {
+        src?: string;
+        default?: ComponentType<SVGProps<SVGSVGElement>> | string;
+      }
+    | string
+    | undefined;
 
   if (!IconComponent) return null;
+
+  const renderIcon = () => {
+    const { className: iconClassName } = iconProps;
+    const imgProps: ImgHTMLAttributes<HTMLImageElement> = {
+      className: iconClassName,
+      alt: '',
+      width: svgProps?.width,
+      height: svgProps?.height
+    };
+
+    if (typeof IconComponent === 'function') {
+      return <IconComponent {...iconProps} />;
+    }
+
+    if (typeof IconComponent === 'string') {
+      return (
+        <img
+          {...imgProps}
+          src={IconComponent}
+        />
+      );
+    }
+
+    if (typeof IconComponent === 'object' && IconComponent !== null) {
+      if (typeof IconComponent.default === 'function') {
+        const DefaultComponent = IconComponent.default;
+        return <DefaultComponent {...iconProps} />;
+      }
+
+      const iconSrc = IconComponent.src ?? IconComponent.default;
+      if (typeof iconSrc === 'string') {
+        return (
+          <img
+            {...imgProps}
+            src={iconSrc}
+          />
+        );
+      }
+    }
+
+    return null;
+  };
 
   if (hrefOutside) {
     return (
@@ -62,7 +112,7 @@ const Icon = (props: IconProps) => {
         target='_blank'
         rel='noreferrer'
       >
-        <IconComponent {...iconProps} />
+        {renderIcon()}
       </a>
     );
   }
@@ -73,7 +123,7 @@ const Icon = (props: IconProps) => {
         href={href}
         className={style.link}
       >
-        <IconComponent {...iconProps} />
+        {renderIcon()}
       </Link>
     );
   }
@@ -84,12 +134,12 @@ const Icon = (props: IconProps) => {
         className={style.button}
         onClick={onClick}
       >
-        <IconComponent {...iconProps} />
+        {renderIcon()}
       </button>
     );
   }
 
-  return <IconComponent {...iconProps} />;
+  return renderIcon();
 };
 
 export default Icon;
