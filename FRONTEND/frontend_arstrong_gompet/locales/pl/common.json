@@ -1,0 +1,34 @@
+{
+  "action": {
+    "add": "Dodaj",
+    "cancel": "Anuluj",
+    "choose": "Wybierz",
+    "select": "Wybierz",
+    "open": "Otwórz",
+    "close": "Zamknij",
+    "delete": "Usuń",
+    "edit": "Edytuj",
+    "save": "Zapisz",
+    "search": "Szukaj",
+    "chooseFile": "Wybierz plik",
+    "publish": "Opublikuj",
+    "writeMessage": "Napisz wiadomość",
+    "seeAll": "Zobacz wszystkie"
+  },
+  "state": {
+    "active": "Aktywny",
+    "inactive": "Nieaktywny",
+    "isLoading": "Ładowanie",
+    "new": "Nowe"
+  },
+  "empty": {
+    "default": "Brak danych",
+    "searchResults": "Brak wyników wyszukiwania dla \"{query}\""
+  },
+  "organization": {
+    "SHELTER": "Schronisko",
+    "FUND": "Fundacja",
+    "BREEDER": "Hodowla"
+  },
+  "noLocation": "Brak lokalizacji"
+}
