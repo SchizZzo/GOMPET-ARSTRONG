@@ -1,5 +1,4 @@
 import React from 'react';
-import { useTranslations } from 'next-intl';
 import { setRequestLocale } from 'next-intl/server';
 
 import { Locale } from 'src/navigation';
@@ -13,13 +12,11 @@ import Footer from './components/Footer';
 import TextBlock from './components/TextBlock';
 import KnowledgeScroll from './components/KnowledgeScroll';
 
-const Landing = async ({
+const Landing = ({
   params
-}: Readonly<{ params: Promise<{ locale: Locale }> }>) => {
-  const { locale } = await params;
+}: Readonly<{ params: { locale: Locale } }>) => {
+  const { locale } = params;
   setRequestLocale(locale);
-
-  const t = useTranslations('pages.landing');
 
   return (
     <div className={style.container}>
