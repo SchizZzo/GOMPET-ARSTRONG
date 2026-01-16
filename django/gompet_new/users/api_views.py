@@ -310,6 +310,10 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             breeding_types = [bt.strip() for bt in breeding_type.split(',') if bt.strip()]
             qs = qs.filter(breeding_type_organizations__breeding_type__name__in=breeding_types)
 
+        org_user_id = self.request.query_params.get('user-id')
+        if org_user_id:
+            qs = qs.filter(user__id=org_user_id)
+
         
         return qs
 
@@ -430,6 +434,10 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
             if not is_owner:
                 return queryset.none()
             queryset = queryset.filter(organization_id=organization_id_confirmed, invitation_confirmed=True)
+
+        organization_member_user_id = self.request.query_params.get("organization-member-user-id")
+        if organization_member_user_id:
+            queryset = queryset.filter(user__id=organization_member_user_id)
         
         return queryset
     
