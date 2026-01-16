@@ -249,15 +249,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     
 
     def perform_create(self, serializer):
-        org = serializer.save(user=self.request.user)
-        OrganizationMember.objects.create(
-            user=self.request.user,
-            organization=org,
-            role=MemberRole.OWNER,
-            invitation_confirmed=True,
-        )
-        sync_user_member_role_groups(self.request.user)
-        sync_user_role_groups(self.request.user)
+        serializer.save(user=self.request.user)
         
 
     def get_queryset(self):
