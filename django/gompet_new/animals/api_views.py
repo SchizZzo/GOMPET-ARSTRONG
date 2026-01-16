@@ -493,7 +493,12 @@ localhost/animals/animals/?size=MEDIUM
         user_animals_param = params.get('user-animals') or params.get('user_animals')
         if user_animals_param and self.request.user and self.request.user.is_authenticated:
             if str(user_animals_param).lower() in ("1", "true", "yes"):
-                qs = qs.filter(owner=self.request.user)        
+                qs = qs.filter(owner=self.request.user)
+
+        user_animals_by_id_param = params.get('user-animals-by-id')
+        if user_animals_by_id_param:
+            qs = qs.filter(owner__id=user_animals_by_id_param)
+
 
 
 
