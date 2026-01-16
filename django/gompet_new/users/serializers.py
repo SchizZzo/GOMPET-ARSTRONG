@@ -368,6 +368,7 @@ class OrganizationMemberCreateSerializer(serializers.ModelSerializer):
             "organization",
             "role",
             "invitation_message",
+            "invitation_confirmed",
         ]
 
     def create(self, validated_data):
