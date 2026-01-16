@@ -7,6 +7,8 @@ class UsersConfig(AppConfig):
     name = 'users'
 
     def ready(self) -> None:
+        from . import signals
+
         post_migrate.connect(
             create_member_role_groups,
             sender=self,
