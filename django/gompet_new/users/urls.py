@@ -15,6 +15,7 @@ from .api_views import (
     OrganizationAddressViewSet,
     SpeciesViewSet,
     OrganizationTypeListView,
+    OrganizationMemberRoleListView,
 )
 
 
@@ -43,6 +44,7 @@ router.register(r'organization-filtering', OrganizationFilteringAddedViewSet, ba
 router.register(r'organization-addresses', OrganizationAddressViewSet, basename='organizationaddress')
 router.register(r'species', SpeciesViewSet, basename='species')
 router.register(r'organization-types', OrganizationTypeListView, basename='organizationtype')
+router.register(r'organization-member-roles', OrganizationMemberRoleListView, basename='organizationmemberrole')
 
 urlpatterns = [
     path('auth/token/', TokenCreateView.as_view(), name='token_obtain_pair'),

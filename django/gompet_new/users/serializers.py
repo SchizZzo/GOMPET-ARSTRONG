@@ -10,7 +10,7 @@ from django.contrib.auth.password_validation import validate_password
 from .models import User
 from .models import Organization, Address, OrganizationMember, BreedingTypeOrganizations, \
       BreedingType, Species
-from .models import OrganizationType
+from .models import OrganizationType, MemberRole
 
 class Base64ImageField(serializers.ImageField):
     """Accept a base64 string and convert it into an uploaded image.
@@ -415,6 +415,19 @@ class OrganizationTypeSerializer(serializers.Serializer):
         return [
             {"value": choice.value, "label": choice.label}
             for choice in OrganizationType
+        ]
+
+
+class MemberRoleSerializer(serializers.Serializer):
+    """Representation of organization member role choices."""
+    value = serializers.CharField()
+    label = serializers.CharField()
+
+    @staticmethod
+    def get_choices():
+        return [
+            {"value": choice.value, "label": choice.label}
+            for choice in MemberRole
         ]
     
 

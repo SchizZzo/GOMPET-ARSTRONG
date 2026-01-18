@@ -16,7 +16,7 @@ from common.models import Notification
 from common.notifications import broadcast_user_notification, build_notification_payload
 from .models import Address, MemberRole, Organization, OrganizationMember, OrganizationType, Species, User
 from .serializers import (
-    OrganizationTypeSerializer, UserSerializer, UserCreateSerializer, UserUpdateSerializer,
+    OrganizationTypeSerializer, MemberRoleSerializer, UserSerializer, UserCreateSerializer, UserUpdateSerializer,
     OrganizationSerializer, OrganizationCreateSerializer, OrganizationUpdateSerializer,
     OrganizationMemberSerializer, OrganizationMemberCreateSerializer, LatestOrganizationSerializer, SpeciesSerializer,
     OrganizationAddressSerializer,
@@ -665,3 +665,15 @@ class OrganizationTypeListView(viewsets.ViewSet):
             OrganizationTypeSerializer.get_choices(), many=True
         )
         return Response(serializer.data)
+
+
+class OrganizationMemberRoleListView(viewsets.ViewSet):
+    """Zwraca listę dostępnych ról członków organizacji (code + label)."""
+
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def list(self, request):
+        serializer = MemberRoleSerializer(
+            MemberRoleSerializer.get_choices(), many=True
+        )
+        return Response({"roles": serializer.data})
