@@ -3,6 +3,7 @@ import tempfile
 from unittest import mock
 
 from django.contrib.auth import get_user_model
+from django.contrib.gis.geos import Point
 from django.contrib.sessions.backends.db import SessionStore
 from django.contrib.sessions.models import Session
 from django.core.files.storage import default_storage
@@ -14,10 +15,13 @@ from common.models import Notification
 
 from .models import (
     Address,
+    BreedingType,
+    BreedingTypeOrganizations,
     MemberRole,
     Organization,
     OrganizationType,
     OrganizationMember,
+    Species,
 )
 from .serializers import (
     Base64ImageField,
@@ -524,3 +528,247 @@ class OrganizationAddressViewSetTests(TestCase):
         self.assertEqual(payload["organization_id"], organization.id)
         self.assertEqual(payload["organization_name"], organization.name)
         self.assertEqual(payload["city"], address.city)
+
+
+class OrganizationFilteringViewSetTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def _create_org_with_address(self, *, owner, name, org_type, location=None):
+        organization = Organization.objects.create(
+            type=org_type,
+            name=name,
+            email=f"{name.replace(' ', '').lower()}@example.com",
+            phone="",
+            user=owner,
+        )
+        address = Address.objects.create(
+            organization=organization,
+            city="Warszawa",
+            street="Testowa",
+            house_number="1",
+            zip_code="00-001",
+            location=location,
+        )
+        return organization, address
+
+    def test_lists_organizations_with_and_without_range(self):
+        user = User.objects.create_user(
+            email="filter-range@example.com",
+            password="secret",
+            first_name="Range",
+            last_name="User",
+        )
+        user.location = Point(21.0, 52.0)
+        user.save(update_fields=["location"])
+        self.client.force_authenticate(user=user)
+
+        near_org, near_address = self._create_org_with_address(
+            owner=user,
+            name="Near Shelter",
+            org_type=OrganizationType.SHELTER,
+            location=Point(21.001, 52.001),
+        )
+        self._create_org_with_address(
+            owner=user,
+            name="Far Clinic",
+            org_type=OrganizationType.CLINIC,
+            location=Point(22.0, 52.0),
+        )
+
+        response = self.client.get("/users/organization-filtering/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data.get("results", response.data)
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0]["id"], near_org.id)
+        self.assertEqual(results[0]["address"]["city"], near_address.city)
+
+        response = self.client.get("/users/organization-filtering/?range=1000")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data.get("results", response.data)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["name"], "Near Shelter")
+
+    def test_filters_by_organization_type(self):
+        owner = User.objects.create_user(
+            email="filter-type@example.com",
+            password="secret",
+            first_name="Type",
+            last_name="User",
+        )
+        self._create_org_with_address(
+            owner=owner,
+            name="Shelter Org",
+            org_type=OrganizationType.SHELTER,
+        )
+        self._create_org_with_address(
+            owner=owner,
+            name="Clinic Org",
+            org_type=OrganizationType.CLINIC,
+        )
+
+        response = self.client.get(
+            "/users/organization-filtering/?organization-type=SHELTER"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data.get("results", response.data)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["type"], OrganizationType.SHELTER)
+
+    def test_filters_by_species(self):
+        owner = User.objects.create_user(
+            email="filter-species@example.com",
+            password="secret",
+            first_name="Species",
+            last_name="User",
+        )
+        dog = Species.objects.create(name="dog")
+        cat = Species.objects.create(name="cat")
+        dog_org, dog_address = self._create_org_with_address(
+            owner=owner,
+            name="Dog Shelter",
+            org_type=OrganizationType.SHELTER,
+        )
+        cat_org, cat_address = self._create_org_with_address(
+            owner=owner,
+            name="Cat Clinic",
+            org_type=OrganizationType.CLINIC,
+        )
+        dog_address.species.add(dog)
+        cat_address.species.add(cat)
+
+        response = self.client.get("/users/organization-filtering/?species=dog")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data.get("results", response.data)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["id"], dog_org.id)
+        self.assertIn(dog.id, results[0]["address"]["species"])
+        self.assertNotEqual(results[0]["id"], cat_org.id)
+
+    def test_filters_by_breeding_type(self):
+        owner = User.objects.create_user(
+            email="filter-breeding@example.com",
+            password="secret",
+            first_name="Breeding",
+            last_name="User",
+        )
+        pet = BreedingType.objects.create(name="pet")
+        poultry = BreedingType.objects.create(name="poultry")
+        pet_org, _ = self._create_org_with_address(
+            owner=owner,
+            name="Pet Breeder",
+            org_type=OrganizationType.BREEDER,
+        )
+        poultry_org, _ = self._create_org_with_address(
+            owner=owner,
+            name="Poultry Farm",
+            org_type=OrganizationType.BREEDER,
+        )
+        BreedingTypeOrganizations.objects.create(
+            organization=pet_org,
+            breeding_type=pet,
+        )
+        BreedingTypeOrganizations.objects.create(
+            organization=poultry_org,
+            breeding_type=poultry,
+        )
+
+        response = self.client.get("/users/organization-filtering/?breeding-type=pet")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data.get("results", response.data)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["id"], pet_org.id)
+
+
+class OrganizationAddressUpdateTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def _create_owner_org(self):
+        owner = User.objects.create_user(
+            email="owner-address-update@example.com",
+            password="secret",
+            first_name="Owner",
+            last_name="Update",
+        )
+        organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Update Shelter",
+            email="update-shelter@example.com",
+            phone="",
+            user=owner,
+        )
+        OrganizationMember.objects.create(
+            user=owner,
+            organization=organization,
+            role=MemberRole.OWNER,
+        )
+        address = Address.objects.create(
+            organization=organization,
+            city="Poznań",
+            street="Stara",
+            house_number="5",
+            zip_code="60-001",
+        )
+        return owner, organization, address
+
+    def test_patch_updates_address(self):
+        owner, organization, address = self._create_owner_org()
+        self.client.force_authenticate(user=owner)
+
+        payload = {
+            "address": {
+                "city": "Kraków",
+                "street": "Nowa",
+                "house_number": "10A",
+                "zip_code": "30-001",
+            }
+        }
+
+        response = self.client.patch(
+            f"/users/organizations/{organization.id}/",
+            payload,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        address.refresh_from_db()
+        self.assertEqual(address.city, "Kraków")
+        self.assertEqual(address.street, "Nowa")
+        self.assertEqual(response.data["address"]["zip_code"], "30-001")
+
+    def test_put_updates_address(self):
+        owner, organization, address = self._create_owner_org()
+        self.client.force_authenticate(user=owner)
+
+        payload = {
+            "type": OrganizationType.SHELTER,
+            "name": "Updated Shelter",
+            "email": "updated-shelter@example.com",
+            "phone": "",
+            "description": {},
+            "rating": None,
+            "address": {
+                "city": "Gdańsk",
+                "street": "Portowa",
+                "house_number": "2",
+                "zip_code": "80-001",
+            },
+        }
+
+        response = self.client.put(
+            f"/users/organizations/{organization.id}/",
+            payload,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        address.refresh_from_db()
+        self.assertEqual(address.city, "Gdańsk")
+        self.assertEqual(address.street, "Portowa")
+        self.assertEqual(response.data["address"]["zip_code"], "80-001")
