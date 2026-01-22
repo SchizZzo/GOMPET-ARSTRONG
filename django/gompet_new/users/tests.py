@@ -685,6 +685,89 @@ class OrganizationFilteringViewSetTests(TestCase):
         self.assertEqual(results[0]["id"], pet_org.id)
 
 
+class OrganizationRolePermissionTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def _create_org_with_owner(self):
+        owner = User.objects.create_user(
+            email="owner-role@example.com",
+            password="secret",
+            first_name="Owner",
+            last_name="Role",
+        )
+        organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Role Shelter",
+            email="role-shelter@example.com",
+            phone="",
+            user=owner,
+        )
+        OrganizationMember.objects.create(
+            user=owner,
+            organization=organization,
+            role=MemberRole.OWNER,
+        )
+        return owner, organization
+
+    def test_volunteer_cannot_update_organization(self):
+        owner, organization = self._create_org_with_owner()
+        volunteer = User.objects.create_user(
+            email="volunteer@example.com",
+            password="secret",
+            first_name="Volunteer",
+            last_name="User",
+        )
+        OrganizationMember.objects.create(
+            user=volunteer,
+            organization=organization,
+            role=MemberRole.VOLUNTEER,
+        )
+
+        self.client.force_authenticate(user=volunteer)
+        response = self.client.patch(
+            f"/users/organizations/{organization.id}/",
+            {"name": "New Name", "email": "new-name@example.com"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_volunteer_cannot_add_organization_member(self):
+        owner, organization = self._create_org_with_owner()
+        volunteer = User.objects.create_user(
+            email="volunteer-invite@example.com",
+            password="secret",
+            first_name="Volunteer",
+            last_name="Invite",
+        )
+        invited_user = User.objects.create_user(
+            email="new-member@example.com",
+            password="secret",
+            first_name="New",
+            last_name="Member",
+        )
+        OrganizationMember.objects.create(
+            user=volunteer,
+            organization=organization,
+            role=MemberRole.VOLUNTEER,
+        )
+
+        self.client.force_authenticate(user=volunteer)
+        response = self.client.post(
+            "/users/organization-members/",
+            {
+                "user": invited_user.id,
+                "organization": organization.id,
+                "role": MemberRole.STAFF,
+                "invitation_confirmed": False,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
 class OrganizationAddressUpdateTests(TestCase):
     def setUp(self):
         self.client = APIClient()
