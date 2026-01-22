@@ -302,6 +302,35 @@ class OrganizationCreateSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
+        errors = {}
+        name = attrs.get("name")
+        email = attrs.get("email")
+        phone = attrs.get("phone")
+
+        if not name or not str(name).strip():
+            errors["name"] = "To pole jest wymagane."
+        if not email or not str(email).strip():
+            errors["email"] = "To pole jest wymagane."
+
+        if not (email and str(email).strip()) and not (phone and str(phone).strip()):
+            errors.setdefault("non_field_errors", []).append(
+                "Podaj email lub numer telefonu."
+            )
+
+        address_data = attrs.get("address")
+        if not address_data:
+            errors["address"] = "To pole jest wymagane."
+        else:
+            address_errors = {}
+            for field in ("city", "street", "house_number"):
+                value = address_data.get(field)
+                if not value or not str(value).strip():
+                    address_errors[field] = "To pole jest wymagane."
+            if address_errors:
+                errors["address"] = address_errors
+
+        if errors:
+            raise serializers.ValidationError(errors)
         return attrs
 
     def create(self, validated_data):
@@ -331,6 +360,55 @@ class OrganizationUpdateSerializer(serializers.ModelSerializer):
             "rating",
             "address",
         ]
+
+    def validate(self, attrs):
+        errors = {}
+        instance = getattr(self, "instance", None)
+
+        name = attrs.get("name", getattr(instance, "name", None))
+        email = attrs.get("email", getattr(instance, "email", None))
+        phone = attrs.get("phone", getattr(instance, "phone", ""))
+
+        if not name or not str(name).strip():
+            errors["name"] = "To pole jest wymagane."
+        if not email or not str(email).strip():
+            errors["email"] = "To pole jest wymagane."
+
+        if not (email and str(email).strip()) and not (phone and str(phone).strip()):
+            errors.setdefault("non_field_errors", []).append(
+                "Podaj email lub numer telefonu."
+            )
+
+        if "address" in attrs:
+            address_data = attrs.get("address") or {}
+            existing_address = getattr(instance, "address", None)
+            city = address_data.get(
+                "city",
+                getattr(existing_address, "city", None) if existing_address else None,
+            )
+            street = address_data.get(
+                "street",
+                getattr(existing_address, "street", None) if existing_address else None,
+            )
+            house_number = address_data.get(
+                "house_number",
+                getattr(existing_address, "house_number", None)
+                if existing_address
+                else None,
+            )
+            address_errors = {}
+            if not city or not str(city).strip():
+                address_errors["city"] = "To pole jest wymagane."
+            if not street or not str(street).strip():
+                address_errors["street"] = "To pole jest wymagane."
+            if not house_number or not str(house_number).strip():
+                address_errors["house_number"] = "To pole jest wymagane."
+            if address_errors:
+                errors["address"] = address_errors
+
+        if errors:
+            raise serializers.ValidationError(errors)
+        return attrs
 
     def update(self, instance, validated_data):
         address_data = validated_data.pop("address", None)
