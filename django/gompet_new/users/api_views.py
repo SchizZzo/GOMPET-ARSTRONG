@@ -299,14 +299,20 @@ class OrganizationViewSet(viewsets.ModelViewSet):
 
         # filter by species
         species = self.request.query_params.get('species')
+        needs_distinct = False
         if species:
             species_list = [s.strip() for s in species.split(',') if s.strip()]
             qs = qs.filter(species_organizations__species__name__in=species_list)
+            needs_distinct = True
 
         breeding_type = self.request.query_params.get('breeding-type')
         if breeding_type:
             breeding_types = [bt.strip() for bt in breeding_type.split(',') if bt.strip()]
             qs = qs.filter(breeding_type_organizations__breeding_type__name__in=breeding_types)
+            needs_distinct = True
+
+        if needs_distinct:
+            qs = qs.distinct()
 
         org_user_id = self.request.query_params.get('user-id')
         if org_user_id:
@@ -602,16 +608,22 @@ class OrganizationFilteringAddedViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(type__in=org_types)
 
         species = self.request.query_params.get("species")
+        needs_distinct = False
         if species:
             species_list = [s.strip() for s in species.split(",") if s.strip()]
             qs = qs.filter(species_organizations__species__name__in=species_list)
+            needs_distinct = True
 
         breeding_type = self.request.query_params.get("breeding-type")
         if breeding_type:
             breeding_types = [bt.strip() for bt in breeding_type.split(",") if bt.strip()]
             qs = qs.filter(breeding_type_organizations__breeding_type__name__in=breeding_types)
+            needs_distinct = True
 
-        return qs.distinct()
+        if needs_distinct:
+            qs = qs.distinct()
+
+        return qs
     
 
 
