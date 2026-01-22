@@ -302,7 +302,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         needs_distinct = False
         if species:
             species_list = [s.strip() for s in species.split(',') if s.strip()]
-            qs = qs.filter(species_organizations__species__name__in=species_list)
+            qs = qs.filter(address__species__name__in=species_list)
             needs_distinct = True
 
         breeding_type = self.request.query_params.get('breeding-type')
@@ -611,7 +611,7 @@ class OrganizationFilteringAddedViewSet(viewsets.ReadOnlyModelViewSet):
         needs_distinct = False
         if species:
             species_list = [s.strip() for s in species.split(",") if s.strip()]
-            qs = qs.filter(species_organizations__species__name__in=species_list)
+            qs = qs.filter(address__species__name__in=species_list)
             needs_distinct = True
 
         breeding_type = self.request.query_params.get("breeding-type")
