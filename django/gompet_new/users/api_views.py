@@ -267,14 +267,12 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         # filtrowanie po zasięgu (parametr "zasieg" – wartość w metrach)
         zasieg_param = self.request.query_params.get('range')
         if user_location:
-            qs = qs.exclude(address__location__isnull=True).annotate(
-                distance=Distance("address__location", user_location)
-            )
+            qs = qs.annotate(distance=Distance("address__location", user_location))
 
             if zasieg_param:
                 try:
                     max_distance = float(zasieg_param)
-                    qs = qs.filter(
+                    qs = qs.exclude(address__location__isnull=True).filter(
                         address__location__distance_lte=(user_location, D(m=max_distance))
                     )
                 except (TypeError, ValueError):
