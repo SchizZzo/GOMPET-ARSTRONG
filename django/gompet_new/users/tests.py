@@ -1,23 +1,15 @@
 from __future__ import annotations
-import os
 import tempfile
-from dataclasses import dataclass
-from django.contrib.auth import get_user_model
-from django.core.files.storage import default_storage
-from django.test import TestCase, override_settings
-from rest_framework.test import APIClient
-from rest_framework import serializers, status
-from .serializers import Base64ImageField, UserUpdateSerializer
-
-
-
 from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.backends.db import SessionStore
 from django.contrib.sessions.models import Session
-from django.test import TestCase
-from rest_framework import serializers
+from django.core.files.storage import default_storage
+from django.test import TestCase, override_settings
+from rest_framework import serializers, status
+from rest_framework.test import APIClient
+
 from common.models import Notification
 
 from .models import (
@@ -27,8 +19,13 @@ from .models import (
     OrganizationType,
     OrganizationMember,
 )
+from .serializers import (
+    Base64ImageField,
+    OrganizationCreateSerializer,
+    OrganizationUpdateSerializer,
+    UserUpdateSerializer,
+)
 from .services import CannotDeleteUser, delete_user_account
-from .serializers import Base64ImageField
 
 User = get_user_model()
 
@@ -386,6 +383,106 @@ class UserUpdateSerializerImageTests(TestCase):
 
         # When setting None, ensure image is cleared or remains falsy
         self.assertFalse(bool(updated.image))
+
+
+class OrganizationSerializerValidationTests(TestCase):
+    def setUp(self):
+        self.base_address = {
+            "city": "Warszawa",
+            "street": "Testowa",
+            "house_number": "10",
+            "zip_code": "00-001",
+        }
+        self.base_payload = {
+            "type": OrganizationType.SHELTER,
+            "name": "Fundacja Zwierzak",
+            "email": "kontakt@example.com",
+            "phone": "+48123123123",
+            "description": {},
+            "address": self.base_address,
+        }
+
+    def test_create_requires_name(self):
+        payload = dict(self.base_payload, name="")
+        serializer = OrganizationCreateSerializer(data=payload)
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("name", serializer.errors)
+
+    def test_create_requires_email_or_phone(self):
+        payload = dict(self.base_payload, email="", phone="")
+        serializer = OrganizationCreateSerializer(data=payload)
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("email", serializer.errors)
+
+    def test_create_requires_full_address(self):
+        address = dict(self.base_address)
+        address.pop("street")
+        payload = dict(self.base_payload, address=address)
+        serializer = OrganizationCreateSerializer(data=payload)
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("address", serializer.errors)
+        self.assertIn("street", serializer.errors["address"])
+
+    def test_update_requires_name_and_contact(self):
+        owner = User.objects.create_user(
+            email="owner@example.com",
+            password="secret",
+            first_name="Owner",
+            last_name="User",
+        )
+        organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Organizacja",
+            email="org@example.com",
+            phone="+48123123123",
+            user=owner,
+        )
+        Address.objects.create(
+            organization=organization,
+            city="Poznań",
+            street="Stara",
+            house_number="5",
+            zip_code="60-001",
+        )
+
+        serializer = OrganizationUpdateSerializer(
+            instance=organization,
+            data={"name": "", "email": "", "phone": ""},
+            partial=True,
+        )
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("name", serializer.errors)
+        self.assertIn("email", serializer.errors)
+
+    def test_update_requires_address_when_missing(self):
+        owner = User.objects.create_user(
+            email="owner2@example.com",
+            password="secret",
+            first_name="Owner",
+            last_name="Two",
+        )
+        organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Organizacja 2",
+            email="org2@example.com",
+            phone="+48123123123",
+            user=owner,
+        )
+
+        serializer = OrganizationUpdateSerializer(
+            instance=organization,
+            data={"address": {"city": "Lublin"}},
+            partial=True,
+        )
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("address", serializer.errors)
+        self.assertIn("street", serializer.errors["address"])
+        self.assertIn("house_number", serializer.errors["address"])
 
 
 class OrganizationAddressViewSetTests(TestCase):
