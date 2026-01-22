@@ -23,7 +23,7 @@ from .serializers import (
 )
 from .permissions import OrganizationRolePermissions
 from .services import CannotDeleteUser, delete_user_account
-from .role_permissions import sync_user_member_role_groups, sync_user_role_groups
+from .role_permissions import ENDPOINT_ROLE_REQUIREMENTS, sync_user_member_role_groups, sync_user_role_groups
 
 class TokenCreateSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -220,6 +220,13 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     """
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
+    # Wymagania ról i uprawnień dla akcji zapisu są opisane w ENDPOINT_ROLE_REQUIREMENTS.
+    role_requirements = {
+        "create": ENDPOINT_ROLE_REQUIREMENTS["users:organizations:create"],
+        "update": ENDPOINT_ROLE_REQUIREMENTS["users:organizations:update"],
+        "partial_update": ENDPOINT_ROLE_REQUIREMENTS["users:organizations:update"],
+        "destroy": ENDPOINT_ROLE_REQUIREMENTS["users:organizations:delete"],
+    }
     permission_classes = [IsAuthenticatedOrReadOnly, OrganizationRolePermissions]
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
 
@@ -392,7 +399,14 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
     """
     queryset = OrganizationMember.objects.all()
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
-    permission_classes = [IsAuthenticated]
+    # Wymagania ról i uprawnień dla akcji zapisu są opisane w ENDPOINT_ROLE_REQUIREMENTS.
+    role_requirements = {
+        "create": ENDPOINT_ROLE_REQUIREMENTS["users:organization-members:create"],
+        "update": ENDPOINT_ROLE_REQUIREMENTS["users:organization-members:update"],
+        "partial_update": ENDPOINT_ROLE_REQUIREMENTS["users:organization-members:update"],
+        "destroy": ENDPOINT_ROLE_REQUIREMENTS["users:organization-members:delete"],
+    }
+    permission_classes = [IsAuthenticated, OrganizationRolePermissions]
 
     def get_serializer_class(self):
         if self.action == "create":
