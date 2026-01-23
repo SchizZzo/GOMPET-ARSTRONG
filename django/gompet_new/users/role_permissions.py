@@ -124,44 +124,6 @@ ROLE_PERMISSIONS = {
     ],
 }
 
-# Centralna mapa wymagań dla endpointów API (single source of truth).
-# Używana do dokumentowania, jakie role członkowskie i uprawnienia są wymagane
-# dla akcji zapisu w Users API.
-def _roles_with_permissions(required_permissions: Iterable[str]) -> list[str]:
-    return [
-        role.value
-        for role, permissions in ROLE_PERMISSIONS.items()
-        if all(permission in permissions for permission in required_permissions)
-    ]
-
-
-ENDPOINT_ROLE_REQUIREMENTS = {
-    "users:organizations:create": {
-        "permissions": ["users.add_organization"],
-        "member_roles": _roles_with_permissions(["users.add_organization"]),
-    },
-    "users:organizations:update": {
-        "permissions": ["users.change_organization"],
-        "member_roles": _roles_with_permissions(["users.change_organization"]),
-    },
-    "users:organizations:delete": {
-        "permissions": ["users.delete_organization"],
-        "member_roles": _roles_with_permissions(["users.delete_organization"]),
-    },
-    "users:organization-members:create": {
-        "permissions": ["users.add_organizationmember"],
-        "member_roles": _roles_with_permissions(["users.add_organizationmember"]),
-    },
-    "users:organization-members:update": {
-        "permissions": ["users.change_organizationmember"],
-        "member_roles": _roles_with_permissions(["users.change_organizationmember"]),
-    },
-    "users:organization-members:delete": {
-        "permissions": ["users.delete_organizationmember"],
-        "member_roles": _roles_with_permissions(["users.delete_organizationmember"]),
-    },
-}
-
 # Basic user roles outside of organization membership.
 USER_ROLE_PERMISSIONS = {
     "LIMITED": [

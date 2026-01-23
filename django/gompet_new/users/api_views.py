@@ -23,7 +23,7 @@ from .serializers import (
 )
 from .permissions import OrganizationRolePermissions
 from .services import CannotDeleteUser, delete_user_account
-from .role_permissions import ENDPOINT_ROLE_REQUIREMENTS, sync_user_member_role_groups, sync_user_role_groups
+from .role_permissions import sync_user_member_role_groups, sync_user_role_groups
 
 class TokenCreateSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -220,13 +220,6 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     """
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
-    # Wymagania ról i uprawnień dla akcji zapisu są opisane w ENDPOINT_ROLE_REQUIREMENTS.
-    role_requirements = {
-        "create": ENDPOINT_ROLE_REQUIREMENTS["users:organizations:create"],
-        "update": ENDPOINT_ROLE_REQUIREMENTS["users:organizations:update"],
-        "partial_update": ENDPOINT_ROLE_REQUIREMENTS["users:organizations:update"],
-        "destroy": ENDPOINT_ROLE_REQUIREMENTS["users:organizations:delete"],
-    }
     permission_classes = [IsAuthenticatedOrReadOnly, OrganizationRolePermissions]
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
 
@@ -274,12 +267,14 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         # filtrowanie po zasięgu (parametr "zasieg" – wartość w metrach)
         zasieg_param = self.request.query_params.get('range')
         if user_location:
-            qs = qs.annotate(distance=Distance("address__location", user_location))
+            qs = qs.exclude(address__location__isnull=True).annotate(
+                distance=Distance("address__location", user_location)
+            )
 
             if zasieg_param:
                 try:
                     max_distance = float(zasieg_param)
-                    qs = qs.exclude(address__location__isnull=True).filter(
+                    qs = qs.filter(
                         address__location__distance_lte=(user_location, D(m=max_distance))
                     )
                 except (TypeError, ValueError):
@@ -306,20 +301,14 @@ class OrganizationViewSet(viewsets.ModelViewSet):
 
         # filter by species
         species = self.request.query_params.get('species')
-        needs_distinct = False
         if species:
             species_list = [s.strip() for s in species.split(',') if s.strip()]
-            qs = qs.filter(address__species__name__in=species_list)
-            needs_distinct = True
+            qs = qs.filter(species_organizations__species__name__in=species_list)
 
         breeding_type = self.request.query_params.get('breeding-type')
         if breeding_type:
             breeding_types = [bt.strip() for bt in breeding_type.split(',') if bt.strip()]
             qs = qs.filter(breeding_type_organizations__breeding_type__name__in=breeding_types)
-            needs_distinct = True
-
-        if needs_distinct:
-            qs = qs.distinct()
 
         org_user_id = self.request.query_params.get('user-id')
         if org_user_id:
@@ -399,14 +388,7 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
     """
     queryset = OrganizationMember.objects.all()
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
-    # Wymagania ról i uprawnień dla akcji zapisu są opisane w ENDPOINT_ROLE_REQUIREMENTS.
-    role_requirements = {
-        "create": ENDPOINT_ROLE_REQUIREMENTS["users:organization-members:create"],
-        "update": ENDPOINT_ROLE_REQUIREMENTS["users:organization-members:update"],
-        "partial_update": ENDPOINT_ROLE_REQUIREMENTS["users:organization-members:update"],
-        "destroy": ENDPOINT_ROLE_REQUIREMENTS["users:organization-members:delete"],
-    }
-    permission_classes = [IsAuthenticated, OrganizationRolePermissions]
+    permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -622,22 +604,16 @@ class OrganizationFilteringAddedViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(type__in=org_types)
 
         species = self.request.query_params.get("species")
-        needs_distinct = False
         if species:
             species_list = [s.strip() for s in species.split(",") if s.strip()]
-            qs = qs.filter(address__species__name__in=species_list)
-            needs_distinct = True
+            qs = qs.filter(species_organizations__species__name__in=species_list)
 
         breeding_type = self.request.query_params.get("breeding-type")
         if breeding_type:
             breeding_types = [bt.strip() for bt in breeding_type.split(",") if bt.strip()]
             qs = qs.filter(breeding_type_organizations__breeding_type__name__in=breeding_types)
-            needs_distinct = True
 
-        if needs_distinct:
-            qs = qs.distinct()
-
-        return qs
+        return qs.distinct()
     
 
 
