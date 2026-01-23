@@ -11,6 +11,6 @@ const notificationsMock: NotificaitonItemType[] = [
     data: {},
     metadata: {},
     seen: false,
-    type: 'unknown'
+    type: 'organization_invite_accepted'
   }
 ];
