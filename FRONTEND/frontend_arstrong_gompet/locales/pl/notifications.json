@@ -4,6 +4,7 @@
   "maxFileSize": "Maksymalny rozmiar pliku to {{size}} MB.",
   "allowedFileTypes": "Dozwolone formaty plików to: {{types}}.",
   "types": {
-    "unknown": "Nieznany"
+    "unknown": "Nieznany",
+    "organization_invite_accepted": "Zostałeś(-aś) przyjęty(-a) do organizacji"
   }
 }

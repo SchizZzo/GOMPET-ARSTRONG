@@ -486,6 +486,19 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
                     owner.id, build_notification_payload(notification)
                 )
 
+            if owner and owner.id == self.request.user.id and member.user:
+                notification = Notification.objects.create(
+                    recipient=member.user,
+                    actor=self.request.user,
+                    verb="przyjął(a) Cię do organizacji",
+                    target_type="organization",
+                    target_id=organization.id,
+                    created_object_id=member.id,
+                )
+                broadcast_user_notification(
+                    member.user.id, build_notification_payload(notification)
+                )
+
     def perform_destroy(self, instance):
         member = instance
         organization = member.organization

@@ -73,6 +73,12 @@ def build_notification_payload(
     actor = notification.actor
     target_label = _get_target_label(notification)
     origin_label = target_label or notification.target_type
+    notification_type = "unknown"
+    if (
+        notification.target_type == "organization"
+        and notification.verb == "przyjął(a) Cię do organizacji"
+    ):
+        notification_type = "organization_invite_accepted"
     payload = {
         "id": notification.id,
         "actor": {
@@ -91,6 +97,7 @@ def build_notification_payload(
             "id": notification.target_id,
             "label": origin_label,
         },
+        "type": notification_type,
         "is_read": notification.is_read,
         "created_at": notification.created_at.isoformat(),
     }

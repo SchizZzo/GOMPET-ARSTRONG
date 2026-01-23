@@ -64,6 +64,7 @@ class NotificationHelpersTests(TestCase):
         self.assertEqual(payload["target_type"], "animal")
         self.assertEqual(payload["target_id"], 1)
         self.assertIsNone(payload["created_object_id"])
+        self.assertEqual(payload["type"], "unknown")
 
 
 class NotificationSignalTests(TestCase):
