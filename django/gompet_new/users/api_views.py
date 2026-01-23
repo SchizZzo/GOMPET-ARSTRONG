@@ -465,9 +465,44 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
         )
 
     def perform_update(self, serializer):
+        member = self.get_object()
+        was_confirmed = member.invitation_confirmed
         member = serializer.save()
         sync_user_member_role_groups(member.user)
         sync_user_role_groups(member.user)
+        if not was_confirmed and member.invitation_confirmed:
+            organization = member.organization
+            owner = organization.user if organization else None
+            if owner and owner.id != self.request.user.id:
+                notification = Notification.objects.create(
+                    recipient=owner,
+                    actor=self.request.user,
+                    verb="potwierdził(a) zaproszenie do organizacji",
+                    target_type="organization",
+                    target_id=organization.id,
+                    created_object_id=member.id,
+                )
+                broadcast_user_notification(
+                    owner.id, build_notification_payload(notification)
+                )
+
+    def perform_destroy(self, instance):
+        member = instance
+        organization = member.organization
+        recipient = member.user
+        if recipient and recipient.id != self.request.user.id:
+            notification = Notification.objects.create(
+                recipient=recipient,
+                actor=self.request.user,
+                verb="usunął(a) Cię z organizacji",
+                target_type="organization",
+                target_id=organization.id,
+                created_object_id=member.id,
+            )
+            broadcast_user_notification(
+                recipient.id, build_notification_payload(notification)
+            )
+        member.delete()
     
 
 
