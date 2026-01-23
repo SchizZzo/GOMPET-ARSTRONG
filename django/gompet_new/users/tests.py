@@ -225,6 +225,98 @@ class OrganizationMemberNotificationTests(TestCase):
         self.assertEqual(notification.target_type, "organization")
         self.assertEqual(notification.target_id, org.id)
 
+    def test_confirmation_sends_notification_to_owner(self):
+        owner = User.objects.create_user(
+            email="owner-confirm@example.com",
+            password="secret",
+            first_name="Owner",
+            last_name="Confirm",
+        )
+        org = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Confirm Shelter",
+            email="confirm-shelter@example.com",
+            image="",
+            phone="",
+            user=owner,
+        )
+        OrganizationMember.objects.create(
+            user=owner,
+            organization=org,
+            role=MemberRole.OWNER,
+        )
+        invited = User.objects.create_user(
+            email="invitee-confirm@example.com",
+            password="secret",
+            first_name="Invitee",
+            last_name="Confirm",
+        )
+        membership = OrganizationMember.objects.create(
+            user=invited,
+            organization=org,
+            role=MemberRole.STAFF,
+            invitation_confirmed=False,
+        )
+        self.client.force_authenticate(user=invited)
+
+        response = self.client.patch(
+            f"/users/organization-members/{membership.id}/",
+            {"invitation_confirmed": True},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        notification = Notification.objects.get(recipient=owner)
+        self.assertEqual(notification.actor, invited)
+        self.assertEqual(notification.verb, "potwierdził(a) zaproszenie do organizacji")
+        self.assertEqual(notification.target_type, "organization")
+        self.assertEqual(notification.target_id, org.id)
+
+    def test_removal_sends_notification_to_member(self):
+        owner = User.objects.create_user(
+            email="owner-remove@example.com",
+            password="secret",
+            first_name="Owner",
+            last_name="Remove",
+        )
+        org = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Remove Shelter",
+            email="remove-shelter@example.com",
+            image="",
+            phone="",
+            user=owner,
+        )
+        OrganizationMember.objects.create(
+            user=owner,
+            organization=org,
+            role=MemberRole.OWNER,
+        )
+        member = User.objects.create_user(
+            email="member-remove@example.com",
+            password="secret",
+            first_name="Member",
+            last_name="Remove",
+        )
+        membership = OrganizationMember.objects.create(
+            user=member,
+            organization=org,
+            role=MemberRole.STAFF,
+            invitation_confirmed=True,
+        )
+        self.client.force_authenticate(user=owner)
+
+        response = self.client.delete(
+            f"/users/organization-members/{membership.id}/"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        notification = Notification.objects.get(recipient=member)
+        self.assertEqual(notification.actor, owner)
+        self.assertEqual(notification.verb, "usunął(a) Cię z organizacji")
+        self.assertEqual(notification.target_type, "organization")
+        self.assertEqual(notification.target_id, org.id)
+
 
 class UserUpdateCurrentAPITests(TestCase):
     def setUp(self):
