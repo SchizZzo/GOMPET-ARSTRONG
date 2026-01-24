@@ -19,10 +19,10 @@ from .serializers import (
     OrganizationTypeSerializer, MemberRoleSerializer, UserSerializer, UserCreateSerializer, UserUpdateSerializer,
     OrganizationSerializer, OrganizationCreateSerializer, OrganizationUpdateSerializer,
     OrganizationMemberSerializer, OrganizationMemberCreateSerializer, LatestOrganizationSerializer, SpeciesSerializer,
-    OrganizationAddressSerializer,
+    OrganizationAddressSerializer, OrganizationOwnerChangeSerializer,
 )
 from .permissions import OrganizationRolePermissions
-from .services import CannotDeleteUser, delete_user_account
+from .services import CannotDeleteUser, delete_user_account, transfer_organization_owner
 from .role_permissions import sync_user_member_role_groups, sync_user_role_groups
 
 class TokenCreateSerializer(TokenObtainPairSerializer):
@@ -251,6 +251,23 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
         
+
+    @action(detail=True, methods=["post"], url_path="change-owner")
+    def change_owner(self, request, pk=None):
+        organization = self.get_object()
+        if not request.user.is_superuser and organization.user_id != request.user.id:
+            return Response(
+                {"detail": "Tylko właściciel organizacji może zmienić właściciela."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = OrganizationOwnerChangeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        new_owner = serializer.validated_data["user"]
+        transfer_organization_owner(organization, new_owner)
+
+        response_serializer = OrganizationSerializer(organization, context={"request": request})
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
 
     def get_queryset(self):
         qs = Organization.objects.all().order_by('-created_at')

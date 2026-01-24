@@ -5,7 +5,8 @@ from django.db import transaction
 from django.utils import timezone
 from importlib import util
 
-from .models import MemberRole
+from .models import MemberRole, Organization, OrganizationMember
+from .role_permissions import sync_user_member_role_groups, sync_user_role_groups
 
 User = get_user_model()
 
@@ -88,3 +89,48 @@ def delete_user_account(user: User):
             "deleted_at",
         ]
     )
+
+
+@transaction.atomic
+def transfer_organization_owner(
+    organization: Organization,
+    new_owner: User,
+    *,
+    using: str | None = None,
+) -> Organization:
+    """Transfer organization ownership and synchronize memberships."""
+    previous_owner = organization.user
+    if previous_owner and previous_owner.id == new_owner.id:
+        return organization
+
+    organization.user = new_owner
+    organization.save(update_fields=["user"])
+
+    membership, _ = OrganizationMember.objects.get_or_create(
+        user=new_owner,
+        organization=organization,
+        defaults={
+            "role": MemberRole.OWNER,
+            "invitation_confirmed": True,
+        },
+    )
+    if membership.role != MemberRole.OWNER:
+        membership.role = MemberRole.OWNER
+        membership.invitation_confirmed = True
+        membership.save(update_fields=["role", "invitation_confirmed"])
+
+    if previous_owner and previous_owner.id != new_owner.id:
+        previous_membership = OrganizationMember.objects.filter(
+            user=previous_owner,
+            organization=organization,
+        ).first()
+        if previous_membership and previous_membership.role == MemberRole.OWNER:
+            previous_membership.role = MemberRole.STAFF
+            previous_membership.save(update_fields=["role"])
+            sync_user_member_role_groups(previous_owner, using=using)
+            sync_user_role_groups(previous_owner, using=using)
+
+    sync_user_member_role_groups(new_owner, using=using)
+    sync_user_role_groups(new_owner, using=using)
+
+    return organization

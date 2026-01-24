@@ -339,6 +339,10 @@ class OrganizationUpdateSerializer(serializers.ModelSerializer):
         return instance
 
 
+class OrganizationOwnerChangeSerializer(serializers.Serializer):
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+
+
 class OrganizationMemberSerializer(serializers.ModelSerializer):
     """Serializer odczytu członkostwa."""
     user = UserSerializer(read_only=True)
