@@ -426,8 +426,15 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
         if only_mine and only_mine.lower() in ("1", "true", "yes"):
             queryset = queryset.filter(
                 user=self.request.user,
-                role__in=[MemberRole.OWNER, MemberRole.STAFF],
+                #role__in=[MemberRole.OWNER, MemberRole.STAFF],
             )
+
+        organizations_user_by_id = self.request.query_params.get("organizations-user-by-id")
+        if organizations_user_by_id:
+            queryset = queryset.filter(
+                organization__user__id=organizations_user_by_id
+            )
+
 
         organization_id = self.request.query_params.get("organization-id")
         if organization_id:

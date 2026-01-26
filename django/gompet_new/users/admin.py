@@ -11,7 +11,7 @@ from .models import User, BreedingTypeOrganizations, Species, BreedingType
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
 
-    list_display = ("id", "name", "type", "email", "description", "rating", "created_at", "image")
+    list_display = ("id", "name", "type", "user", "email", "description", "rating", "created_at", "image")
     search_fields = ("name", "email")
 
 
