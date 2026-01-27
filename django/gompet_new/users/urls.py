@@ -1,5 +1,6 @@
 from django.urls import path, include
 from rest_framework import routers
+from rest_framework.decorators import MethodMapper
 
 # c:/Users/dawid/GOMPET_2/gompet_new/users/urls.py
 
@@ -28,7 +29,11 @@ class UserRouter(routers.DefaultRouter):
                 # Only inspect default routes whose mapping is a standard dict.
                 # Extra actions use a MethodMapper which exposes a .get method
                 # that expects a callable, not a key, so guard against it here.
-                if isinstance(route.mapping, dict) and route.mapping.get("get") == "list":
+                if (
+                    isinstance(route.mapping, dict)
+                    and not isinstance(route.mapping, MethodMapper)
+                    and route.mapping.get("get") == "list"
+                ):
                     route.mapping["delete"] = "destroy_current"
                     route.mapping["put"] = "update_current"
                     route.mapping["patch"] = "update_current"
