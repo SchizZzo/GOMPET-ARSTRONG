@@ -16,7 +16,7 @@ from .api_views import (
     SpeciesViewSet,
     OrganizationTypeListView,
     OrganizationMemberRoleListView,
-    ProfileInfoView,
+    ProfileInfoViewSet,
 )
 
 
@@ -46,12 +46,12 @@ router.register(r'organization-addresses', OrganizationAddressViewSet, basename=
 router.register(r'species', SpeciesViewSet, basename='species')
 router.register(r'organization-types', OrganizationTypeListView, basename='organizationtype')
 router.register(r'organization-member-roles', OrganizationMemberRoleListView, basename='organizationmemberrole')
+router.register(r'profile-info', ProfileInfoViewSet, basename='profileinfo')
 
 urlpatterns = [
     path('auth/token/', TokenCreateView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('users/me/delete/', DeleteMeView.as_view(), name='user-delete-me'),
-    path('users/profile-info/', ProfileInfoView.as_view(), name='user-profile-info'),
     
     path('', include(router.urls)),
 ]

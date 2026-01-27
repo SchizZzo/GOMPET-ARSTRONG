@@ -161,17 +161,19 @@ class DeleteMeView(APIView):
 
 
 @extend_schema(tags=["users"])
-class ProfileInfoView(APIView):
+class ProfileInfoViewSet(viewsets.ModelViewSet):
+    serializer_class = ProfileInfoSerializer
     permission_classes = [permissions.IsAuthenticated]
+    queryset = User.objects.filter(is_deleted=False)
+    http_method_names = ["get", "head", "options"]
 
-    def get(self, request):
+    def retrieve(self, request, *args, **kwargs):
+        user = self.get_object()
         memberships = (
-            OrganizationMember.objects.filter(user=request.user)
+            OrganizationMember.objects.filter(user=user)
             .select_related("organization", "user")
         )
-        serializer = ProfileInfoSerializer(
-            {"user": request.user, "memberships": memberships}
-        )
+        serializer = self.get_serializer({"user": user, "memberships": memberships})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 @extend_schema(
