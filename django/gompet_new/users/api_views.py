@@ -19,7 +19,7 @@ from .serializers import (
     OrganizationTypeSerializer, MemberRoleSerializer, UserSerializer, UserCreateSerializer, UserUpdateSerializer,
     OrganizationSerializer, OrganizationCreateSerializer, OrganizationUpdateSerializer,
     OrganizationMemberSerializer, OrganizationMemberCreateSerializer, LatestOrganizationSerializer, SpeciesSerializer,
-    OrganizationAddressSerializer, OrganizationOwnerChangeSerializer,
+    OrganizationAddressSerializer, OrganizationOwnerChangeSerializer, ProfileInfoSerializer,
 )
 from .permissions import OrganizationRolePermissions
 from .services import CannotDeleteUser, delete_user_account, transfer_organization_owner
@@ -141,6 +141,18 @@ class UserViewSet(viewsets.ModelViewSet):
 
         return Response(serializer.data)
 
+    @action(detail=True, methods=["get"], url_path="profile-info")
+    def profile_info(self, request, *args, **kwargs):
+        user = self.get_object()
+        memberships = (
+            OrganizationMember.objects.filter(user=user)
+            .select_related("organization", "user")
+        )
+        serializer = ProfileInfoSerializer(
+            {"user": user, "memberships": memberships}
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class DeleteMeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -158,6 +170,7 @@ class DeleteMeView(APIView):
             {"detail": "Konto zostało usunięte (dezaktywowane i zanonimizowane)."},
             status=status.HTTP_200_OK,
         )
+
 
 @extend_schema(
     tags=["organizations", "organizations_profile", "organizations_profile_pupils", "organizations_profile_miots", "organizations_new_profile"],
