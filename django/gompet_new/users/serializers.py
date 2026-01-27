@@ -363,6 +363,12 @@ class OrganizationMemberSerializer(serializers.ModelSerializer):
         ]
 
 
+class ProfileInfoSerializer(serializers.Serializer):
+    """Serializer dla informacji o profilu użytkownika."""
+    user = UserSerializer(read_only=True)
+    memberships = OrganizationMemberSerializer(many=True, read_only=True)
+
+
 class OrganizationMemberCreateSerializer(serializers.ModelSerializer):
     """Serializer dodawania użytkownika do organizacji."""
     class Meta:
