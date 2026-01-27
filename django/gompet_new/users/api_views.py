@@ -141,6 +141,18 @@ class UserViewSet(viewsets.ModelViewSet):
 
         return Response(serializer.data)
 
+    @action(detail=True, methods=["get"], url_path="profile-info")
+    def profile_info(self, request, *args, **kwargs):
+        user = self.get_object()
+        memberships = (
+            OrganizationMember.objects.filter(user=user)
+            .select_related("organization", "user")
+        )
+        serializer = ProfileInfoSerializer(
+            {"user": user, "memberships": memberships}
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class DeleteMeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -159,22 +171,6 @@ class DeleteMeView(APIView):
             status=status.HTTP_200_OK,
         )
 
-
-@extend_schema(tags=["users"])
-class ProfileInfoViewSet(viewsets.ModelViewSet):
-    serializer_class = ProfileInfoSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    queryset = User.objects.filter(is_deleted=False)
-    http_method_names = ["get", "head", "options"]
-
-    def retrieve(self, request, *args, **kwargs):
-        user = self.get_object()
-        memberships = (
-            OrganizationMember.objects.filter(user=user)
-            .select_related("organization", "user")
-        )
-        serializer = self.get_serializer({"user": user, "memberships": memberships})
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
 @extend_schema(
     tags=["organizations", "organizations_profile", "organizations_profile_pupils", "organizations_profile_miots", "organizations_new_profile"],
