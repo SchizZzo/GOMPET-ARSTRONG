@@ -87,7 +87,7 @@ class UserViewSet(viewsets.ModelViewSet):
         return UserSerializer
     
     def get_permissions(self):
-        if self.action == "create":
+        if self.action in ("create", "profile_info"):
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
 
@@ -141,7 +141,12 @@ class UserViewSet(viewsets.ModelViewSet):
 
         return Response(serializer.data)
 
-    @action(detail=True, methods=["get"], url_path="profile-info")
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path="profile-info",
+        permission_classes=[permissions.AllowAny],
+    )
     def profile_info(self, request, *args, **kwargs):
         user = self.get_object()
         memberships = (
