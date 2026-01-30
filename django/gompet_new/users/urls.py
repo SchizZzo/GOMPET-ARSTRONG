@@ -17,6 +17,8 @@ from .api_views import (
     SpeciesViewSet,
     OrganizationTypeListView,
     OrganizationMemberRoleListView,
+    PasswordResetRequestView,
+    PasswordResetConfirmView,
 )
 
 
@@ -54,6 +56,8 @@ router.register(r'organization-member-roles', OrganizationMemberRoleListView, ba
 urlpatterns = [
     path('auth/token/', TokenCreateView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('auth/password-reset/', PasswordResetRequestView.as_view(), name='password-reset-request'),
+    path('auth/password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     path('users/me/delete/', DeleteMeView.as_view(), name='user-delete-me'),
     
     path('', include(router.urls)),
