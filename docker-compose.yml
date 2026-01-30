@@ -53,6 +53,8 @@ services:
       POSTGRES_DB: gis
       POSTGRES_HOST: db
       POSTGRES_PORT: "5432"
+      SMTP2GO_USERNAME: ${SMTP2GO_USERNAME}
+      SMTP2GO_PASSWORD: ${SMTP2GO_PASSWORD}
 
     volumes:
       - .:/code:rw                         # kod źródłowy

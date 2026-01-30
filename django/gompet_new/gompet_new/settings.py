@@ -361,9 +361,9 @@ CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS  # 🔹 Aby uniknąć duplikacji
 # https://support.smtp2go.com/hc/en-gb/articles/206815918-Connection-details
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.getenv("SMTP2GO_HOST", "mail.smtp2go.com")
-EMAIL_PORT = int(os.getenv("SMTP2GO_PORT", "587"))
-EMAIL_HOST_USER = os.getenv("SMTP2GO_USERNAME", "")
-EMAIL_HOST_PASSWORD = os.getenv("SMTP2GO_PASSWORD", "")
+EMAIL_PORT = int(os.getenv("SMTP2GO_PORT", "2525"))
+EMAIL_HOST_USER = os.getenv("SMTP2GO_USERNAME", "student.ansleszno.pl")
+EMAIL_HOST_PASSWORD = os.getenv("SMTP2GO_PASSWORD", "NPknC9tE5tA5iK7N")
 EMAIL_USE_TLS = os.getenv("SMTP2GO_USE_TLS", "true").lower() == "true"
 EMAIL_USE_SSL = os.getenv("SMTP2GO_USE_SSL", "false").lower() == "true"
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@example.com")
@@ -372,3 +372,11 @@ FRONTEND_PASSWORD_RESET_URL = os.getenv(
     "FRONTEND_PASSWORD_RESET_URL",
     "http://localhost:3000/reset-password",
 )
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {"django": {"handlers": ["console"], "level": "DEBUG"}},
+}
