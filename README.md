@@ -151,3 +151,4 @@ SERVER_EMAIL=no-reply@twoja-domena.pl
 Uwagi:
 - SMTP2GO obsługuje port `587` (TLS) i `465` (SSL); użyj tylko jednego z trybów.
 - Jeżeli korzystasz z resetu hasła, upewnij się, że endpointy resetu w backendzie faktycznie wysyłają e-mail (logika resetu musi używać `send_mail`/`EmailMessage`).
+- Lokalnie, gdy nie ustawisz zmiennych `SMTP2GO_*`, backend automatycznie użyje `console.EmailBackend`, aby e-maile nie powodowały błędów połączenia. Jeśli chcesz testować lokalne SMTP, ustaw `SMTP2GO_HOST=localhost` i `SMTP2GO_PORT=1025` (TLS/SSL zostaną wyłączone domyślnie).

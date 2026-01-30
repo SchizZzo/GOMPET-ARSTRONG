@@ -359,15 +359,35 @@ CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS  # 🔹 Aby uniknąć duplikacji
 
 # Email (SMTP2GO)
 # https://support.smtp2go.com/hc/en-gb/articles/206815918-Connection-details
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = os.getenv("SMTP2GO_HOST", "mail.smtp2go.com")
-EMAIL_PORT = int(os.getenv("SMTP2GO_PORT", "587"))
-EMAIL_HOST_USER = os.getenv("SMTP2GO_USERNAME", "")
-EMAIL_HOST_PASSWORD = os.getenv("SMTP2GO_PASSWORD", "")
-SMTP2GO_USE_SSL = os.getenv("SMTP2GO_USE_SSL", "false").lower() == "true"
-SMTP2GO_USE_TLS = os.getenv("SMTP2GO_USE_TLS", "true").lower() == "true"
-EMAIL_USE_SSL = SMTP2GO_USE_SSL
-EMAIL_USE_TLS = SMTP2GO_USE_TLS and not SMTP2GO_USE_SSL
+SMTP2GO_HOST = os.getenv("SMTP2GO_HOST")
+SMTP2GO_PORT = os.getenv("SMTP2GO_PORT")
+SMTP2GO_USERNAME = os.getenv("SMTP2GO_USERNAME", "")
+SMTP2GO_PASSWORD = os.getenv("SMTP2GO_PASSWORD", "")
+
+if DEBUG and not SMTP2GO_HOST and not SMTP2GO_USERNAME and not SMTP2GO_PASSWORD:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    EMAIL_HOST = "localhost"
+    EMAIL_PORT = 1025
+    EMAIL_HOST_USER = ""
+    EMAIL_HOST_PASSWORD = ""
+    EMAIL_USE_SSL = False
+    EMAIL_USE_TLS = False
+else:
+    EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+    EMAIL_HOST = SMTP2GO_HOST or "mail.smtp2go.com"
+    EMAIL_PORT = int(SMTP2GO_PORT or "587")
+    EMAIL_HOST_USER = SMTP2GO_USERNAME
+    EMAIL_HOST_PASSWORD = SMTP2GO_PASSWORD
+    default_use_tls = "true"
+    default_use_ssl = "false"
+    if EMAIL_HOST in {"localhost", "127.0.0.1"}:
+        default_use_tls = "false"
+        default_use_ssl = "false"
+    SMTP2GO_USE_SSL = os.getenv("SMTP2GO_USE_SSL", default_use_ssl).lower() == "true"
+    SMTP2GO_USE_TLS = os.getenv("SMTP2GO_USE_TLS", default_use_tls).lower() == "true"
+    EMAIL_USE_SSL = SMTP2GO_USE_SSL
+    EMAIL_USE_TLS = SMTP2GO_USE_TLS and not SMTP2GO_USE_SSL
+
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "no-reply@example.com")
 SERVER_EMAIL = os.getenv("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
 FRONTEND_PASSWORD_RESET_URL = os.getenv(
