@@ -361,8 +361,8 @@ CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS  # 🔹 Aby uniknąć duplikacji
 # https://support.smtp2go.com/hc/en-gb/articles/206815918-Connection-details
 SMTP2GO_HOST = os.getenv("SMTP2GO_HOST")
 SMTP2GO_PORT = os.getenv("SMTP2GO_PORT")
-SMTP2GO_USERNAME = os.getenv("SMTP2GO_USERNAME", "")
-SMTP2GO_PASSWORD = os.getenv("SMTP2GO_PASSWORD", "")
+SMTP2GO_USERNAME = os.getenv("SMTP2GO_USERNAME", "student.ansleszno.pl")
+SMTP2GO_PASSWORD = os.getenv("SMTP2GO_PASSWORD", "NPknC9tE5tA5iK7N")
 
 if DEBUG and not SMTP2GO_HOST and not SMTP2GO_USERNAME and not SMTP2GO_PASSWORD:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
@@ -388,7 +388,7 @@ else:
     EMAIL_USE_SSL = SMTP2GO_USE_SSL
     EMAIL_USE_TLS = SMTP2GO_USE_TLS and not SMTP2GO_USE_SSL
 
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "no-reply@example.com")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "no-reply@student.ansleszno.pl")
 SERVER_EMAIL = os.getenv("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
 FRONTEND_PASSWORD_RESET_URL = os.getenv(
     "FRONTEND_PASSWORD_RESET_URL",
