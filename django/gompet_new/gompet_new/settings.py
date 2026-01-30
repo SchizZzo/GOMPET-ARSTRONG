@@ -388,7 +388,10 @@ else:
     EMAIL_USE_SSL = SMTP2GO_USE_SSL
     EMAIL_USE_TLS = SMTP2GO_USE_TLS and not SMTP2GO_USE_SSL
 
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "no-reply@example.com")
+default_from_email = EMAIL_HOST_USER or "no-reply@example.com"
+if default_from_email and "@" not in default_from_email:
+    default_from_email = f"no-reply@{default_from_email}"
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", default_from_email)
 SERVER_EMAIL = os.getenv("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
 FRONTEND_PASSWORD_RESET_URL = os.getenv(
     "FRONTEND_PASSWORD_RESET_URL",
