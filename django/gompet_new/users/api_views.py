@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib.gis.db.models.functions import Distance
 from django.contrib.gis.measure import D
 from django.conf import settings
@@ -30,6 +32,8 @@ from .serializers import (
 from .permissions import OrganizationRolePermissions
 from .services import CannotDeleteUser, delete_user_account, transfer_organization_owner
 from .role_permissions import sync_user_member_role_groups, sync_user_role_groups
+
+logger = logging.getLogger(__name__)
 
 class TokenCreateSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -198,16 +202,23 @@ class PasswordResetRequestView(APIView):
             token = default_token_generator.make_token(user)
             reset_url = f"{settings.FRONTEND_PASSWORD_RESET_URL}?uid={uid}&token={token}"
 
-            send_mail(
-                subject="Reset hasła",
-                message=(
-                    "Otrzymaliśmy prośbę o reset hasła.\n"
-                    f"Aby ustawić nowe hasło, przejdź do: {reset_url}"
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=True,
-            )
+            try:
+                send_mail(
+                    subject="Reset hasła",
+                    message=(
+                        "Otrzymaliśmy prośbę o reset hasła.\n"
+                        f"Aby ustawić nowe hasło, przejdź do: {reset_url}"
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+            except Exception:
+                logger.exception("Nie udało się wysłać maila resetu hasła.")
+                return Response(
+                    {"detail": "Nie udało się wysłać maila resetu hasła."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
 
         return Response(
             {"detail": "Jeśli konto istnieje, wysłaliśmy instrukcje resetu hasła."},
