@@ -132,23 +132,23 @@ GET /articles/articles/?search=adopcja&categories__slug=porady&ordering=-created
   - jeśli brak lokalizacji → `range` jest ignorowany.  
 - Dla zwierząt można dodatkowo podać `location=SRID=4326;POINT (lng lat)`, aby zawęzić wyniki do punktu odniesienia.
 
-## SMTP2GO (reset haseł i e-maile)
+## Mailpit (reset haseł i e-maile)
 
-Konfiguracja SMTP2GO jest oparta o zmienne środowiskowe w `django/gompet_new/gompet_new/settings.py`.
-Wystarczy dodać poniższe zmienne do środowiska (np. `.env` używanego przez `docker-compose`):
+Projekt korzysta z Mailpit jako lokalnego serwera SMTP z panelem www. Kontener jest zdefiniowany w `docker-compose.yml`, a backend czyta ustawienia z `django/gompet_new/gompet_new/settings.py`.
+
+Domyślne wartości środowiskowe (ustawione w `docker-compose.yml`):
 
 ```
-SMTP2GO_HOST=mail.smtp2go.com
-SMTP2GO_PORT=587
-SMTP2GO_USERNAME=twoj_uzytkownik
-SMTP2GO_PASSWORD=twoje_haslo
-SMTP2GO_USE_TLS=true
-SMTP2GO_USE_SSL=false
-DEFAULT_FROM_EMAIL=no-reply@twoja-domena.pl
-SERVER_EMAIL=no-reply@twoja-domena.pl
+EMAIL_HOST=mailpit
+EMAIL_PORT=1025
+EMAIL_USE_TLS=false
+EMAIL_USE_SSL=false
+DEFAULT_FROM_EMAIL=no-reply@gompet.local
+SERVER_EMAIL=no-reply@gompet.local
 ```
+
+Panel Mailpit jest dostępny pod `http://localhost:8025`, a SMTP nasłuchuje na porcie `1025`.
 
 Uwagi:
-- SMTP2GO obsługuje port `587` (TLS) i `465` (SSL); użyj tylko jednego z trybów.
 - Jeżeli korzystasz z resetu hasła, upewnij się, że endpointy resetu w backendzie faktycznie wysyłają e-mail (logika resetu musi używać `send_mail`/`EmailMessage`).
-- Lokalnie, gdy nie ustawisz zmiennych `SMTP2GO_*`, backend automatycznie użyje `console.EmailBackend`, aby e-maile nie powodowały błędów połączenia. Jeśli chcesz testować lokalne SMTP, ustaw `SMTP2GO_HOST=localhost` i `SMTP2GO_PORT=1025` (TLS/SSL zostaną wyłączone domyślnie).
+- Jeśli uruchamiasz backend poza docker-compose, możesz ustawić własne `EMAIL_HOST` i `EMAIL_PORT`. Gdy `EMAIL_HOST` nie jest zdefiniowany, aplikacja używa `console.EmailBackend`.
