@@ -53,8 +53,12 @@ services:
       POSTGRES_DB: gis
       POSTGRES_HOST: db
       POSTGRES_PORT: "5432"
-      SMTP2GO_USERNAME: ${SMTP2GO_USERNAME}
-      SMTP2GO_PASSWORD: ${SMTP2GO_PASSWORD}
+      EMAIL_HOST: mailpit
+      EMAIL_PORT: "1025"
+      EMAIL_USE_TLS: "false"
+      EMAIL_USE_SSL: "false"
+      DEFAULT_FROM_EMAIL: "no-reply@gompet.local"
+      SERVER_EMAIL: "no-reply@gompet.local"
 
     volumes:
       - .:/code:rw                         # kod źródłowy
@@ -89,5 +93,13 @@ services:
     image: "redis:alpine"
     ports:
       - "6379:6379"
+    networks:
+      - webnet
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
     networks:
       - webnet
