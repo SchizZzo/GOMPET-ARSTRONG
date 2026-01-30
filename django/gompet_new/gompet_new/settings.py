@@ -364,9 +364,11 @@ EMAIL_HOST = os.getenv("SMTP2GO_HOST", "mail.smtp2go.com")
 EMAIL_PORT = int(os.getenv("SMTP2GO_PORT", "587"))
 EMAIL_HOST_USER = os.getenv("SMTP2GO_USERNAME", "")
 EMAIL_HOST_PASSWORD = os.getenv("SMTP2GO_PASSWORD", "")
-EMAIL_USE_TLS = os.getenv("SMTP2GO_USE_TLS", "true").lower() == "true"
-EMAIL_USE_SSL = os.getenv("SMTP2GO_USE_SSL", "false").lower() == "true"
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@example.com")
+SMTP2GO_USE_SSL = os.getenv("SMTP2GO_USE_SSL", "false").lower() == "true"
+SMTP2GO_USE_TLS = os.getenv("SMTP2GO_USE_TLS", "true").lower() == "true"
+EMAIL_USE_SSL = SMTP2GO_USE_SSL
+EMAIL_USE_TLS = SMTP2GO_USE_TLS and not SMTP2GO_USE_SSL
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER or "no-reply@example.com")
 SERVER_EMAIL = os.getenv("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
 FRONTEND_PASSWORD_RESET_URL = os.getenv(
     "FRONTEND_PASSWORD_RESET_URL",
