@@ -357,4 +357,15 @@ CORS_ALLOWED_ORIGINS = [
 
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS  # 🔹 Aby uniknąć duplikacji
 
+# Email (SMTP2GO)
+# https://support.smtp2go.com/hc/en-gb/articles/206815918-Connection-details
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.getenv("SMTP2GO_HOST", "mail.smtp2go.com")
+EMAIL_PORT = int(os.getenv("SMTP2GO_PORT", "587"))
+EMAIL_HOST_USER = os.getenv("SMTP2GO_USERNAME", "")
+EMAIL_HOST_PASSWORD = os.getenv("SMTP2GO_PASSWORD", "")
+EMAIL_USE_TLS = os.getenv("SMTP2GO_USE_TLS", "true").lower() == "true"
+EMAIL_USE_SSL = os.getenv("SMTP2GO_USE_SSL", "false").lower() == "true"
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@example.com")
+SERVER_EMAIL = os.getenv("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
 

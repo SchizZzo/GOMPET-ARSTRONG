@@ -131,3 +131,23 @@ GET /articles/articles/?search=adopcja&categories__slug=porady&ordering=-created
   - jeśli lokalizacja jest ustawiona → wyniki są filtrowane po odległości i sortowane rosnąco po dystansie,  
   - jeśli brak lokalizacji → `range` jest ignorowany.  
 - Dla zwierząt można dodatkowo podać `location=SRID=4326;POINT (lng lat)`, aby zawęzić wyniki do punktu odniesienia.
+
+## SMTP2GO (reset haseł i e-maile)
+
+Konfiguracja SMTP2GO jest oparta o zmienne środowiskowe w `django/gompet_new/gompet_new/settings.py`.
+Wystarczy dodać poniższe zmienne do środowiska (np. `.env` używanego przez `docker-compose`):
+
+```
+SMTP2GO_HOST=mail.smtp2go.com
+SMTP2GO_PORT=587
+SMTP2GO_USERNAME=twoj_uzytkownik
+SMTP2GO_PASSWORD=twoje_haslo
+SMTP2GO_USE_TLS=true
+SMTP2GO_USE_SSL=false
+DEFAULT_FROM_EMAIL=no-reply@twoja-domena.pl
+SERVER_EMAIL=no-reply@twoja-domena.pl
+```
+
+Uwagi:
+- SMTP2GO obsługuje port `587` (TLS) i `465` (SSL); użyj tylko jednego z trybów.
+- Jeżeli korzystasz z resetu hasła, upewnij się, że endpointy resetu w backendzie faktycznie wysyłają e-mail (logika resetu musi używać `send_mail`/`EmailMessage`).
