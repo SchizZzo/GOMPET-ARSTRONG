@@ -368,4 +368,7 @@ EMAIL_USE_TLS = os.getenv("SMTP2GO_USE_TLS", "true").lower() == "true"
 EMAIL_USE_SSL = os.getenv("SMTP2GO_USE_SSL", "false").lower() == "true"
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@example.com")
 SERVER_EMAIL = os.getenv("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
-
+FRONTEND_PASSWORD_RESET_URL = os.getenv(
+    "FRONTEND_PASSWORD_RESET_URL",
+    "http://localhost:3000/reset-password",
+)

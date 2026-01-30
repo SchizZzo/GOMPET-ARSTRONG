@@ -140,6 +140,22 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             instance.set_password(pwd)
         instance.save()
         return instance
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    new_password = serializers.CharField(write_only=True, validators=[validate_password])
+    confirm_password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        if attrs.get("new_password") != attrs.get("confirm_password"):
+            raise serializers.ValidationError({"confirm_password": "Hasła muszą być takie same."})
+        return attrs
     
 
 

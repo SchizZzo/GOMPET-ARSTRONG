@@ -1,5 +1,10 @@
 from django.contrib.gis.db.models.functions import Distance
 from django.contrib.gis.measure import D
+from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from drf_spectacular.utils import extend_schema
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -20,6 +25,7 @@ from .serializers import (
     OrganizationSerializer, OrganizationCreateSerializer, OrganizationUpdateSerializer,
     OrganizationMemberSerializer, OrganizationMemberCreateSerializer, LatestOrganizationSerializer, SpeciesSerializer,
     OrganizationAddressSerializer, OrganizationOwnerChangeSerializer, ProfileInfoSerializer,
+    PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
 )
 from .permissions import OrganizationRolePermissions
 from .services import CannotDeleteUser, delete_user_account, transfer_organization_owner
@@ -173,6 +179,71 @@ class DeleteMeView(APIView):
 
         return Response(
             {"detail": "Konto zostało usunięte (dezaktywowane i zanonimizowane)."},
+            status=status.HTTP_200_OK,
+        )
+
+
+@extend_schema(tags=["auth"])
+class PasswordResetRequestView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data["email"]
+
+        user = User.objects.filter(email__iexact=email, is_deleted=False).first()
+        if user and user.is_active:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            reset_url = f"{settings.FRONTEND_PASSWORD_RESET_URL}?uid={uid}&token={token}"
+
+            send_mail(
+                subject="Reset hasła",
+                message=(
+                    "Otrzymaliśmy prośbę o reset hasła.\n"
+                    f"Aby ustawić nowe hasło, przejdź do: {reset_url}"
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=True,
+            )
+
+        return Response(
+            {"detail": "Jeśli konto istnieje, wysłaliśmy instrukcje resetu hasła."},
+            status=status.HTTP_200_OK,
+        )
+
+
+@extend_schema(tags=["auth"])
+class PasswordResetConfirmView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        uid = serializer.validated_data["uid"]
+        token = serializer.validated_data["token"]
+        new_password = serializer.validated_data["new_password"]
+
+        try:
+            user_id = force_str(urlsafe_base64_decode(uid))
+        except (TypeError, ValueError, OverflowError):
+            user_id = None
+
+        user = User.objects.filter(pk=user_id, is_deleted=False).first()
+        if not user or not default_token_generator.check_token(user, token):
+            return Response(
+                {"detail": "Nieprawidłowy lub wygasły token resetu hasła."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+
+        return Response(
+            {"detail": "Hasło zostało zresetowane."},
             status=status.HTTP_200_OK,
         )
 
