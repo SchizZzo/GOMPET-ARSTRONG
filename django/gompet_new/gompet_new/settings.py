@@ -245,7 +245,7 @@ DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@example.com")
 SERVER_EMAIL = os.getenv("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
 
 FRONTEND_PASSWORD_RESET_URL = os.getenv(
-    "FRONTEND_PASSWORD_RESET_URL", "http://localhost:5001/reset-password/"
+    "FRONTEND_PASSWORD_RESET_URL", "http://localhost:5001/auth/password-forget/reset/"
 )
 
 
