@@ -4,6 +4,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.db.models import Avg
 from django.utils import timezone
 
 
@@ -62,6 +63,60 @@ class Comment(TimeStampedModel):
             models.Index(fields=("content_type", "object_id"), name="idx_comment_target"),
         ]
         ordering = ("-created_at",)
+
+    def _refresh_organization_rating_from_comments(self) -> None:
+        """Przelicza ocenę organizacji na podstawie ocenionych komentarzy."""
+        if self.content_type.app_label != "users" or self.content_type.model != "organization":
+            return
+
+        from users.models import Organization
+
+        try:
+            organization = Organization.objects.get(pk=self.object_id)
+        except Organization.DoesNotExist:
+            return
+
+        avg_rating = Comment.objects.filter(
+            content_type=self.content_type,
+            object_id=self.object_id,
+            rating__isnull=False,
+        ).aggregate(avg=Avg("rating"))["avg"]
+
+        organization.rating = None if avg_rating is None else int(round(avg_rating))
+        organization.save(update_fields=["rating", "updated_at"])
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self._refresh_organization_rating_from_comments()
+
+    def delete(self, *args, **kwargs):
+        organization_content_type = self.content_type
+        organization_object_id = self.object_id
+        is_organization_comment = (
+            organization_content_type.app_label == "users"
+            and organization_content_type.model == "organization"
+        )
+
+        super().delete(*args, **kwargs)
+
+        if not is_organization_comment:
+            return
+
+        from users.models import Organization
+
+        try:
+            organization = Organization.objects.get(pk=organization_object_id)
+        except Organization.DoesNotExist:
+            return
+
+        avg_rating = Comment.objects.filter(
+            content_type=organization_content_type,
+            object_id=organization_object_id,
+            rating__isnull=False,
+        ).aggregate(avg=Avg("rating"))["avg"]
+
+        organization.rating = None if avg_rating is None else int(round(avg_rating))
+        organization.save(update_fields=["rating", "updated_at"])
 
     def __str__(self) -> str:
         return f"{self.user_id} → {self.content_type.app_label}.{self.content_type.model}#{self.object_id}"
