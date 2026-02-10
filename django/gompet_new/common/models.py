@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Avg
@@ -85,7 +86,31 @@ class Comment(TimeStampedModel):
         organization.rating = None if avg_rating is None else int(round(avg_rating))
         organization.save(update_fields=["rating", "updated_at"])
 
+    def _validate_single_organization_rating_per_user(self) -> None:
+        """Pozwala użytkownikowi wystawić tylko jedną ocenę komentarzem dla organizacji."""
+        if not self.user_id or self.rating is None:
+            return
+
+        if self.content_type.app_label != "users" or self.content_type.model != "organization":
+            return
+
+        existing_rating = Comment.objects.filter(
+            user_id=self.user_id,
+            content_type=self.content_type,
+            object_id=self.object_id,
+            rating__isnull=False,
+        )
+
+        if self.pk:
+            existing_rating = existing_rating.exclude(pk=self.pk)
+
+        if existing_rating.exists():
+            raise ValidationError(
+                "Użytkownik może wystawić tylko jedną ocenę dla tej organizacji."
+            )
+
     def save(self, *args, **kwargs):
+        self._validate_single_organization_rating_per_user()
         super().save(*args, **kwargs)
         self._refresh_organization_rating_from_comments()
 
