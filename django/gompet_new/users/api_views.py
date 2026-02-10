@@ -21,13 +21,13 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from common.models import Notification
 from common.notifications import broadcast_user_notification, build_notification_payload
-from .models import Address, MemberRole, Organization, OrganizationMember, OrganizationReview, OrganizationType, Species, User
+from .models import Address, MemberRole, Organization, OrganizationMember, OrganizationType, Species, User
 from .serializers import (
     OrganizationTypeSerializer, MemberRoleSerializer, UserSerializer, UserCreateSerializer, UserUpdateSerializer,
     OrganizationSerializer, OrganizationCreateSerializer, OrganizationUpdateSerializer,
     OrganizationMemberSerializer, OrganizationMemberCreateSerializer, LatestOrganizationSerializer, SpeciesSerializer,
     OrganizationAddressSerializer, OrganizationOwnerChangeSerializer, ProfileInfoSerializer,
-    OrganizationReviewSerializer, PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
 )
 from .permissions import OrganizationRolePermissions
 from .services import CannotDeleteUser, delete_user_account, transfer_organization_owner
@@ -788,26 +788,6 @@ class OrganizationFilteringAddedViewSet(viewsets.ReadOnlyModelViewSet):
         return qs.distinct()
     
 
-
-
-
-@extend_schema(tags=["organization_reviews"])
-class OrganizationReviewViewSet(viewsets.ModelViewSet):
-    """CRUD opinii o organizacji; 1 opinia na użytkownika w danej organizacji."""
-
-    queryset = OrganizationReview.objects.select_related("organization", "user")
-    serializer_class = OrganizationReviewSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        organization_id = self.request.query_params.get("organization-id")
-        if organization_id:
-            queryset = queryset.filter(organization_id=organization_id)
-        return queryset
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
 
 @extend_schema(tags=["organization_addresses"])
 class OrganizationAddressViewSet(viewsets.ReadOnlyModelViewSet):
