@@ -1,4 +1,5 @@
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from animals.models import Animal
@@ -56,7 +57,25 @@ class CommentSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        return Comment.objects.create(**validated_data)
+        try:
+            return Comment.objects.create(**validated_data)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(
+                getattr(exc, "message_dict", exc.messages)
+            ) from exc
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        try:
+            instance.save()
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(
+                getattr(exc, "message_dict", exc.messages)
+            ) from exc
+
+        return instance
 
 
 class ReactionSerializer(serializers.ModelSerializer):
@@ -87,7 +106,25 @@ class ReactionSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        return Reaction.objects.create(**validated_data)
+        try:
+            return Reaction.objects.create(**validated_data)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(
+                getattr(exc, "message_dict", exc.messages)
+            ) from exc
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        try:
+            instance.save()
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(
+                getattr(exc, "message_dict", exc.messages)
+            ) from exc
+
+        return instance
 
 
 class ContentTypeSerializer(serializers.ModelSerializer):
