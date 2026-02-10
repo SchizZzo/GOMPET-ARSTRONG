@@ -17,6 +17,7 @@ from .api_views import (
     SpeciesViewSet,
     OrganizationTypeListView,
     OrganizationMemberRoleListView,
+    OrganizationReviewViewSet,
     PasswordResetRequestView,
     PasswordResetConfirmView,
 )
@@ -50,6 +51,7 @@ router.register(r'organization-latest', OrganizationRecentlyAddedViewSet, basena
 router.register(r'organization-filtering', OrganizationFilteringAddedViewSet, basename='organizationfiltering')
 router.register(r'organization-addresses', OrganizationAddressViewSet, basename='organizationaddress')
 router.register(r'species', SpeciesViewSet, basename='species')
+router.register(r'organization-reviews', OrganizationReviewViewSet, basename='organizationreview')
 router.register(r'organization-types', OrganizationTypeListView, basename='organizationtype')
 router.register(r'organization-member-roles', OrganizationMemberRoleListView, basename='organizationmemberrole')
 

@@ -6,7 +6,7 @@ from django.contrib import admin
 from .models import Organization, Address, OrganizationMember
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, BreedingTypeOrganizations, Species, BreedingType
+from .models import User, BreedingTypeOrganizations, Species, BreedingType, OrganizationReview
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
@@ -73,3 +73,10 @@ class BreedingTypeAdmin(admin.ModelAdmin):
 
 
     
+
+
+@admin.register(OrganizationReview)
+class OrganizationReviewAdmin(admin.ModelAdmin):
+    list_display = ("id", "organization", "user", "score", "created_at")
+    search_fields = ("organization__name", "user__email")
+    list_filter = ("score",)
