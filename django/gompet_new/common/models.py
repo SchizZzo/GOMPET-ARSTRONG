@@ -38,6 +38,8 @@ class Comment(TimeStampedModel):
     Uniwersalny komentarz – może dotyczyć dowolnego modelu (Article, Post, Animal, Litter…).
     """
 
+    MIN_BODY_LENGTH = 3
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -65,9 +67,41 @@ class Comment(TimeStampedModel):
         ]
         ordering = ("-created_at",)
 
+    def _is_organization_comment(self) -> bool:
+        return (
+            self.content_type.app_label == "users"
+            and self.content_type.model == "organization"
+        )
+
+    def _validate_body_length(self) -> None:
+        if len((self.body or "").strip()) >= self.MIN_BODY_LENGTH:
+            return
+
+        raise ValidationError(
+            {
+                "body": ValidationError(
+                    f"Komentarz musi mieć minimum {self.MIN_BODY_LENGTH} znaki.",
+                    code="COMMENT_TOO_SHORT",
+                )
+            }
+        )
+
+    def _validate_organization_rating_required(self) -> None:
+        if not self._is_organization_comment() or self.rating is not None:
+            return
+
+        raise ValidationError(
+            {
+                "rating": ValidationError(
+                    "Ocena jest wymagana dla opinii o organizacji.",
+                    code="COMMENT_RATING_REQUIRED",
+                )
+            }
+        )
+
     def _refresh_organization_rating_from_comments(self) -> None:
         """Przelicza ocenę organizacji na podstawie ocenionych komentarzy."""
-        if self.content_type.app_label != "users" or self.content_type.model != "organization":
+        if not self._is_organization_comment():
             return
 
         from users.models import Organization
@@ -91,7 +125,7 @@ class Comment(TimeStampedModel):
         if not self.user_id or self.rating is None:
             return
 
-        if self.content_type.app_label != "users" or self.content_type.model != "organization":
+        if not self._is_organization_comment():
             return
 
         existing_rating = Comment.objects.filter(
@@ -106,11 +140,18 @@ class Comment(TimeStampedModel):
 
         if existing_rating.exists():
             raise ValidationError(
-                "Użytkownik może wystawić tylko jedną ocenę dla tej organizacji."
+                {
+                    "rating": ValidationError(
+                        "Użytkownik może wystawić tylko jedną ocenę dla tej organizacji.",
+                        code="COMMENT_RATING_ALREADY_EXISTS",
+                    )
+                }
             )
 
     def clean(self) -> None:
         super().clean()
+        self._validate_body_length()
+        self._validate_organization_rating_required()
         self._validate_single_organization_rating_per_user()
 
     def save(self, *args, **kwargs):

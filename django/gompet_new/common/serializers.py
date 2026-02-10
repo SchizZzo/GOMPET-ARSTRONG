@@ -53,16 +53,35 @@ class CommentSerializer(serializers.ModelSerializer):
         extra_kwargs = {"user": {"write_only": True}}
 
     def validate(self, attrs):
-        # optional: możesz tu dodać logikę walidacji np. rating 1-5
         return attrs
+
+    def _build_error_payload(self, exc: DjangoValidationError) -> dict:
+        if hasattr(exc, "error_dict"):
+            items = []
+            for field, field_errors in exc.error_dict.items():
+                for error in field_errors:
+                    items.append(
+                        {
+                            "code": getattr(error, "code", "invalid"),
+                            "field": field,
+                        }
+                    )
+
+            if len(items) == 1:
+                return {"error": items[0]}
+
+            return {"errors": items}
+
+        return {"errors": [{"code": "INVALID", "field": "non_field_errors"}]}
+
+    def _raise_structured_validation_error(self, exc: DjangoValidationError) -> None:
+        raise serializers.ValidationError(self._build_error_payload(exc)) from exc
 
     def create(self, validated_data):
         try:
             return Comment.objects.create(**validated_data)
         except DjangoValidationError as exc:
-            raise serializers.ValidationError(
-                getattr(exc, "message_dict", exc.messages)
-            ) from exc
+            self._raise_structured_validation_error(exc)
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
@@ -71,9 +90,7 @@ class CommentSerializer(serializers.ModelSerializer):
         try:
             instance.save()
         except DjangoValidationError as exc:
-            raise serializers.ValidationError(
-                getattr(exc, "message_dict", exc.messages)
-            ) from exc
+            self._raise_structured_validation_error(exc)
 
         return instance
 

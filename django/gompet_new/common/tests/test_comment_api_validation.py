@@ -50,7 +50,33 @@ class CommentApiValidationTests(TestCase):
 
         self.assertEqual(first_response.status_code, 201)
         self.assertEqual(second_response.status_code, 400)
-        self.assertIn(
-            "Użytkownik może wystawić tylko jedną ocenę dla tej organizacji.",
-            str(second_response.data),
+        self.assertEqual(
+            second_response.data,
+            {
+                "error": {
+                    "code": "COMMENT_RATING_ALREADY_EXISTS",
+                    "field": "rating",
+                }
+            },
+        )
+
+    def test_organization_comment_requires_rating_and_minimum_body(self) -> None:
+        payload = {
+            "content_type": self.organization_ct.id,
+            "object_id": self.organization.id,
+            "body": "x",
+            "rating": None,
+        }
+
+        response = self.client.post(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data,
+            {
+                "errors": [
+                    {"code": "COMMENT_TOO_SHORT", "field": "body"},
+                    {"code": "COMMENT_RATING_REQUIRED", "field": "rating"},
+                ]
+            },
         )
