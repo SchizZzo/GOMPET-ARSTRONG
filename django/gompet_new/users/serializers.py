@@ -9,7 +9,7 @@ from django.contrib.auth.password_validation import validate_password
 
 from .models import User
 from .models import Organization, Address, OrganizationMember, BreedingTypeOrganizations, \
-      BreedingType, Species
+      BreedingType, Species, OrganizationReview
 from .models import OrganizationType, MemberRole
 
 class Base64ImageField(serializers.ImageField):
@@ -472,3 +472,36 @@ class OrganizationAddressSerializer(AddressSerializer):
             "organization_type",
             *AddressSerializer.Meta.fields,
         ]
+
+
+class OrganizationReviewSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = OrganizationReview
+        fields = [
+            "id",
+            "organization",
+            "user",
+            "score",
+            "comment",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ("user", "created_at", "updated_at")
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        organization = attrs.get("organization") or getattr(self.instance, "organization", None)
+
+        if user and user.is_authenticated and organization:
+            queryset = OrganizationReview.objects.filter(organization=organization, user=user)
+            if self.instance:
+                queryset = queryset.exclude(pk=self.instance.pk)
+            if queryset.exists():
+                raise serializers.ValidationError(
+                    {"organization": "Ten użytkownik już wystawił opinię dla tej organizacji."}
+                )
+
+        return attrs

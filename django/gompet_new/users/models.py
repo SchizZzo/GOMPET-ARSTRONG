@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Avg
 
 # Create your models here.
 # users/models.py
@@ -274,6 +275,55 @@ class Organization(models.Model):
     def soft_delete(self):
         self.deleted_at = timezone.now()
         self.save(update_fields=["deleted_at"])
+
+    def refresh_rating_from_reviews(self):
+        avg_score = self.reviews.aggregate(avg=Avg("score"))["avg"]
+        self.rating = None if avg_score is None else int(round(avg_score))
+        self.save(update_fields=["rating", "updated_at"])
+
+
+class OrganizationReview(models.Model):
+    """Ocena i komentarz użytkownika dla organizacji."""
+
+    id = models.BigAutoField(primary_key=True)
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        related_name="reviews",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="organization_reviews",
+    )
+    score = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)]
+    )
+    comment = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "organization_reviews"
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "user"),
+                name="uniq_organization_review_user",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.organization.name} - {self.user.email} ({self.score})"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.organization.refresh_rating_from_reviews()
+
+    def delete(self, *args, **kwargs):
+        organization = self.organization
+        super().delete(*args, **kwargs)
+        organization.refresh_rating_from_reviews()
 
 
 
