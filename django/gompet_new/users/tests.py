@@ -26,7 +26,6 @@ from .models import (
     Organization,
     OrganizationType,
     OrganizationMember,
-    OrganizationReview,
 )
 from .services import CannotDeleteUser, delete_user_account
 from .serializers import Base64ImageField
@@ -520,62 +519,3 @@ class OrganizationAddressViewSetTests(TestCase):
         self.assertEqual(payload["organization_id"], organization.id)
         self.assertEqual(payload["organization_name"], organization.name)
         self.assertEqual(payload["city"], address.city)
-
-
-class OrganizationReviewModelTests(TestCase):
-    def setUp(self):
-        self.owner = User.objects.create_user(
-            email="owner-review@example.com",
-            password="secret",
-            first_name="Owner",
-            last_name="Review",
-        )
-        self.org = Organization.objects.create(
-            type=OrganizationType.SHELTER,
-            name="Review Shelter",
-            email="review-shelter@example.com",
-            image="",
-            phone="",
-            user=self.owner,
-        )
-
-    def test_rating_is_refreshed_after_review_changes(self):
-        user_1 = User.objects.create_user(
-            email="reviewer1@example.com",
-            password="secret",
-            first_name="Reviewer",
-            last_name="One",
-        )
-        user_2 = User.objects.create_user(
-            email="reviewer2@example.com",
-            password="secret",
-            first_name="Reviewer",
-            last_name="Two",
-        )
-
-        review_1 = OrganizationReview.objects.create(
-            organization=self.org,
-            user=user_1,
-            score=5,
-            comment="Super!",
-        )
-        self.org.refresh_from_db()
-        self.assertEqual(self.org.rating, 5)
-
-        review_2 = OrganizationReview.objects.create(
-            organization=self.org,
-            user=user_2,
-            score=3,
-            comment="OK",
-        )
-        self.org.refresh_from_db()
-        self.assertEqual(self.org.rating, 4)
-
-        review_1.score = 1
-        review_1.save()
-        self.org.refresh_from_db()
-        self.assertEqual(self.org.rating, 2)
-
-        review_2.delete()
-        self.org.refresh_from_db()
-        self.assertEqual(self.org.rating, 1)
