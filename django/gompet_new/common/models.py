@@ -109,8 +109,12 @@ class Comment(TimeStampedModel):
                 "Użytkownik może wystawić tylko jedną ocenę dla tej organizacji."
             )
 
-    def save(self, *args, **kwargs):
+    def clean(self) -> None:
+        super().clean()
         self._validate_single_organization_rating_per_user()
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
         super().save(*args, **kwargs)
         self._refresh_organization_rating_from_comments()
 
