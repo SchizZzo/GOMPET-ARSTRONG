@@ -1,9 +1,13 @@
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
+from django.urls import reverse
 from rest_framework.test import APITestCase
 
 from animals.models import Animal, AnimalStatus, Gender, Size
-from common.models import Comment
+from common.models import Comment, Follow
+
+from users.models import Organization, OrganizationType
 
 from .models import Post
 
@@ -121,3 +125,87 @@ class PostOwnershipAPITests(APITestCase):
         self.assertEqual(response.status_code, 403)
         self.post.refresh_from_db()
         self.assertNotEqual(self.post.content, "Hacked content")
+
+
+class PostFeedAPITests(APITestCase):
+    def setUp(self):
+        self.viewer = get_user_model().objects.create_user(
+            email="viewer@example.com",
+            password="password123",
+            first_name="Viewer",
+            last_name="User",
+        )
+        self.owner = get_user_model().objects.create_user(
+            email="feed-owner@example.com",
+            password="password123",
+            first_name="Feed",
+            last_name="Owner",
+        )
+        self.org_owner = get_user_model().objects.create_user(
+            email="feed-org-owner@example.com",
+            password="password123",
+            first_name="Org",
+            last_name="Owner",
+        )
+
+        self.animal = Animal.objects.create(
+            name="Roki",
+            species="Dog",
+            gender=Gender.MALE,
+            size=Size.SMALL,
+            status=AnimalStatus.AVAILABLE,
+            owner=self.owner,
+        )
+        self.organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Feed Shelter",
+            email="feed-shelter@example.com",
+            user=self.org_owner,
+        )
+
+        self.animal_post = Post.objects.create(
+            content="Animal followed post",
+            author=self.owner,
+            animal=self.animal,
+        )
+        self.org_post = Post.objects.create(
+            content="Organization followed post",
+            author=self.org_owner,
+            organization=self.organization,
+        )
+
+        Follow.objects.create(
+            user=self.viewer,
+            target_type=ContentType.objects.get_for_model(Animal),
+            target_id=self.animal.id,
+            notification_preferences={
+                "posts": True,
+                "status_changes": True,
+                "comments": False,
+            },
+        )
+        Follow.objects.create(
+            user=self.viewer,
+            target_type=ContentType.objects.get_for_model(Organization),
+            target_id=self.organization.id,
+            notification_preferences={
+                "posts": True,
+                "status_changes": True,
+                "comments": False,
+            },
+        )
+
+    def test_feed_returns_posts_for_followed_animals_and_organizations(self):
+        self.client.force_authenticate(user=self.viewer)
+
+        response = self.client.get(reverse("post-feed"))
+
+        self.assertEqual(response.status_code, 200)
+        returned_ids = {item["id"] for item in response.data}
+        self.assertIn(self.animal_post.id, returned_ids)
+        self.assertIn(self.org_post.id, returned_ids)
+
+    def test_feed_requires_authentication(self):
+        response = self.client.get(reverse("post-feed"))
+
+        self.assertEqual(response.status_code, 401)
