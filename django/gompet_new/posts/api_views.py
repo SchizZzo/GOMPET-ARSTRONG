@@ -140,8 +140,12 @@ class PostViewSet(viewsets.ModelViewSet):
             )
         )
 
+        followed_chunk_size = 8
+        recommended_chunk_size = 2
+
         followed_count = len(followed_posts)
-        recommended_limit = int(followed_count * 0.25)
+        feed_page_count = (followed_count + followed_chunk_size - 1) // followed_chunk_size
+        recommended_limit = feed_page_count * recommended_chunk_size
 
         recommended_posts = []
         if recommended_limit > 0:
@@ -154,11 +158,20 @@ class PostViewSet(viewsets.ModelViewSet):
                 )
             )
 
-        queryset = sorted(
-            [*followed_posts, *recommended_posts],
-            key=lambda post: post.created_at,
-            reverse=True,
-        )
+        queryset = []
+        for page_index in range(feed_page_count):
+            followed_slice = followed_posts[
+                page_index * followed_chunk_size : (page_index + 1) * followed_chunk_size
+            ]
+            recommended_slice = recommended_posts[
+                page_index * recommended_chunk_size : (page_index + 1) * recommended_chunk_size
+            ]
+            page_posts = sorted(
+                [*followed_slice, *recommended_slice],
+                key=lambda post: post.created_at,
+                reverse=True,
+            )
+            queryset.extend(page_posts)
 
         page = self.paginate_queryset(queryset)
         if page is not None:
