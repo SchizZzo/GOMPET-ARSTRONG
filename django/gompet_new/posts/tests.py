@@ -281,8 +281,8 @@ class PostFeedAPITests(APITestCase):
 
         self.assertEqual(len(page_1_results), 10)
         self.assertEqual(len(page_2_results), 9)
-        self.assertLessEqual(len(page_1_ids & recommended_ids), 2)
-        self.assertLessEqual(len(page_2_ids & recommended_ids), 2)
+        self.assertEqual(len(page_1_ids & recommended_ids), 2)
+        self.assertEqual(len(page_2_ids & recommended_ids), 2)
 
     def test_feed_requires_authentication(self):
         response = self.client.get(reverse("post-feed"))
