@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from animals.models import Animal
-from common.models import Comment, Notification, Reaction, ReactionType
+from common.models import Comment, Follow, Notification, Reaction, ReactionType
 from users.serializers import UserSerializer
 
 
@@ -143,6 +143,45 @@ class ReactionSerializer(serializers.ModelSerializer):
 
         return instance
 
+
+
+
+class FollowSerializer(serializers.ModelSerializer):
+    target_type = ContentTypeRelatedField()
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = Follow
+        fields = (
+            "id",
+            "user",
+            "target_type",
+            "target_id",
+            "notification_preferences",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+        )
+        read_only_fields = ("created_at", "updated_at", "deleted_at")
+
+    def validate_notification_preferences(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("notification_preferences must be an object.")
+
+        allowed = {"posts", "status_changes", "comments"}
+        unknown = set(value.keys()) - allowed
+        if unknown:
+            raise serializers.ValidationError(
+                f"Unsupported preference keys: {', '.join(sorted(unknown))}."
+            )
+
+        for key, pref in value.items():
+            if not isinstance(pref, bool):
+                raise serializers.ValidationError(
+                    f"Preference '{key}' must be boolean."
+                )
+
+        return value
 
 class ContentTypeSerializer(serializers.ModelSerializer):
     class Meta:

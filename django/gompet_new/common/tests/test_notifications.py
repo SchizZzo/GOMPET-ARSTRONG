@@ -10,7 +10,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from animals.models import Animal, Gender, Size
 from common.consumers import NotificationConsumer
-from common.models import Notification, Reaction, ReactionType
+from common.models import Follow, Notification, Reaction, ReactionType
 from common.notifications import (
     broadcast_user_notification,
     build_notification_payload,
@@ -328,3 +328,93 @@ class NotificationConsumerTests(TestCase):
         self.assertEqual(response, {"hello": "session"})
 
         async_to_sync(communicator.disconnect)()
+
+
+class FollowNotificationSignalTests(TestCase):
+    def setUp(self) -> None:
+        User = get_user_model()
+        self.owner = User.objects.create_user(
+            email="owner-follow@example.com",
+            password="secret",
+            first_name="Owner",
+            last_name="Follow",
+        )
+        self.follower = User.objects.create_user(
+            email="follower@example.com",
+            password="secret",
+            first_name="Follower",
+            last_name="User",
+        )
+        self.animal = Animal.objects.create(
+            name="Azor",
+            species="dog",
+            gender=Gender.MALE,
+            size=Size.MEDIUM,
+            owner=self.owner,
+        )
+
+    @mock.patch("common.signals.broadcast_user_notification")
+    def test_follow_animal_notifies_owner(self, mocked_broadcast: mock.Mock) -> None:
+        Follow.objects.create(
+            user=self.follower,
+            target_type=ContentType.objects.get_for_model(Animal),
+            target_id=self.animal.id,
+        )
+
+        notification = Notification.objects.get(recipient=self.owner)
+        self.assertEqual(notification.verb, "zaczął(a) obserwować")
+        self.assertEqual(notification.target_type, "animal")
+        self.assertEqual(notification.target_id, self.animal.id)
+
+        mocked_broadcast.assert_called_once()
+
+
+class FollowPostNotificationSignalTests(TestCase):
+    def setUp(self) -> None:
+        User = get_user_model()
+        self.owner = User.objects.create_user(
+            email="owner-post-follow@example.com",
+            password="secret",
+            first_name="Owner",
+            last_name="Poster",
+        )
+        self.follower = User.objects.create_user(
+            email="follower-post@example.com",
+            password="secret",
+            first_name="Feed",
+            last_name="Follower",
+        )
+
+        self.animal = Animal.objects.create(
+            name="Burek",
+            species="dog",
+            gender=Gender.MALE,
+            size=Size.MEDIUM,
+            owner=self.owner,
+        )
+
+        Follow.objects.create(
+            user=self.follower,
+            target_type=ContentType.objects.get_for_model(Animal),
+            target_id=self.animal.id,
+            notification_preferences={
+                "posts": True,
+                "status_changes": True,
+                "comments": False,
+            },
+        )
+
+    @mock.patch("common.signals.broadcast_user_notification")
+    def test_new_post_notifies_followers(self, mocked_broadcast: mock.Mock) -> None:
+        post = Post.objects.create(
+            content="Nowy post",
+            author=self.owner,
+            animal=self.animal,
+        )
+
+        notification = Notification.objects.get(recipient=self.follower, created_object_id=post.id)
+        self.assertEqual(notification.verb, "dodał(a) nowy post")
+        self.assertEqual(notification.target_type, "animal")
+        self.assertEqual(notification.target_id, self.animal.id)
+
+        mocked_broadcast.assert_called_once()

@@ -1,6 +1,13 @@
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import Q
 from rest_framework import viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.permissions import DjangoModelPermissionsOrAnonReadOnly
+from rest_framework.permissions import DjangoModelPermissionsOrAnonReadOnly, IsAuthenticated
+from rest_framework.response import Response
+from animals.models import Animal
+from common.models import Follow
+from users.models import Organization
 from .models import Post
 from .serializers import PostSerializer
 
@@ -106,6 +113,38 @@ class PostViewSet(viewsets.ModelViewSet):
         if organization_id:
             qs = qs.filter(organization_id=organization_id)
         return qs
+
+    @action(detail=False, methods=["get"], url_path="feed", permission_classes=[IsAuthenticated])
+    def feed(self, request):
+        animal_ct = ContentType.objects.get_for_model(Animal)
+        organization_ct = ContentType.objects.get_for_model(Organization)
+
+        followed_animal_ids = Follow.objects.filter(
+            user=request.user,
+            target_type=animal_ct,
+            notification_preferences__posts=True,
+        ).values_list("target_id", flat=True)
+
+        followed_organization_ids = Follow.objects.filter(
+            user=request.user,
+            target_type=organization_ct,
+            notification_preferences__posts=True,
+        ).values_list("target_id", flat=True)
+
+        queryset = self.filter_queryset(
+            Post.objects.filter(
+                Q(animal_id__in=followed_animal_ids)
+                | Q(organization_id__in=followed_organization_ids)
+            ).order_by("-created_at")
+        )
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     def perform_destroy(self, instance):
         user = self.request.user
