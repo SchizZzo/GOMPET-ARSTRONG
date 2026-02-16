@@ -1,6 +1,7 @@
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from rest_framework import viewsets
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import DjangoModelPermissionsOrAnonReadOnly, IsAuthenticated
@@ -14,6 +15,12 @@ from .serializers import PostSerializer
 # posts/api_views.py
 
 from drf_spectacular.utils import extend_schema
+
+
+
+class FeedPagePagination(PageNumberPagination):
+    page_size = 10
+
 
 @extend_schema(
     tags=["posts", "posts_organizations", "posts_animals"],
@@ -114,7 +121,13 @@ class PostViewSet(viewsets.ModelViewSet):
             qs = qs.filter(organization_id=organization_id)
         return qs
 
-    @action(detail=False, methods=["get"], url_path="feed", permission_classes=[IsAuthenticated])
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="feed",
+        permission_classes=[IsAuthenticated],
+        pagination_class=FeedPagePagination,
+    )
     def feed(self, request):
         animal_ct = ContentType.objects.get_for_model(Animal)
         organization_ct = ContentType.objects.get_for_model(Organization)
