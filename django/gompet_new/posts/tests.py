@@ -195,15 +195,94 @@ class PostFeedAPITests(APITestCase):
             },
         )
 
+    def _extract_results(self, response):
+        data = response.data
+        if isinstance(data, dict) and "results" in data:
+            return data["results"]
+        return data
+
+    def _create_unfollowed_posts(self, count, author_email_prefix):
+        author = get_user_model().objects.create_user(
+            email=f"{author_email_prefix}@example.com",
+            password="password123",
+            first_name="Out",
+            last_name="Sider",
+        )
+        animal = Animal.objects.create(
+            name=f"{author_email_prefix}-animal",
+            species="Dog",
+            gender=Gender.FEMALE,
+            size=Size.SMALL,
+            status=AnimalStatus.AVAILABLE,
+            owner=author,
+        )
+        posts = []
+        for index in range(count):
+            posts.append(
+                Post.objects.create(
+                    content=f"Recommended post {author_email_prefix}-{index}",
+                    author=author,
+                    animal=animal,
+                )
+            )
+        return posts
+
     def test_feed_returns_posts_for_followed_animals_and_organizations(self):
         self.client.force_authenticate(user=self.viewer)
 
         response = self.client.get(reverse("post-feed"))
 
         self.assertEqual(response.status_code, 200)
-        returned_ids = {item["id"] for item in response.data}
+        results = self._extract_results(response)
+        returned_ids = {item["id"] for item in results}
         self.assertIn(self.animal_post.id, returned_ids)
         self.assertIn(self.org_post.id, returned_ids)
+
+    def test_feed_uses_8_to_2_ratio_for_recommended_posts(self):
+        self.client.force_authenticate(user=self.viewer)
+
+        recommended_posts = self._create_unfollowed_posts(1, "outsider")
+
+        response = self.client.get(reverse("post-feed"))
+
+        self.assertEqual(response.status_code, 200)
+        results = self._extract_results(response)
+        returned_ids = {item["id"] for item in results}
+        self.assertIn(self.animal_post.id, returned_ids)
+        self.assertIn(self.org_post.id, returned_ids)
+        self.assertIn(recommended_posts[0].id, returned_ids)
+        self.assertEqual(len(results), 3)
+
+    def test_feed_each_page_keeps_8_followed_and_2_recommended_posts(self):
+        self.client.force_authenticate(user=self.viewer)
+
+        for index in range(14):
+            Post.objects.create(
+                content=f"Followed post {index}",
+                author=self.owner,
+                animal=self.animal,
+            )
+
+        recommended_posts = self._create_unfollowed_posts(4, "outsider-multi")
+
+        page_1_response = self.client.get(reverse("post-feed"), {"page": 1})
+        page_2_response = self.client.get(reverse("post-feed"), {"page": 2})
+
+        self.assertEqual(page_1_response.status_code, 200)
+        self.assertEqual(page_2_response.status_code, 200)
+
+        page_1_results = self._extract_results(page_1_response)
+        page_2_results = self._extract_results(page_2_response)
+
+        page_1_ids = {item["id"] for item in page_1_results}
+        page_2_ids = {item["id"] for item in page_2_results}
+
+        recommended_ids = {post.id for post in recommended_posts}
+
+        self.assertEqual(len(page_1_results), 10)
+        self.assertEqual(len(page_2_results), 9)
+        self.assertLessEqual(len(page_1_ids & recommended_ids), 2)
+        self.assertLessEqual(len(page_2_ids & recommended_ids), 2)
 
     def test_feed_requires_authentication(self):
         response = self.client.get(reverse("post-feed"))
