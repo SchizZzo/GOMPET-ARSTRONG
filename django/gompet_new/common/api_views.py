@@ -6,13 +6,14 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from common.like_counter import resolve_content_type
-from common.models import Comment, Notification, Reaction, ReactionType
+from common.models import Comment, Follow, Notification, Reaction, ReactionType
 
 from .serializers import (
     CommentSerializer,
     ContentTypeSerializer,
     NotificationSerializer,
     ReactionSerializer,
+    FollowSerializer,
 )
 
 # common/api_serializers.py
@@ -315,3 +316,78 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
         return super().partial_update(request, *args, **kwargs)
 
+
+
+@extend_schema(
+    tags=["follows"],
+    description="CRUD API dla obserwowanych obiektów (polimorficznie).",
+)
+class FollowViewSet(viewsets.ModelViewSet):
+    queryset = Follow.objects.all()
+    serializer_class = FollowSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+
+    def get_queryset(self):
+        queryset = Follow.objects.filter(user=self.request.user)
+
+        target_id = self.request.query_params.get("target_id")
+        target_type = self.request.query_params.get("target_type")
+
+        if target_id is not None:
+            queryset = queryset.filter(target_id=target_id)
+
+        if target_type is not None:
+            if "." in target_type:
+                try:
+                    app_label, model = target_type.split(".")
+                    content_type_obj = ContentType.objects.get_by_natural_key(app_label, model)
+                    queryset = queryset.filter(target_type=content_type_obj)
+                except ContentType.DoesNotExist:
+                    return queryset.none()
+            else:
+                queryset = queryset.filter(target_type_id=target_type)
+
+        return queryset
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=["get"], url_path="is-following", url_name="is-following")
+    def is_following(self, request):
+        target_type_param = request.query_params.get("target_type")
+        target_id_param = request.query_params.get("target_id")
+
+        if target_type_param is None or target_id_param is None:
+            return Response(
+                {"detail": "Query parameters 'target_type' and 'target_id' are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            target_content_type = resolve_content_type(target_type_param)
+        except ContentType.DoesNotExist:
+            return Response(
+                {"detail": "Invalid 'target_type'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            target_id = int(target_id_param)
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "Invalid 'target_id'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        follow_id = (
+            Follow.objects.filter(
+                user=request.user,
+                target_type=target_content_type,
+                target_id=target_id,
+            )
+            .values_list("id", flat=True)
+            .first()
+        )
+
+        return Response({"follow_id": follow_id or 0})

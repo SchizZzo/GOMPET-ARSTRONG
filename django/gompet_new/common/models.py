@@ -273,3 +273,46 @@ class Notification(models.Model):
 
     def __str__(self) -> str:
         return f"{self.recipient_id} ← {self.actor_id}: {self.verb} {self.target_type}#{self.target_id}"
+
+
+def default_follow_notification_preferences() -> dict[str, bool]:
+    return {
+        "posts": True,
+        "status_changes": True,
+        "comments": False,
+    }
+
+
+class Follow(TimeStampedModel):
+    """Polimorficzna relacja obserwowania dowolnego obiektu."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="follows",
+    )
+
+    target_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    target_id = models.PositiveBigIntegerField()
+    target_object = GenericForeignKey("target_type", "target_id")
+
+    notification_preferences = models.JSONField(
+        default=default_follow_notification_preferences,
+        blank=True,
+    )
+
+    class Meta:
+        db_table = "follows"
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=("target_type", "target_id"), name="idx_follow_target"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("user", "target_type", "target_id"),
+                name="uniq_user_follow_per_target",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user_id} follows {self.target_type.app_label}.{self.target_type.model}#{self.target_id}"
