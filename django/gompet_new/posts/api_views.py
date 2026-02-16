@@ -131,11 +131,33 @@ class PostViewSet(viewsets.ModelViewSet):
             notification_preferences__posts=True,
         ).values_list("target_id", flat=True)
 
-        queryset = self.filter_queryset(
-            Post.objects.filter(
-                Q(animal_id__in=followed_animal_ids)
-                | Q(organization_id__in=followed_organization_ids)
-            ).order_by("-created_at")
+        followed_posts = list(
+            self.filter_queryset(
+                Post.objects.filter(
+                    Q(animal_id__in=followed_animal_ids)
+                    | Q(organization_id__in=followed_organization_ids)
+                ).order_by("-created_at")
+            )
+        )
+
+        followed_count = len(followed_posts)
+        recommended_limit = int(followed_count * 0.25)
+
+        recommended_posts = []
+        if recommended_limit > 0:
+            recommended_posts = list(
+                self.filter_queryset(
+                    Post.objects.exclude(
+                        Q(animal_id__in=followed_animal_ids)
+                        | Q(organization_id__in=followed_organization_ids)
+                    ).order_by("-created_at")[:recommended_limit]
+                )
+            )
+
+        queryset = sorted(
+            [*followed_posts, *recommended_posts],
+            key=lambda post: post.created_at,
+            reverse=True,
         )
 
         page = self.paginate_queryset(queryset)
@@ -153,4 +175,3 @@ class PostViewSet(viewsets.ModelViewSet):
                 "Tylko autor posta lub administrator może go usunąć."
             )
         super().perform_destroy(instance)
-
