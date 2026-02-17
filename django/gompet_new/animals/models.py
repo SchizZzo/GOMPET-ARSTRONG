@@ -85,8 +85,9 @@ class Animal(models.Model):
 
     image       = models.ImageField(
         upload_to="animals/images/",
-        blank=True,
-        null=True,
+        # blank=True,
+        # null=True,
+        reqired=True,
         help_text="Zalecany rozmiar: 800x600px"
     )
     species     = models.CharField(max_length=80)

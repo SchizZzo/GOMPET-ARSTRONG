@@ -85,4 +85,7 @@ test-common:
 test-users:
 	$(MANAGE) test users
 
+test-posts:
+	$(MANAGE) test posts
+
 
