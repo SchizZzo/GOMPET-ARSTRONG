@@ -384,6 +384,13 @@ class AnimalParent(models.Model):
                 raise ValidationError(
                     "Rodzic musi być starszy od zwierzęcia."
                 )
+        if self.parent.species and self.animal.species:
+            parent_species = self.parent.species.strip().lower()
+            animal_species = self.animal.species.strip().lower()
+            if parent_species != animal_species:
+                raise ValidationError(
+                    "Rodzic i dziecko muszą być tego samego gatunku."
+                )
         qs = self.__class__.objects.filter(animal=self.animal)
         if self.pk:
             qs = qs.exclude(pk=self.pk)
