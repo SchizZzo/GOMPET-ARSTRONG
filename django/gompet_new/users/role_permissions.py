@@ -132,7 +132,7 @@ USER_ROLE_PERMISSIONS = {
         *_build_permissions("posts", ["post"], ("add", "view")),
         *_build_permissions("articles", ["article"], ("add", "view")),
         *_build_permissions("litters", ["litter"], ("add", "view")),
-        *_build_permissions("common", ["comment", "reaction"], ("add", "view")),
+        *_build_permissions("common", ["comment", "reaction"], ("add", "view", "change", "delete")),
         *_build_permissions("users", ["organizationmember"], ("add", "view")),
     ],
 }
