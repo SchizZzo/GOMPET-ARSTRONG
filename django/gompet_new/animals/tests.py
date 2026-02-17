@@ -161,6 +161,36 @@ class AnimalParentModelTests(TestCase):
                 relation=ParentRelation.MOTHER,
             )
 
+    def test_parent_and_child_must_have_same_species(self):
+        cat_parent = Animal.objects.create(
+            name="CatMom",
+            species="  Cat  ",
+            gender=Gender.FEMALE,
+            size=Size.MEDIUM,
+        )
+        with self.assertRaises(ValidationError):
+            AnimalParent.objects.create(
+                animal=self.child,
+                parent=cat_parent,
+                relation=ParentRelation.MOTHER,
+            )
+
+    def test_parent_and_child_same_species_ignores_case_and_spaces(self):
+        self.child.species = "  dog "
+        self.child.save()
+        spaced_mother = Animal.objects.create(
+            name="SpacedMom",
+            species="DOG",
+            gender=Gender.FEMALE,
+            size=Size.MEDIUM,
+        )
+        relation = AnimalParent.objects.create(
+            animal=self.child,
+            parent=spaced_mother,
+            relation=ParentRelation.MOTHER,
+        )
+        self.assertEqual(relation.parent, spaced_mother)
+
 
 class AnimalParentSerializerTests(TestCase):
     """Tests for AnimalParentSerializer validation and saving."""
