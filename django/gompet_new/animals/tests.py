@@ -271,10 +271,12 @@ class AnimalSerializerGalleryTests(TestCase):
             b"\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\n\x00\x01\x00,"
             b"\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
         )
+        animal_image = "data:image/gif;base64," + base64.b64encode(image_bytes).decode()
         img1 = SimpleUploadedFile("a.gif", image_bytes, content_type="image/gif")
         img2 = SimpleUploadedFile("b.gif", image_bytes, content_type="image/gif")
         data = {
             "name": "Multi",
+            "image": animal_image,
             "species": "Cat",
             "gender": Gender.FEMALE,
             "size": Size.SMALL,
@@ -294,10 +296,12 @@ class AnimalSerializerGalleryTests(TestCase):
             b"\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\n\x00\x01\x00,"
             b"\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
         )
+        animal_image = "data:image/gif;base64," + base64.b64encode(image_bytes).decode()
         img_str1 = "data:image/gif;base64," + base64.b64encode(image_bytes).decode()
         img_str2 = "data:image/gif;base64," + base64.b64encode(image_bytes).decode()
         data = {
             "name": "Base64",
+            "image": animal_image,
             "species": "Cat",
             "gender": Gender.FEMALE,
             "size": Size.SMALL,
@@ -324,6 +328,19 @@ class AnimalSerializerGalleryTests(TestCase):
         self.assertEqual(len(errors), 2)
         for err in errors:
             self.assertIn("image", err)
+
+    def test_requires_main_image_when_creating_animal(self):
+        data = {
+            "name": "NoMainImage",
+            "species": "Cat",
+            "gender": Gender.FEMALE,
+            "size": Size.SMALL,
+        }
+
+        serializer = AnimalSerializer(data=data)
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("image", serializer.errors)
 
 
 class AnimalViewSetGeoFilteringTests(TestCase):
@@ -414,4 +431,3 @@ class AnimalViewSetGeoFilteringTests(TestCase):
         ids = [item["id"] for item in response.data]
         self.assertIn(near.id, ids)
         self.assertNotIn(far.id, ids)
-
