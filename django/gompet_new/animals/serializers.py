@@ -243,6 +243,14 @@ class AnimalSerializer(serializers.ModelSerializer):
     
     def get_age_display(self, obj):
         return obj.age_display
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        if self.instance is None and not attrs.get("image"):
+            raise serializers.ValidationError(
+                {"image": ["This field is required."]}
+            )
+        return attrs
     
     
     def get_distance(self, obj):
