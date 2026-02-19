@@ -2,7 +2,7 @@ from urllib import request
 from rest_framework import serializers
 from .models import Post
 
-from users.serializers import UserSerializer
+from users.serializers import UserSerializer, OrganizationSerializer
 
 
 class Base64ImageField(serializers.ImageField):
@@ -32,6 +32,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     author = UserSerializer(read_only=True)
 
+    organization_info  =  OrganizationSerializer(source="organization", read_only=True)
     class Meta:
         model = Post
         fields = (
@@ -40,6 +41,7 @@ class PostSerializer(serializers.ModelSerializer):
             "organization_name",
             
             "organization",
+            "organization_info",
             "animal",
             "author",
             "content",
@@ -60,6 +62,8 @@ class PostSerializer(serializers.ModelSerializer):
     def get_organization_name(self, obj):
         # Pobiera nazwę organizacji z powiązanego modelu Organization
         return obj.organization.name if obj.organization else None
+    
+    
     
     def create(self, validated_data):
         """
