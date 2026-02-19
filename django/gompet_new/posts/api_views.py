@@ -186,6 +186,50 @@ class PostViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="feed-test",
+        permission_classes=[IsAuthenticatedOrReadOnly],
+        pagination_class=FeedPagePagination,
+    )
+    def feed_test(self, request):
+        animal_ct = ContentType.objects.get_for_model(Animal)
+        organization_ct = ContentType.objects.get_for_model(Organization)
+
+        followed_animal_ids = []
+        followed_organization_ids = []
+
+        if request.user.is_authenticated:
+            followed_animal_ids = list(
+                Follow.objects.filter(
+                    user=request.user,
+                    target_type=animal_ct,
+                    notification_preferences__posts=True,
+                ).values_list("target_id", flat=True)
+            )
+
+            followed_organization_ids = list(
+                Follow.objects.filter(
+                    user=request.user,
+                    target_type=organization_ct,
+                    notification_preferences__posts=True,
+                ).values_list("target_id", flat=True)
+            )
+
+        queryset = Post.objects.filter(
+            Q(animal_id__in=followed_animal_ids)
+            | Q(organization_id__in=followed_organization_ids)
+        ).order_by("-created_at")
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     def perform_destroy(self, instance):
         user = self.request.user
         if not user.has_perm("posts.delete_post") and instance.author_id != user.id:
