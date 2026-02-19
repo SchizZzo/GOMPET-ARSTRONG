@@ -1,3 +1,5 @@
+import random
+
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from rest_framework import viewsets
@@ -129,62 +131,46 @@ class PostViewSet(viewsets.ModelViewSet):
         pagination_class=FeedPagePagination,
     )
     def feed(self, request):
+        total_feed_limit = 20
+        followed_ratio_limit = 14
+        random_ratio_limit = 6
+
         animal_ct = ContentType.objects.get_for_model(Animal)
         organization_ct = ContentType.objects.get_for_model(Organization)
 
-        followed_animal_ids = Follow.objects.filter(
+        followed_animal_ids = list(Follow.objects.filter(
             user=request.user,
             target_type=animal_ct,
             notification_preferences__posts=True,
-        ).values_list("target_id", flat=True)
+        ).values_list("target_id", flat=True))
 
-        followed_organization_ids = Follow.objects.filter(
+        followed_organization_ids = list(Follow.objects.filter(
             user=request.user,
             target_type=organization_ct,
             notification_preferences__posts=True,
-        ).values_list("target_id", flat=True)
+        ).values_list("target_id", flat=True))
 
-        followed_posts = list(
-            self.filter_queryset(
+        has_followed_entities = bool(followed_animal_ids or followed_organization_ids)
+
+        if not has_followed_entities:
+            queryset = list(Post.objects.order_by("?")[:total_feed_limit])
+        else:
+            followed_posts = list(
                 Post.objects.filter(
                     Q(animal_id__in=followed_animal_ids)
                     | Q(organization_id__in=followed_organization_ids)
-                ).order_by("-created_at")
-            )
-        )
-
-        followed_chunk_size = 8
-        recommended_chunk_size = 2
-
-        followed_count = len(followed_posts)
-        feed_page_count = (followed_count + followed_chunk_size - 1) // followed_chunk_size
-        recommended_limit = feed_page_count * recommended_chunk_size
-
-        recommended_posts = []
-        if recommended_limit > 0:
-            recommended_posts = list(
-                self.filter_queryset(
-                    Post.objects.exclude(
-                        Q(animal_id__in=followed_animal_ids)
-                        | Q(organization_id__in=followed_organization_ids)
-                    ).order_by("-created_at")[:recommended_limit]
                 )
+                .order_by("-created_at")[:followed_ratio_limit]
             )
-
-        queryset = []
-        for page_index in range(feed_page_count):
-            followed_slice = followed_posts[
-                page_index * followed_chunk_size : (page_index + 1) * followed_chunk_size
-            ]
-            recommended_slice = recommended_posts[
-                page_index * recommended_chunk_size : (page_index + 1) * recommended_chunk_size
-            ]
-            page_posts = sorted(
-                [*followed_slice, *recommended_slice],
-                key=lambda post: post.created_at,
-                reverse=True,
+            random_posts = list(
+                Post.objects.exclude(
+                    Q(animal_id__in=followed_animal_ids)
+                    | Q(organization_id__in=followed_organization_ids)
+                )
+                .order_by("?")[:random_ratio_limit]
             )
-            queryset.extend(page_posts)
+            queryset = [*followed_posts, *random_posts]
+            random.shuffle(queryset)
 
         page = self.paginate_queryset(queryset)
         if page is not None:
