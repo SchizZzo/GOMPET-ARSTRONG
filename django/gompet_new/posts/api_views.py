@@ -131,9 +131,9 @@ class PostViewSet(viewsets.ModelViewSet):
         pagination_class=FeedPagePagination,
     )
     def feed(self, request):
-        total_feed_limit = 20
-        followed_ratio_limit = 14
-        random_ratio_limit = 6
+        total_feed_limit = 1000
+        followed_ratio_limit = 700  
+        random_ratio_limit = 300
 
         animal_ct = ContentType.objects.get_for_model(Animal)
         organization_ct = ContentType.objects.get_for_model(Organization)
