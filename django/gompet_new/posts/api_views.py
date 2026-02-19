@@ -4,7 +4,7 @@ from rest_framework import viewsets
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.permissions import DjangoModelPermissionsOrAnonReadOnly, IsAuthenticated
+from rest_framework.permissions import DjangoModelPermissionsOrAnonReadOnly, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from animals.models import Animal
 from common.models import Follow
@@ -125,7 +125,7 @@ class PostViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=["get"],
         url_path="feed",
-        permission_classes=[IsAuthenticated],
+        permission_classes=[IsAuthenticatedOrReadOnly],
         pagination_class=FeedPagePagination,
     )
     def feed(self, request):
