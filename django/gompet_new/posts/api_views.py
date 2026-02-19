@@ -1,5 +1,3 @@
-import random
-
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from rest_framework import viewsets
@@ -153,7 +151,7 @@ class PostViewSet(viewsets.ModelViewSet):
         has_followed_entities = bool(followed_animal_ids or followed_organization_ids)
 
         if not has_followed_entities:
-            queryset = list(Post.objects.order_by("?")[:total_feed_limit])
+            queryset = list(Post.objects.order_by("-created_at")[:total_feed_limit])
         else:
             followed_posts = list(
                 Post.objects.filter(
@@ -170,7 +168,7 @@ class PostViewSet(viewsets.ModelViewSet):
                 .order_by("?")[:random_ratio_limit]
             )
             queryset = [*followed_posts, *random_posts]
-            random.shuffle(queryset)
+            queryset.sort(key=lambda post: post.created_at, reverse=True)
 
         page = self.paginate_queryset(queryset)
         if page is not None:
