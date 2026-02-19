@@ -284,7 +284,11 @@ class PostFeedAPITests(APITestCase):
         self.assertEqual(len(page_1_ids & recommended_ids), 2)
         self.assertEqual(len(page_2_ids & recommended_ids), 2)
 
-    def test_feed_requires_authentication(self):
+    def test_feed_allows_anonymous_access(self):
         response = self.client.get(reverse("post-feed"))
 
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 200)
+        results = self._extract_results(response)
+        returned_ids = {item["id"] for item in results}
+        self.assertIn(self.animal_post.id, returned_ids)
+        self.assertIn(self.org_post.id, returned_ids)
