@@ -136,17 +136,25 @@ class PostViewSet(viewsets.ModelViewSet):
         animal_ct = ContentType.objects.get_for_model(Animal)
         organization_ct = ContentType.objects.get_for_model(Organization)
 
-        followed_animal_ids = list(Follow.objects.filter(
-            user=request.user,
-            target_type=animal_ct,
-            notification_preferences__posts=True,
-        ).values_list("target_id", flat=True))
+        followed_animal_ids = []
+        followed_organization_ids = []
 
-        followed_organization_ids = list(Follow.objects.filter(
-            user=request.user,
-            target_type=organization_ct,
-            notification_preferences__posts=True,
-        ).values_list("target_id", flat=True))
+        if request.user.is_authenticated:
+            followed_animal_ids = list(
+                Follow.objects.filter(
+                    user=request.user,
+                    target_type=animal_ct,
+                    notification_preferences__posts=True,
+                ).values_list("target_id", flat=True)
+            )
+
+            followed_organization_ids = list(
+                Follow.objects.filter(
+                    user=request.user,
+                    target_type=organization_ct,
+                    notification_preferences__posts=True,
+                ).values_list("target_id", flat=True)
+            )
 
         has_followed_entities = bool(followed_animal_ids or followed_organization_ids)
 
