@@ -66,6 +66,38 @@ def _get_target_label(notification: Notification) -> str | None:
     return animal.name
 
 
+def _get_animal_context(notification: Notification) -> dict[str, Any]:
+    if notification.target_type != "animal":
+        return {"target_owner": None, "target_organization": None}
+
+    try:
+        animal = Animal.objects.select_related("owner", "organization").get(pk=notification.target_id)
+    except Animal.DoesNotExist:
+        return {"target_owner": None, "target_organization": None}
+
+    owner_payload: dict[str, Any] | None = None
+    if animal.owner is not None:
+        owner_payload = {
+            "id": animal.owner.id,
+            "first_name": animal.owner.first_name,
+            "last_name": animal.owner.last_name,
+            "email": animal.owner.email,
+        }
+
+    organization_payload: dict[str, Any] | None = None
+    if animal.organization is not None:
+        organization_payload = {
+            "id": animal.organization.id,
+            "name": animal.organization.name,
+            "email": animal.organization.email,
+        }
+
+    return {
+        "target_owner": owner_payload,
+        "target_organization": organization_payload,
+    }
+
+
 def build_notification_payload(
     notification: Notification,
     extra_payload: dict[str, Any] | None = None,
@@ -101,6 +133,7 @@ def build_notification_payload(
         "is_read": notification.is_read,
         "created_at": notification.created_at.isoformat(),
     }
+    payload.update(_get_animal_context(notification))
     if extra_payload:
         payload.update(extra_payload)
     return payload
