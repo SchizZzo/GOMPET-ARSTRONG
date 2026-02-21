@@ -21,6 +21,7 @@ from asgiref.sync import async_to_sync
 from rest_framework.test import APIClient
 from gompet_new.middleware import JWTAuthMiddleware, JWTAuthMiddlewareStack
 from posts.models import Post
+from users.models import Organization, OrganizationType
 
 
 class NotificationHelpersTests(TestCase):
@@ -65,6 +66,47 @@ class NotificationHelpersTests(TestCase):
         self.assertEqual(payload["target_id"], 1)
         self.assertIsNone(payload["created_object_id"])
         self.assertEqual(payload["type"], "unknown")
+        self.assertIsNone(payload["target_owner"])
+        self.assertIsNone(payload["target_organization"])
+
+    def test_build_notification_payload_contains_animal_owner_and_organization(self) -> None:
+        User = get_user_model()
+        recipient = User.objects.create_user(email="to2@example.com", password="secret")
+        actor = User.objects.create_user(email="from2@example.com", password="secret")
+        owner = User.objects.create_user(
+            email="owner2@example.com",
+            password="secret",
+            first_name="Animal",
+            last_name="Owner",
+        )
+        organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Azyl Przyjaciele",
+            email="azyl@example.com",
+            user=owner,
+        )
+        animal = Animal.objects.create(
+            name="Reksio",
+            species="dog",
+            gender=Gender.MALE,
+            size=Size.SMALL,
+            owner=owner,
+            organization=organization,
+        )
+        notification = Notification.objects.create(
+            recipient=recipient,
+            actor=actor,
+            verb="polubił(a)",
+            target_type="animal",
+            target_id=animal.id,
+        )
+
+        payload = build_notification_payload(notification)
+
+        self.assertEqual(payload["target_owner"]["id"], owner.id)
+        self.assertEqual(payload["target_owner"]["email"], owner.email)
+        self.assertEqual(payload["target_organization"]["id"], organization.id)
+        self.assertEqual(payload["target_organization"]["name"], organization.name)
 
 
 class NotificationSignalTests(TestCase):
