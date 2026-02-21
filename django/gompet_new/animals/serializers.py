@@ -46,6 +46,15 @@ class Base64ImageField(serializers.ImageField):
                 data = ContentFile(base64.b64decode(data), name=file_name)
         return super().to_internal_value(data)
 
+    def to_representation(self, value):
+        representation = super().to_representation(value)
+        if not representation:
+            return representation
+        request = self.context.get("request") if hasattr(self, "context") else None
+        if request and representation.startswith("/"):
+            return request.build_absolute_uri(representation)
+        return representation
+
 
 class CharacteristicsSerializer(serializers.ModelSerializer):
     class Meta:
@@ -262,14 +271,14 @@ class AnimalSerializer(serializers.ModelSerializer):
         """Return organization data via explicit relation or owner membership."""
         organization = getattr(obj, "organization", None)
         if organization:
-            return OrganizationSerializer(organization).data
+            return OrganizationSerializer(organization, context=self.context).data
         user = getattr(obj, "owner", None)
         if not user:
             return None
         membership = user.memberships.first()
         if not membership:
             return None
-        return OrganizationSerializer(membership.organization).data
+        return OrganizationSerializer(membership.organization, context=self.context).data
 
     def validate_organization_id(self, organization):
         if organization is None:
@@ -370,10 +379,11 @@ class AnimalParentTreeSerializer(serializers.ModelSerializer):
             if self.depth >= self.MAX_DEPTH:
                 return []
             qs = AnimalParent.objects.filter(animal=obj.parent)
+            nested_context = {"depth": self.depth + 1, **self.context}
             serializer = AnimalParentTreeSerializer(
                 qs,
                 many=True,
-                context={'depth': self.depth + 1}
+                context=nested_context,
             )
             return serializer.data
 
@@ -381,10 +391,11 @@ class AnimalParentTreeSerializer(serializers.ModelSerializer):
             if self.depth >= self.MAX_DEPTH:
                 return []
             qs = AnimalParent.objects.filter(parent=obj.animal)
+            nested_context = {"depth": self.depth + 1, **self.context}
             serializer = AnimalParentTreeSerializer(
                 qs,
                 many=True,
-                context={'depth': self.depth + 1}
+                context=nested_context,
             )
             return serializer.data
 
