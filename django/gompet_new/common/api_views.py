@@ -397,6 +397,7 @@ class FollowViewSet(viewsets.ModelViewSet):
         methods=["get"],
         url_path="followers-count",
         url_name="followers-count",
+        permission_classes=[permissions.IsAuthenticatedOrReadOnly],
     )
     def followers_count(self, request):
         target_type_param = request.query_params.get("target_type")
