@@ -391,3 +391,51 @@ class FollowViewSet(viewsets.ModelViewSet):
         )
 
         return Response({"follow_id": follow_id or 0})
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="followers-count",
+        url_name="followers-count",
+    )
+    def followers_count(self, request):
+        target_type_param = request.query_params.get("target_type")
+        target_id_param = request.query_params.get("target_id")
+
+        if target_type_param is None or target_id_param is None:
+            return Response(
+                {"detail": "Query parameters 'target_type' and 'target_id' are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            target_content_type = resolve_content_type(target_type_param)
+        except ContentType.DoesNotExist:
+            return Response(
+                {"detail": "Invalid 'target_type'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if (
+            target_content_type.app_label,
+            target_content_type.model,
+        ) not in {("users", "organization"), ("animals", "animal")}:
+            return Response(
+                {"detail": "'target_type' must be users.organization or animals.animal."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            target_id = int(target_id_param)
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "Invalid 'target_id'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        followers_count = Follow.objects.filter(
+            target_type=target_content_type,
+            target_id=target_id,
+        ).count()
+
+        return Response({"followers_count": followers_count})

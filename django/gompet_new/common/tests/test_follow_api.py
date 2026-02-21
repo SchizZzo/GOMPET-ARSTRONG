@@ -44,6 +44,7 @@ class FollowViewSetTests(TestCase):
 
         self.follow_list_url = reverse("follow-list")
         self.follow_is_following_url = reverse("follow-is-following")
+        self.follow_followers_count_url = reverse("follow-followers-count")
 
     def test_create_follow_for_animal(self) -> None:
         response = self.client.post(
@@ -171,3 +172,41 @@ class FollowViewSetTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["follow_id"], 0)
+
+    def test_followers_count_returns_count_for_animal(self) -> None:
+        Follow.objects.create(
+            user=self.user,
+            target_type=ContentType.objects.get_for_model(Animal),
+            target_id=self.animal.id,
+        )
+        Follow.objects.create(
+            user=self.other,
+            target_type=ContentType.objects.get_for_model(Animal),
+            target_id=self.animal.id,
+        )
+
+        response = self.client.get(
+            self.follow_followers_count_url,
+            {
+                "target_type": "animals.animal",
+                "target_id": self.animal.id,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["followers_count"], 2)
+
+    def test_followers_count_rejects_unsupported_target_type(self) -> None:
+        response = self.client.get(
+            self.follow_followers_count_url,
+            {
+                "target_type": "common.comment",
+                "target_id": 1,
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data["detail"],
+            "'target_type' must be users.organization or animals.animal.",
+        )
