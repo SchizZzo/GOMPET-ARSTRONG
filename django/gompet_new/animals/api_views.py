@@ -499,6 +499,15 @@ localhost/animals/animals/?size=MEDIUM
         if user_animals_by_id_param:
             qs = qs.filter(owner__id=user_animals_by_id_param)
 
+        limit_param = params.get('limit')
+        if limit_param:
+            try:
+                limit = int(limit_param)
+                if limit > 0:
+                    qs = qs[:limit]
+            except (TypeError, ValueError):
+                pass
+
 
 
 
