@@ -55,6 +55,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         queryset = Comment.objects.all()
         object_id = self.request.query_params.get('object_id')
         content_type_id = self.request.query_params.get('content_type')
+        limit = self.request.query_params.get('limit')
 
         if object_id is not None:
             queryset = queryset.filter(object_id=object_id)
@@ -73,6 +74,15 @@ class CommentViewSet(viewsets.ModelViewSet):
             else:
                 # Zakładamy, że to ID
                 queryset = queryset.filter(content_type_id=content_type_id)
+
+        if limit is not None:
+            try:
+                limit_value = int(limit)
+            except (TypeError, ValueError):
+                limit_value = None
+
+            if limit_value is not None and limit_value > 0:
+                queryset = queryset[:limit_value]
             
         return queryset
 
