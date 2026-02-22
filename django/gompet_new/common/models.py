@@ -86,19 +86,6 @@ class Comment(TimeStampedModel):
             }
         )
 
-    def _validate_organization_rating_required(self) -> None:
-        if not self._is_organization_comment() or self.rating is not None:
-            return
-
-        raise ValidationError(
-            {
-                "rating": ValidationError(
-                    "Ocena jest wymagana dla opinii o organizacji.",
-                    code="COMMENT_RATING_REQUIRED",
-                )
-            }
-        )
-
     def _refresh_organization_rating_from_comments(self) -> None:
         """Przelicza ocenę organizacji na podstawie ocenionych komentarzy."""
         if not self._is_organization_comment():
@@ -151,7 +138,6 @@ class Comment(TimeStampedModel):
     def clean(self) -> None:
         super().clean()
         self._validate_body_length()
-        self._validate_organization_rating_required()
         self._validate_single_organization_rating_per_user()
 
     def save(self, *args, **kwargs):
