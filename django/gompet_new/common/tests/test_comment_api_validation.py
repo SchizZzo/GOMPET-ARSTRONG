@@ -60,6 +60,32 @@ class CommentApiValidationTests(TestCase):
             },
         )
 
+
+    def test_comment_list_limit_returns_latest_entries(self) -> None:
+        user_ct = ContentType.objects.get_for_model(self.owner.__class__)
+        base_payload = {
+            "content_type": user_ct.id,
+            "object_id": self.owner.id,
+            "rating": None,
+        }
+
+        for body in ["pierwszy komentarz", "drugi komentarz", "trzeci komentarz", "czwarty komentarz"]:
+            response = self.client.post(
+                self.url,
+                {**base_payload, "body": body},
+                format="json",
+            )
+            self.assertEqual(response.status_code, 201)
+
+        response = self.client.get(f"{self.url}?limit=3")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 3)
+        self.assertEqual(
+            [comment["body"] for comment in response.data],
+            ["czwarty komentarz", "trzeci komentarz", "drugi komentarz"],
+        )
+
     def test_organization_comment_requires_rating_and_minimum_body(self) -> None:
         payload = {
             "content_type": self.organization_ct.id,
