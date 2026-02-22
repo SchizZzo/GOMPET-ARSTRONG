@@ -56,6 +56,7 @@ class Comment(TimeStampedModel):
     body   = models.TextField()
     rating = models.PositiveSmallIntegerField(
         null=True, blank=True,
+        
         validators=[MinValueValidator(1), MaxValueValidator(5)],
         help_text="Opcjonalna ocena 1-5 (np. dla zwierzaków).",
     )
