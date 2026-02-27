@@ -7,7 +7,7 @@ from django.core.files.storage import default_storage
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 from rest_framework import serializers, status
-from .serializers import Base64ImageField, UserUpdateSerializer
+from .serializers import Base64ImageField, OrganizationUpdateSerializer, UserUpdateSerializer
 
 
 
@@ -26,6 +26,7 @@ from .models import (
     Organization,
     OrganizationType,
     OrganizationMember,
+    Species,
 )
 from .services import CannotDeleteUser, delete_user_account
 from .serializers import Base64ImageField
@@ -519,3 +520,105 @@ class OrganizationAddressViewSetTests(TestCase):
         self.assertEqual(payload["organization_id"], organization.id)
         self.assertEqual(payload["organization_name"], organization.name)
         self.assertEqual(payload["city"], address.city)
+
+
+class OrganizationUpdateSerializerTests(TestCase):
+    def test_updates_nested_address_fields(self):
+        owner = User.objects.create_user(
+            email="owner-update-address@example.com",
+            password="secret",
+            first_name="Owner",
+            last_name="Address",
+        )
+        organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Aktualizacja Adresu",
+            email="update-address@example.com",
+            phone="",
+            user=owner,
+        )
+        address = Address.objects.create(
+            organization=organization,
+            city="Kraków",
+            street="Stara",
+            house_number="1",
+            zip_code="30-001",
+        )
+
+        serializer = OrganizationUpdateSerializer(
+            instance=organization,
+            data={
+                "name": "Aktualizacja Adresu 2",
+                "address": {
+                    "city": "Gdańsk",
+                    "street": "Nowa",
+                    "house_number": "5",
+                    "zip_code": "80-001",
+                    "lat": None,
+                    "lng": None,
+                    "location": None,
+                    "species": [],
+                },
+            },
+            partial=True,
+        )
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        updated = serializer.save()
+
+        updated.refresh_from_db()
+        address.refresh_from_db()
+
+        self.assertEqual(updated.name, "Aktualizacja Adresu 2")
+        self.assertEqual(address.city, "Gdańsk")
+        self.assertEqual(address.street, "Nowa")
+        self.assertEqual(address.house_number, "5")
+        self.assertEqual(address.zip_code, "80-001")
+
+    def test_updates_nested_address_species(self):
+        owner = User.objects.create_user(
+            email="owner-update-species@example.com",
+            password="secret",
+            first_name="Owner",
+            last_name="Species",
+        )
+        organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Aktualizacja Gatunków",
+            email="update-species@example.com",
+            phone="",
+            user=owner,
+        )
+        address = Address.objects.create(
+            organization=organization,
+            city="Poznań",
+            street="Leśna",
+            house_number="7",
+            zip_code="60-001",
+        )
+        dog = Species.objects.create(name="Dog")
+        cat = Species.objects.create(name="Cat")
+        address.species.set([dog])
+
+        serializer = OrganizationUpdateSerializer(
+            instance=organization,
+            data={
+                "address": {
+                    "city": address.city,
+                    "street": address.street,
+                    "house_number": address.house_number,
+                    "zip_code": address.zip_code,
+                    "lat": address.lat,
+                    "lng": address.lng,
+                    "location": address.location,
+                    "species": [cat.id],
+                }
+            },
+            partial=True,
+        )
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        serializer.save()
+
+        address.refresh_from_db()
+        self.assertEqual(list(address.species.values_list("id", flat=True)), [cat.id])
