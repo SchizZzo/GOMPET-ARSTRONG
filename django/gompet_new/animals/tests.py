@@ -562,3 +562,15 @@ class AnimalPartialUpdateOrganizationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.animal.refresh_from_db()
         self.assertIsNone(self.animal.organization)
+
+    def test_patch_clears_organization_in_response_payload(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            self.url,
+            {"organization": None},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data["organization"])
