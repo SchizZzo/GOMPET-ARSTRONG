@@ -207,7 +207,7 @@ localhost/animals/animals/?size=MEDIUM
         options = [
             {
                 "kind": "self",
-                "label": "Ja",
+                "label": "noOrganization",
                 "owner_id": request.user.id,
                 "organization_id": None,
             }
