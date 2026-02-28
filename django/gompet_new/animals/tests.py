@@ -533,3 +533,16 @@ class AnimalPartialUpdateOrganizationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.animal.refresh_from_db()
         self.assertIsNone(self.animal.organization)
+
+    def test_patch_accepts_null_for_organization_field(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            self.url,
+            {"organization": None},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.animal.refresh_from_db()
+        self.assertIsNone(self.animal.organization)
