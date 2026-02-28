@@ -12,6 +12,8 @@ from django.contrib.gis.geos import Point
 from django.urls import reverse
 from rest_framework.test import APIClient
 
+from users.models import Organization, OrganizationMember, OrganizationType
+
 from .models import (
     Animal,
     AnimalGallery,
@@ -431,3 +433,54 @@ class AnimalViewSetGeoFilteringTests(TestCase):
         ids = [item["id"] for item in response.data]
         self.assertIn(near.id, ids)
         self.assertNotIn(far.id, ids)
+
+
+class AnimalAssignmentOptionsTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = get_user_model().objects.create_user(
+            email="member@example.com",
+            password="testpass",
+            first_name="Member",
+            last_name="User",
+        )
+        self.owner = get_user_model().objects.create_user(
+            email="owner@example.com",
+            password="testpass",
+            first_name="Org",
+            last_name="Owner",
+        )
+        self.organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Test Shelter",
+            email="shelter@example.com",
+            user=self.owner,
+        )
+        OrganizationMember.objects.create(
+            user=self.user,
+            organization=self.organization,
+        )
+        self.url = reverse("animal-assignment-options")
+
+    def test_requires_authentication(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 401)
+
+    def test_returns_self_and_member_organizations(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("results", response.data)
+        self.assertEqual(len(response.data["results"]), 2)
+
+        self_option = response.data["results"][0]
+        org_option = response.data["results"][1]
+
+        self.assertEqual(self_option["kind"], "self")
+        self.assertEqual(self_option["owner_id"], self.user.id)
+        self.assertIsNone(self_option["organization_id"])
+
+        self.assertEqual(org_option["kind"], "organization")
+        self.assertEqual(org_option["organization_id"], self.organization.id)
+        self.assertEqual(org_option["owner_id"], self.organization.user_id)
