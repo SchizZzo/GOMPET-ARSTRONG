@@ -273,8 +273,15 @@ class AnimalSerializer(serializers.ModelSerializer):
             return value
 
         data = data.copy()
-        if "organization" in data and "organization_id" not in data:
-            data["organization_id"] = data.get("organization")
+        if "organization" in data:
+            normalized_organization = normalize_nullish(data.get("organization"))
+            if normalized_organization is None:
+                # Explicitly clearing the read-only `organization` field should
+                # always detach the animal, even if a stale `organization_id`
+                # value is also present in the payload.
+                data["organization_id"] = None
+            elif "organization_id" not in data:
+                data["organization_id"] = data.get("organization")
 
         if "organization_id" in data:
             data["organization_id"] = normalize_nullish(data.get("organization_id"))
