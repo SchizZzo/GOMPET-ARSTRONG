@@ -169,6 +169,15 @@ class CharacterItemSerializer(serializers.Serializer):
     bool = serializers.BooleanField()
 
 
+class NullableOrganizationPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
+    """Treat textual null-like values as ``None`` for organization assignment."""
+
+    def to_internal_value(self, data):
+        if isinstance(data, str) and data.strip().lower() in {"", "null", "none"}:
+            return None
+        return super().to_internal_value(data)
+
+
 class AnimalSerializer(serializers.ModelSerializer):
     owner = serializers.PrimaryKeyRelatedField(read_only=True)
     owner_info = UserSerializer(source="owner", read_only=True)
@@ -189,7 +198,7 @@ class AnimalSerializer(serializers.ModelSerializer):
     reactions = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     distance = serializers.SerializerMethodField(read_only=True)
     organization = serializers.SerializerMethodField(read_only=True)
-    organization_id = serializers.PrimaryKeyRelatedField(
+    organization_id = NullableOrganizationPrimaryKeyRelatedField(
         source="organization",
         queryset=Organization.objects.all(),
         required=False,
