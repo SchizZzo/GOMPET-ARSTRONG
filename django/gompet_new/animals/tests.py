@@ -12,7 +12,7 @@ from django.contrib.gis.geos import Point
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from users.models import Organization, OrganizationMember, OrganizationType
+from users.models import MemberRole, Organization, OrganizationMember, OrganizationType
 
 from .models import (
     Animal,
@@ -484,6 +484,37 @@ class AnimalAssignmentOptionsTests(TestCase):
         self.assertEqual(org_option["kind"], "organization")
         self.assertEqual(org_option["organization_id"], self.organization.id)
         self.assertEqual(org_option["owner_id"], self.organization.user_id)
+
+    def test_excludes_organizations_without_add_animal_permission(self):
+        readonly_owner = get_user_model().objects.create_user(
+            email="owner-viewer@example.com",
+            password="testpass",
+            first_name="Viewer",
+            last_name="Owner",
+        )
+        readonly_organization = Organization.objects.create(
+            type=OrganizationType.FUND,
+            name="Readonly Org",
+            email="readonly@example.com",
+            user=readonly_owner,
+        )
+        OrganizationMember.objects.create(
+            user=self.user,
+            organization=readonly_organization,
+            role=MemberRole.VIEWER,
+        )
+
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        organization_ids = {
+            option["organization_id"]
+            for option in response.data["results"]
+            if option["kind"] == "organization"
+        }
+        self.assertIn(self.organization.id, organization_ids)
+        self.assertNotIn(readonly_organization.id, organization_ids)
 
 
 class AnimalPartialUpdateOrganizationTests(TestCase):
