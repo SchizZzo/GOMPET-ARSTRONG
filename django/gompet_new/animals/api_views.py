@@ -34,6 +34,7 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from rest_framework import serializers
+from rest_framework import permissions
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from django.contrib.gis.db.models.functions import Distance
@@ -177,6 +178,42 @@ localhost/animals/animals/?size=MEDIUM
             serializer.save(**save_kwargs)
             return
         serializer.save()
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="assignment-options",
+        permission_classes=[permissions.IsAuthenticated],
+    )
+    def assignment_options(self, request, *args, **kwargs):
+        """Return assignable targets for animal creation (self + member organizations)."""
+        memberships = (
+            Organization.objects.filter(members__user=request.user)
+            .distinct()
+            .order_by("name")
+        )
+
+        options = [
+            {
+                "kind": "self",
+                "label": "Ja",
+                "owner_id": request.user.id,
+                "organization_id": None,
+            }
+        ]
+
+        for organization in memberships:
+            options.append(
+                {
+                    "kind": "organization",
+                    "label": organization.name,
+                    "owner_id": organization.user_id,
+                    "organization_id": organization.id,
+                    "organization_type": organization.type,
+                }
+            )
+
+        return Response({"results": options})
 
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
