@@ -302,17 +302,11 @@ class AnimalSerializer(serializers.ModelSerializer):
         return None if dist is None else round(dist.m)  # zwraca odległość w metrach
     
     def get_organization(self, obj):
-        """Return organization data via explicit relation or owner membership."""
+        """Return organization data only from explicit animal relation."""
         organization = getattr(obj, "organization", None)
         if organization:
             return OrganizationSerializer(organization, context=self.context).data
-        user = getattr(obj, "owner", None)
-        if not user:
-            return None
-        membership = user.memberships.first()
-        if not membership:
-            return None
-        return OrganizationSerializer(membership.organization, context=self.context).data
+        return None
 
     def validate_organization_id(self, organization):
         if organization is None:
