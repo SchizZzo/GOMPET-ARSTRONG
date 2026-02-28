@@ -1044,5 +1044,7 @@ class AnimalsBreedGroupsViewSet(viewsets.ModelViewSet):
     queryset = AnimalsBreedGroups.objects.all()
     serializer_class = AnimalsBreedGroupsSerializer
     permission_classes = [OrganizationRolePermissions]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["species"]
 
     
