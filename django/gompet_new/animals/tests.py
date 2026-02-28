@@ -546,3 +546,19 @@ class AnimalPartialUpdateOrganizationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.animal.refresh_from_db()
         self.assertIsNone(self.animal.organization)
+
+    def test_patch_organization_null_takes_precedence_over_stale_organization_id(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            self.url,
+            {
+                "organization": None,
+                "organization_id": self.organization.id,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.animal.refresh_from_db()
+        self.assertIsNone(self.animal.organization)
