@@ -263,9 +263,21 @@ class AnimalSerializer(serializers.ModelSerializer):
         return obj.age_display
 
     def to_internal_value(self, data):
+        def normalize_nullish(value):
+            if value is None:
+                return None
+            if isinstance(value, str):
+                normalized = value.strip().strip('"').lower()
+                if normalized in {"", "null", "none"}:
+                    return None
+            return value
+
+        data = data.copy()
         if "organization" in data and "organization_id" not in data:
-            data = data.copy()
             data["organization_id"] = data.get("organization")
+
+        if "organization_id" in data:
+            data["organization_id"] = normalize_nullish(data.get("organization_id"))
         return super().to_internal_value(data)
 
     def validate(self, attrs):
