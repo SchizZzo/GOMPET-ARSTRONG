@@ -262,6 +262,12 @@ class AnimalSerializer(serializers.ModelSerializer):
     def get_age_display(self, obj):
         return obj.age_display
 
+    def to_internal_value(self, data):
+        if "organization" in data and "organization_id" not in data:
+            data = data.copy()
+            data["organization_id"] = data.get("organization")
+        return super().to_internal_value(data)
+
     def validate(self, attrs):
         attrs = super().validate(attrs)
         if self.instance is None and not attrs.get("image"):
