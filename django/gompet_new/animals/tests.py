@@ -484,3 +484,52 @@ class AnimalAssignmentOptionsTests(TestCase):
         self.assertEqual(org_option["kind"], "organization")
         self.assertEqual(org_option["organization_id"], self.organization.id)
         self.assertEqual(org_option["owner_id"], self.organization.user_id)
+
+
+class AnimalPartialUpdateOrganizationTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = get_user_model().objects.create_user(
+            email="member-update@example.com",
+            password="testpass",
+            first_name="Member",
+            last_name="Updater",
+        )
+        self.owner = get_user_model().objects.create_user(
+            email="owner-update@example.com",
+            password="testpass",
+            first_name="Org",
+            last_name="Owner",
+        )
+        self.organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Update Shelter",
+            email="update-shelter@example.com",
+            user=self.owner,
+        )
+        OrganizationMember.objects.create(
+            user=self.user,
+            organization=self.organization,
+        )
+        self.animal = Animal.objects.create(
+            name="Patchable",
+            species="Dog",
+            gender=Gender.FEMALE,
+            size=Size.SMALL,
+            owner=self.owner,
+            organization=self.organization,
+        )
+        self.url = reverse("animals-detail", args=[self.animal.id])
+
+    def test_patch_accepts_string_null_for_organization_id(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            self.url,
+            {"organization_id": "null"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.animal.refresh_from_db()
+        self.assertIsNone(self.animal.organization)
