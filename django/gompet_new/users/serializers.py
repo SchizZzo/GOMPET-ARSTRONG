@@ -2,6 +2,7 @@ import base64
 import binascii
 import imghdr
 import uuid
+import requests
 
 from django.core.files.base import ContentFile
 from rest_framework import serializers
@@ -178,6 +179,29 @@ class AddressSerializer(serializers.ModelSerializer):
             "distance",
             "species",
         ]
+        extra_kwargs = {
+            "city": {"required": False, "allow_blank": True},
+        }
+
+    def validate(self, attrs):
+        city = attrs.get("city")
+        location = attrs.get("location")
+        city_missing = city is None or (isinstance(city, str) and city.strip() == "")
+        is_create = self.instance is None and getattr(self.parent, "instance", None) is None
+
+        if city_missing and location is not None:
+            try:
+                attrs["city"] = Address.get_city(location.y, location.x) or ""
+            except requests.RequestException:
+                attrs["city"] = attrs.get("city") or ""
+
+        if is_create and not attrs.get("city"):
+            raise serializers.ValidationError(
+                {"city": "Pole city jest wymagane, gdy nie da się go wyznaczyć z location."}
+            )
+
+        return attrs
+
     def get_distance(self, obj):
         # Jeśli w queryset było .annotate(distance=...), to obj.distance to GEOSDistance
         dist = getattr(obj, "distance", None)

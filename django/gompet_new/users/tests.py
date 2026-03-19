@@ -5,9 +5,15 @@ from dataclasses import dataclass
 from django.contrib.auth import get_user_model
 from django.core.files.storage import default_storage
 from django.test import TestCase, override_settings
+from django.contrib.gis.geos import Point
 from rest_framework.test import APIClient
 from rest_framework import serializers, status
-from .serializers import Base64ImageField, OrganizationUpdateSerializer, UserUpdateSerializer
+from .serializers import (
+    Base64ImageField,
+    OrganizationCreateSerializer,
+    OrganizationUpdateSerializer,
+    UserUpdateSerializer,
+)
 
 
 
@@ -669,3 +675,82 @@ class OrganizationUpdateSerializerTests(TestCase):
 
         address.refresh_from_db()
         self.assertEqual(list(address.species.values_list("id", flat=True)), [cat.id])
+
+    def test_create_uses_location_to_fill_city_when_city_missing(self):
+        owner = User.objects.create_user(
+            email="owner-create-location-city@example.com",
+            password="secret",
+            first_name="Owner",
+            last_name="Create",
+        )
+
+        with mock.patch("users.models.Address.get_city", return_value="Warszawa"):
+            serializer = OrganizationCreateSerializer(
+                data={
+                    "type": OrganizationType.SHELTER,
+                    "name": "Organizacja z lokalizacji",
+                    "email": "organization-location@example.com",
+                    "phone": "",
+                    "description": "",
+                    "address": {
+                        "street": "Nowy Swiat",
+                        "house_number": "1",
+                        "zip_code": "00-001",
+                        "lat": 52.229676,
+                        "lng": 21.012229,
+                        "location": Point(21.012229, 52.229676),
+                        "species": [],
+                    },
+                }
+            )
+            self.assertTrue(serializer.is_valid(), serializer.errors)
+            organization = serializer.save(user=owner)
+
+        organization.refresh_from_db()
+        organization.address.refresh_from_db()
+        self.assertEqual(organization.address.city, "Warszawa")
+
+    def test_update_location_without_city_recomputes_city(self):
+        owner = User.objects.create_user(
+            email="owner-update-location-city@example.com",
+            password="secret",
+            first_name="Owner",
+            last_name="Update",
+        )
+        organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Aktualizacja Lokalizacji",
+            email="update-location-city@example.com",
+            phone="",
+            user=owner,
+        )
+        address = Address.objects.create(
+            organization=organization,
+            city="Stare Miasto",
+            street="Stara",
+            house_number="7",
+            zip_code="60-001",
+            location=Point(17.000000, 51.000000),
+        )
+
+        with mock.patch("users.models.Address.get_city", return_value="Krakow"):
+            serializer = OrganizationUpdateSerializer(
+                instance=organization,
+                data={
+                    "address": {
+                        "street": address.street,
+                        "house_number": address.house_number,
+                        "zip_code": address.zip_code,
+                        "lat": 50.061430,
+                        "lng": 19.936580,
+                        "location": Point(19.936580, 50.061430),
+                        "species": [],
+                    }
+                },
+                partial=True,
+            )
+            self.assertTrue(serializer.is_valid(), serializer.errors)
+            serializer.save()
+
+        address.refresh_from_db()
+        self.assertEqual(address.city, "Krakow")

@@ -13,6 +13,7 @@ from django.contrib.auth.models import (
 from django.contrib.gis.db import models as gis_models
 import re
 import unicodedata
+import requests
 
 
 
@@ -501,6 +502,34 @@ class Address(models.Model):
 
     class Meta:
         db_table = "addresses"
+
+    @staticmethod
+    def get_city(lat, lon):
+        url = "https://nominatim.openstreetmap.org/reverse"
+        params = {
+            "lat": lat,
+            "lon": lon,
+            "format": "json",
+            "addressdetails": 1,
+        }
+        headers = {"User-Agent": "Gompet"}
+        response = requests.get(url, params=params, headers=headers, timeout=5)
+        response.raise_for_status()
+        addr = response.json().get("address", {})
+        return (
+            addr.get("city")
+            or addr.get("town")
+            or addr.get("village")
+            or addr.get("municipality")
+        )
+
+    def save(self, *args, **kwargs):
+        if self.location and not self.city:
+            try:
+                self.city = self.get_city(self.location.y, self.location.x) or ""
+            except requests.RequestException:
+                self.city = self.city or ""
+        super().save(*args, **kwargs)
 
     def __str__(self) -> str:
         return f"{self.street} {self.house_number}, {self.city}"
