@@ -15,6 +15,8 @@ from django.contrib.postgres.fields import ArrayField
 
 from django.contrib.postgres.indexes import GinIndex
 
+import re
+import unicodedata
 import requests
 
 from users.models import Species, Organization
@@ -41,6 +43,41 @@ class AnimalStatus(models.TextChoices):
     RESERVED    = "RESERVED",    "Reserved"
     ADOPTED     = "ADOPTED",     "Adopted"
     NOT_LISTED  = "NOT_LISTED",  "Hidden / Internal"
+
+
+BREED_LABEL_TOKEN_TRANSLATIONS = {
+    "miniaturowy": "MINIATURE",
+    "owczarek": "SHEPHERD",
+    "amerykanski": "AMERICAN",
+    "bialy": "WHITE",
+    "szwajcarski": "SWISS",
+    "slowacki": "SLOVAK",
+    "chorwacki": "CROATIAN",
+    "francuski": "FRENCH",
+    "holenderski": "DUTCH",
+    "katalonski": "CATALAN",
+    "niemiecki": "GERMAN",
+    "pikardyjski": "PICARDY",
+    "pirenejski": "PYRENEAN",
+    "poludnioworosyjski": "SOUTH_RUSSIAN",
+    "portugalski": "PORTUGUESE",
+    "staroangielski": "OLD_ENGLISH",
+    "szetlandzki": "SHETLAND",
+    "szkocki": "SCOTTISH",
+    "majorki": "MAJORCA",
+    "polski": "POLISH",
+    "nizinny": "LOWLAND",
+    "podhalanski": "TATRA",
+    "dlugowlosy": "LONG_HAIRED",
+    "krotkowlosy": "SHORT_HAIRED",
+    "szorstkowlosy": "ROUGH_HAIRED",
+    "juzak": "YUZHAK",
+    "kolorowy": "COLORED",
+    "ciobanesc": "SHEPHERD",
+    "romanesc": "ROMANIAN",
+    "pes": "DOG",
+}
+BREED_LABEL_STOPWORDS = {"a", "z", "typ"}
 
 
 class ParentRelation(models.TextChoices):
@@ -275,6 +312,7 @@ class Animal(models.Model):
 class Characteristics(models.Model):
     id          = models.BigAutoField(primary_key=True)
     characteristic         = models.CharField(max_length=80, unique=True)
+    label       = models.CharField(max_length=120, blank=True, default="", db_index=True)
     description = models.TextField(blank=True, null=True)
 
     created_at  = models.DateTimeField(auto_now_add=True)
@@ -284,8 +322,22 @@ class Characteristics(models.Model):
     class Meta:
         db_table = "characteristics"
 
+    @staticmethod
+    def normalize_label(name: str) -> str:
+        if not isinstance(name, str):
+            return ""
+        normalized = re.sub(r"(?<!^)(?=[A-Z])", "_", name.strip())
+        normalized = re.sub(r"[\s\-]+", "_", normalized)
+        normalized = re.sub(r"[^a-zA-Z0-9_]+", "_", normalized)
+        normalized = re.sub(r"_+", "_", normalized).strip("_")
+        return normalized.upper()
+
     def __str__(self) -> str:
         return self.characteristic
+
+    def save(self, *args, **kwargs):
+        self.label = self.normalize_label(self.characteristic)
+        super().save(*args, **kwargs)
     
 
 class AnimalCharacteristic(models.Model):
@@ -434,6 +486,7 @@ class AnimalsWeightRanges(models.Model):
 class AnimalsBreedGroups(models.Model):
     id = models.BigAutoField(primary_key=True)
     group_name = models.CharField(max_length=100, unique=True)
+    label = models.CharField(max_length=180, blank=True, default="", db_index=True)
     species = models.ForeignKey(
         Species,
         on_delete=models.CASCADE,
@@ -485,6 +538,32 @@ class AnimalsBreedGroups(models.Model):
 
     class Meta:
         db_table = "animal_breed_groups"
+
+    @staticmethod
+    def normalize_label(group_name: str) -> str:
+        if not isinstance(group_name, str):
+            return ""
+
+        ascii_group_name = (
+            unicodedata.normalize("NFKD", group_name)
+            .encode("ascii", "ignore")
+            .decode("ascii")
+        )
+        normalized = re.sub(r"[^a-zA-Z0-9]+", "_", ascii_group_name).strip("_")
+        if not normalized:
+            return ""
+
+        tokens = [token.lower() for token in normalized.split("_") if token]
+        translated_tokens = [
+            BREED_LABEL_TOKEN_TRANSLATIONS.get(token, token.upper())
+            for token in tokens
+            if token not in BREED_LABEL_STOPWORDS
+        ]
+        return "_".join(translated_tokens)
+
+    def save(self, *args, **kwargs):
+        self.label = self.normalize_label(self.group_name)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.group_name

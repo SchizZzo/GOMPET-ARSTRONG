@@ -43,7 +43,7 @@ from django.contrib.gis.measure import D
 from django.contrib.gis.geos import GEOSGeometry, GEOSException
 from django.db.models import Q
 import json
-from django.core.exceptions import FieldError
+from django.core.exceptions import FieldError, ObjectDoesNotExist
 from common.models import Reaction, ReactionType
 from django.contrib.auth import get_user_model
 
@@ -135,6 +135,17 @@ localhost/animals/animals/?size=MEDIUM
     #     queryset = self.filter_queryset(self.get_queryset())
     #     serializer = self.get_serializer(queryset, many=True)
     #     return Response(serializer.data)
+
+    @staticmethod
+    def _get_organization_address_location(organization):
+        """Return organization.address.location or ``None`` when missing."""
+        if organization is None:
+            return None
+        try:
+            address = organization.address
+        except ObjectDoesNotExist:
+            return None
+        return getattr(address, "location", None)
 
     def perform_create(self, serializer):
         # automatycznie ustawia właściciela na zalogowanego użytkownika
@@ -267,10 +278,8 @@ localhost/animals/animals/?size=MEDIUM
             if organization:
                 owner = organization.user
                 save_kwargs["owner"] = owner
-                if location is None:
-                    address = getattr(organization, "address", None)
-                    organization_location = getattr(address, "location", None)
-                    location = organization_location or getattr(owner, "location", None)
+                location = self._get_organization_address_location(organization)
+                save_kwargs["location"] = location
             elif location is None and owner:
                 location = getattr(owner, "location", None)
 
@@ -278,9 +287,10 @@ localhost/animals/animals/?size=MEDIUM
             owner_provided
             and owner != instance.owner
             and not organization_provided
-            and location is None
         ):
-            location = getattr(owner, "location", None)
+            # Keep animal location synchronized with owner location after owner change.
+            location = getattr(owner, "location", None) if owner is not None else None
+            save_kwargs["location"] = location
 
         if location is not None:
             save_kwargs["location"] = location
@@ -929,6 +939,20 @@ class AnimalCharacteristicViewSet(viewsets.ModelViewSet):
     queryset = AnimalCharacteristic.objects.all()
     serializer_class = AnimalCharacteristicSerializer
     permission_classes = [OrganizationRolePermissions]
+
+    def list(self, request, *args, **kwargs):
+        characteristics = Characteristics.objects.all().order_by("id")
+        payload = [
+            {
+                "id": characteristic.id,
+                "name": characteristic.characteristic,
+                "label": characteristic.label or Characteristics.normalize_label(
+                    characteristic.characteristic
+                ),
+            }
+            for characteristic in characteristics
+        ]
+        return Response(payload)
 
 
 @extend_schema(

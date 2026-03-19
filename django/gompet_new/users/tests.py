@@ -522,6 +522,53 @@ class OrganizationAddressViewSetTests(TestCase):
         self.assertEqual(payload["city"], address.city)
 
 
+class OrganizationMemberRoleListViewTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_returns_roles_with_uppercase_english_label_and_numeric_value(self):
+        response = self.client.get("/users/organization-member-roles/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("roles", response.data)
+        roles = response.data["roles"]
+        self.assertTrue(len(roles) > 0)
+
+        for idx, role in enumerate(roles, start=1):
+            self.assertEqual(role["value"], idx)
+            self.assertEqual(role["label"], role["label"].upper())
+
+        moderator_role = next((item for item in roles if item["label"] == "MODERATOR"), None)
+        self.assertIsNotNone(moderator_role)
+        self.assertIsInstance(moderator_role["value"], int)
+
+
+class SpeciesViewSetTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_list_returns_species_name_uppercase_and_label_from_db(self):
+        Species.objects.create(name="dog", description="canine")
+        Species.objects.create(name="swinka morska", description="guinea pig")
+
+        response = self.client.get("/users/species/")
+
+        self.assertEqual(response.status_code, 200)
+        results = response.data.get("results", response.data)
+        self.assertTrue(len(results) >= 2)
+        labels = {item["label"] for item in results}
+        self.assertIn("DOG", labels)
+        self.assertIn("GUINEA_PIG", labels)
+        for item in results:
+            self.assertIn("id", item)
+            self.assertEqual(item["name"], item["name"].upper())
+
+    def test_species_label_is_persisted_in_database(self):
+        species = Species.objects.create(name="swinka morska", description="guinea pig")
+        species.refresh_from_db()
+        self.assertEqual(species.label, "GUINEA_PIG")
+
+
 class OrganizationUpdateSerializerTests(TestCase):
     def test_updates_nested_address_fields(self):
         owner = User.objects.create_user(

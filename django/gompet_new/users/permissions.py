@@ -120,7 +120,13 @@ class OrganizationRolePermissions(BasePermission):
             organization_id = request.data.get("organization_id")
         organization_id = organization_id or request.query_params.get("organization-id")
         organization_id = organization_id or request.query_params.get("organization")
-        if organization_id:
+        if organization_id in ("", "null", "None"):
+            organization_id = None
+        if organization_id is not None:
+            try:
+                organization_id = int(organization_id)
+            except (TypeError, ValueError):
+                return None
             return Organization.objects.filter(pk=organization_id).first()
 
         return None

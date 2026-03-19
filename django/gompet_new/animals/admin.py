@@ -62,16 +62,16 @@ class AnimalCharacteristicAdmin(admin.ModelAdmin):
 
 @admin.register(Characteristics)
 class CharacteristicsAdmin(admin.ModelAdmin):
-    list_display = ('id', 'characteristic', 'description', 'created_at', 'updated_at')
-    search_fields = ('characteristic',)
-    readonly_fields = ('created_at', 'updated_at', 'deleted_at')
+    list_display = ('id', 'characteristic', 'label', 'description', 'created_at', 'updated_at')
+    search_fields = ('characteristic', 'label')
+    readonly_fields = ('label', 'created_at', 'updated_at', 'deleted_at')
 
 
 @admin.register(AnimalsBreedGroups)
 class AnimalsBreedGroupsAdmin(admin.ModelAdmin):
-    list_display = ('id', 'group_name', 'species', 'description', 'created_at', 'updated_at')
-    search_fields = ('group_name',)
-    readonly_fields = ('created_at', 'updated_at', 'deleted_at')
+    list_display = ('id', 'group_name', 'label', 'species', 'description', 'created_at', 'updated_at')
+    search_fields = ('group_name', 'label')
+    readonly_fields = ('label', 'created_at', 'updated_at', 'deleted_at')
 
 @admin.register(AnimalGallery)
 class AnimalGalleryAdmin(admin.ModelAdmin):

@@ -59,7 +59,7 @@ class Base64ImageField(serializers.ImageField):
 class CharacteristicsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Characteristics
-        fields = ('id', 'characteristic', 'description', 'created_at', 'updated_at')
+        fields = ('id', 'characteristic', 'label', 'description', 'created_at', 'updated_at')
         read_only_fields = ('created_at', 'updated_at')
 
 class AnimalCharacteristicSerializer(serializers.ModelSerializer):
@@ -363,6 +363,13 @@ class AnimalSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         gallery = validated_data.pop("gallery", None)
+        location_provided = "location" in validated_data
+        city_provided = "city" in validated_data
+
+        # When location changes and city is omitted, force city refresh from location.
+        if location_provided and not city_provided:
+            validated_data["city"] = ""
+
         animal = super().update(instance, validated_data)
         if gallery is not None:
             instance.gallery.all().delete()
@@ -501,7 +508,7 @@ class RecentlyAddedAnimalSerializer(serializers.ModelSerializer):
 class AnimalsBreedGroupsSerializer(serializers.ModelSerializer):
     class Meta:
         model = AnimalsBreedGroups
-        fields = ('id', 'group_name', 'species', 'description', 'created_at', 'updated_at')
+        fields = ('id', 'label', 'group_name', 'species', 'description', 'created_at', 'updated_at')
         read_only_fields = ('created_at', 'updated_at')
 
     

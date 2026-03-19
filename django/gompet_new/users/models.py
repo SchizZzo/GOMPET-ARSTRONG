@@ -11,6 +11,8 @@ from django.contrib.auth.models import (
     BaseUserManager,
 )
 from django.contrib.gis.db import models as gis_models
+import re
+import unicodedata
 
 
 
@@ -377,12 +379,43 @@ class BreedingTypeOrganizations(models.Model):
         return f"{self.organization.name} - {self.breeding_type}"
     
 
+SPECIES_LABEL_TOKEN_TRANSLATIONS = {
+    "pies": "DOG",
+    "dog": "DOG",
+    "kot": "CAT",
+    "cat": "CAT",
+    "krolik": "RABBIT",
+    "rabbit": "RABBIT",
+    "swinka": "GUINEA",
+    "morska": "PIG",
+    "guinea": "GUINEA",
+    "pig": "PIG",
+    "chomik": "HAMSTER",
+    "hamster": "HAMSTER",
+    "szczur": "RAT",
+    "rat": "RAT",
+    "mysz": "MOUSE",
+    "mouse": "MOUSE",
+    "ptak": "BIRD",
+    "bird": "BIRD",
+    "gad": "REPTILE",
+    "reptile": "REPTILE",
+    "plaz": "AMPHIBIAN",
+    "amphibian": "AMPHIBIAN",
+    "ryba": "FISH",
+    "fish": "FISH",
+    "inne": "OTHER",
+    "other": "OTHER",
+}
+
+
 class Species(models.Model):
     """
     Model gatunku zwierzęcia.
     """
     id             = models.BigAutoField(primary_key=True)
     name           = models.CharField(max_length=100, unique=True)
+    label          = models.CharField(max_length=120, blank=True, default="", db_index=True)
     description    = models.TextField(blank=True, null=True)
 
     created_at     = models.DateTimeField(default=timezone.now)
@@ -390,6 +423,32 @@ class Species(models.Model):
 
     class Meta:
         db_table = "species"
+
+    @staticmethod
+    def normalize_label(name: str) -> str:
+        if not isinstance(name, str):
+            return ""
+
+        camel_cased = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", name)
+        ascii_name = (
+            unicodedata.normalize("NFKD", camel_cased)
+            .encode("ascii", "ignore")
+            .decode("ascii")
+        )
+        normalized = re.sub(r"[^a-zA-Z0-9]+", "_", ascii_name).strip("_")
+        if not normalized:
+            return ""
+
+        translated_tokens = [
+            SPECIES_LABEL_TOKEN_TRANSLATIONS.get(token.lower(), token.upper())
+            for token in normalized.split("_")
+            if token
+        ]
+        return "_".join(translated_tokens)
+
+    def save(self, *args, **kwargs):
+        self.label = self.normalize_label(self.name)
+        super().save(*args, **kwargs)
 
     def __str__(self) -> str:
         return self.name

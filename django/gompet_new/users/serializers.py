@@ -216,8 +216,16 @@ class SpeciesSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "name",
+            "label",
             "description",
         ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        name = data.get("name")
+        if isinstance(name, str):
+            data["name"] = name.upper()
+        return data
 class BreedingTypeSerializer(serializers.ModelSerializer):
     """Serializer typu hodowli zwierzęcia."""
     class Meta:
@@ -467,14 +475,14 @@ class OrganizationTypeSerializer(serializers.Serializer):
 
 class MemberRoleSerializer(serializers.Serializer):
     """Representation of organization member role choices."""
-    value = serializers.CharField()
+    value = serializers.IntegerField()
     label = serializers.CharField()
 
     @staticmethod
     def get_choices():
         return [
-            {"value": choice.value, "label": choice.label}
-            for choice in MemberRole
+            {"value": index, "label": choice.value}
+            for index, choice in enumerate(MemberRole, start=1)
         ]
     
 
@@ -493,3 +501,5 @@ class OrganizationAddressSerializer(AddressSerializer):
             "organization_type",
             *AddressSerializer.Meta.fields,
         ]
+
+

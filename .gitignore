@@ -22,4 +22,4 @@ endpoints.txt
 .next
 node_modules  
 .env
- 
+BACKUP/*.zip

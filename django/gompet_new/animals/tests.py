@@ -2,6 +2,7 @@ from datetime import timedelta
 
 import base64
 import tempfile
+from unittest.mock import patch
 
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -12,12 +13,14 @@ from django.contrib.gis.geos import Point
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from users.models import MemberRole, Organization, OrganizationMember, OrganizationType
+from users.models import Address, MemberRole, Organization, OrganizationMember, OrganizationType, Species
 
 from .models import (
     Animal,
+    AnimalsBreedGroups,
     AnimalGallery,
     AnimalParent,
+    Characteristics,
     Gender,
     ParentRelation,
     Size,
@@ -550,7 +553,7 @@ class AnimalPartialUpdateOrganizationTests(TestCase):
             owner=self.owner,
             organization=self.organization,
         )
-        self.url = reverse("animals-detail", args=[self.animal.id])
+        self.url = reverse("animal-detail", args=[self.animal.id])
 
     def test_patch_accepts_string_null_for_organization_id(self):
         self.client.force_authenticate(user=self.user)
@@ -605,3 +608,258 @@ class AnimalPartialUpdateOrganizationTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.data["organization"])
+
+    def test_patch_organization_null_sets_location_from_animal_owner(self):
+        self.client.force_authenticate(user=self.user)
+        owner_location = Point(20.0, 52.0)
+        self.owner.location = owner_location
+        self.owner.save(update_fields=["location"])
+        self.animal.location = Point(17.0, 51.0)
+        self.animal.save(update_fields=["location"])
+
+        response = self.client.patch(
+            self.url,
+            {"organization": None},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.animal.refresh_from_db()
+        self.assertIsNotNone(self.animal.location)
+        self.assertAlmostEqual(self.animal.location.x, owner_location.x, places=6)
+        self.assertAlmostEqual(self.animal.location.y, owner_location.y, places=6)
+
+    def test_patch_changing_organization_sets_location_from_organization_address(self):
+        self.client.force_authenticate(user=self.user)
+        self.animal.location = Point(17.0, 51.0)
+        self.animal.save(update_fields=["location"])
+
+        new_owner = get_user_model().objects.create_user(
+            email="owner-location@example.com",
+            password="testpass",
+            first_name="Org",
+            last_name="Location",
+        )
+        new_organization = Organization.objects.create(
+            type=OrganizationType.FUND,
+            name="Location Foundation",
+            email="location-foundation@example.com",
+            user=new_owner,
+        )
+        OrganizationMember.objects.create(
+            user=self.user,
+            organization=new_organization,
+        )
+        address_location = Point(19.94, 50.06)
+        Address.objects.create(
+            organization=new_organization,
+            city="Krakow",
+            street="Dluga",
+            house_number="10",
+            zip_code="30-001",
+            location=address_location,
+        )
+
+        response = self.client.patch(
+            self.url,
+            {"organization": new_organization.id},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.animal.refresh_from_db()
+        self.assertEqual(self.animal.organization, new_organization)
+        self.assertIsNotNone(self.animal.location)
+        self.assertAlmostEqual(self.animal.location.x, address_location.x, places=6)
+        self.assertAlmostEqual(self.animal.location.y, address_location.y, places=6)
+
+    def test_patch_changing_organization_without_address_location_clears_animal_location(self):
+        self.client.force_authenticate(user=self.user)
+        self.animal.location = Point(17.0, 51.0)
+        self.animal.save(update_fields=["location"])
+
+        no_address_owner = get_user_model().objects.create_user(
+            email="owner-no-address@example.com",
+            password="testpass",
+            first_name="Org",
+            last_name="NoAddress",
+        )
+        no_address_organization = Organization.objects.create(
+            type=OrganizationType.OTHER,
+            name="No Address Org",
+            email="no-address-org@example.com",
+            user=no_address_owner,
+        )
+        OrganizationMember.objects.create(
+            user=self.user,
+            organization=no_address_organization,
+        )
+
+        response = self.client.patch(
+            self.url,
+            {"organization": no_address_organization.id},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.animal.refresh_from_db()
+        self.assertEqual(self.animal.organization, no_address_organization)
+        self.assertIsNone(self.animal.location)
+
+    def test_patch_location_without_city_recomputes_city_from_location(self):
+        self.client.force_authenticate(user=self.user)
+        self.animal.city = "OldCity"
+        self.animal.location = Point(17.0, 51.0)
+        self.animal.save(update_fields=["city", "location"])
+
+        with patch("animals.models.Animal.get_city", return_value="NewCity"):
+            response = self.client.patch(
+                self.url,
+                {"location": "POINT(19.94 50.06)"},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.animal.refresh_from_db()
+        self.assertEqual(self.animal.city, "NewCity")
+
+    def test_patch_organization_null_without_city_uses_owner_location_for_city(self):
+        self.client.force_authenticate(user=self.user)
+        self.owner.location = Point(20.0, 52.0)
+        self.owner.save(update_fields=["location"])
+        self.animal.city = "OldCity"
+        self.animal.location = Point(17.0, 51.0)
+        self.animal.save(update_fields=["city", "location"])
+
+        with patch("animals.models.Animal.get_city", return_value="OwnerCity"):
+            response = self.client.patch(
+                self.url,
+                {"organization": None},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.animal.refresh_from_db()
+        self.assertEqual(self.animal.city, "OwnerCity")
+
+    def test_patch_owner_change_sets_location_from_new_owner(self):
+        self.client.force_authenticate(user=self.user)
+        self.animal.location = Point(17.0, 51.0)
+        self.animal.save(update_fields=["location"])
+
+        new_owner_location = Point(14.55, 53.43)
+        new_owner = get_user_model().objects.create_user(
+            email="owner-new-location@example.com",
+            password="testpass",
+            first_name="Owner",
+            last_name="NewLocation",
+            location=new_owner_location,
+        )
+
+        with patch("animals.models.Animal.get_city", return_value="Szczecin"):
+            response = self.client.patch(
+                self.url,
+                {"owner": new_owner.id},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.animal.refresh_from_db()
+        self.assertEqual(self.animal.owner, new_owner)
+        self.assertIsNotNone(self.animal.location)
+        self.assertAlmostEqual(self.animal.location.x, new_owner_location.x, places=6)
+        self.assertAlmostEqual(self.animal.location.y, new_owner_location.y, places=6)
+
+    def test_patch_owner_change_without_location_clears_animal_location(self):
+        self.client.force_authenticate(user=self.user)
+        self.animal.location = Point(17.0, 51.0)
+        self.animal.save(update_fields=["location"])
+
+        new_owner_without_location = get_user_model().objects.create_user(
+            email="owner-without-location@example.com",
+            password="testpass",
+            first_name="Owner",
+            last_name="NoLocation",
+        )
+
+        response = self.client.patch(
+            self.url,
+            {"owner": new_owner_without_location.id},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.animal.refresh_from_db()
+        self.assertEqual(self.animal.owner, new_owner_without_location)
+        self.assertIsNone(self.animal.location)
+
+
+class AnimalsBreedGroupsEndpointTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.species = Species.objects.create(name="Dog")
+
+    def test_list_returns_uppercase_label_for_breed_group(self):
+        breed_group = AnimalsBreedGroups.objects.create(
+            group_name="labrador retriever",
+            species=self.species,
+            description="Friendly family dog",
+        )
+        breed_group.refresh_from_db()
+
+        response = self.client.get("/animals/animal-breed/")
+
+        self.assertEqual(response.status_code, 200)
+        results = response.data.get("results", response.data)
+        payload = next(item for item in results if item["id"] == breed_group.id)
+        self.assertEqual(breed_group.label, "LABRADOR_RETRIEVER")
+        self.assertEqual(payload["label"], breed_group.label)
+        self.assertEqual(payload["group_name"], "labrador retriever")
+
+    def test_list_returns_english_label_for_polish_breed_group_name(self):
+        breed_group = AnimalsBreedGroups.objects.create(
+            group_name="Polski owczarek nizinny",
+            species=self.species,
+            description="Polish breed",
+        )
+        breed_group.refresh_from_db()
+
+        response = self.client.get("/animals/animal-breed/")
+
+        self.assertEqual(response.status_code, 200)
+        results = response.data.get("results", response.data)
+        payload = next(item for item in results if item["id"] == breed_group.id)
+        self.assertEqual(breed_group.label, "POLISH_SHEPHERD_LOWLAND")
+        self.assertEqual(payload["label"], breed_group.label)
+
+
+class AnimalCharacteristicsListEndpointTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_returns_dog_characteristics_with_name_and_uppercase_label(self):
+        response = self.client.get("/animals/characteristics/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        self.assertTrue(len(response.data) >= 20)
+        db_names = set(Characteristics.objects.values_list("characteristic", flat=True))
+        api_names = {item["name"] for item in response.data}
+        self.assertEqual(api_names, db_names)
+        self.assertFalse(Characteristics.objects.filter(label="").exists())
+
+        has_chip = next((item for item in response.data if item["name"] == "hasChip"), None)
+        city = next((item for item in response.data if item["name"] == "canLiveInACity"), None)
+        has_chip_db = Characteristics.objects.get(characteristic="hasChip")
+        city_db = Characteristics.objects.get(characteristic="canLiveInACity")
+
+        self.assertIsNotNone(has_chip)
+        self.assertEqual(has_chip["id"], has_chip_db.id)
+        self.assertEqual(has_chip["label"], has_chip_db.label)
+        self.assertIsNotNone(city)
+        self.assertEqual(city["id"], city_db.id)
+        self.assertEqual(city["label"], city_db.label)
+
+        for item in response.data:
+            self.assertIsInstance(item["id"], int)
+            self.assertEqual(set(item.keys()), {"id", "name", "label"})
