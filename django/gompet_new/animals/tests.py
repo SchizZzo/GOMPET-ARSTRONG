@@ -80,6 +80,50 @@ class AnimalSerializerAgeTests(TestCase):
         self.assertEqual(data["age"], 3)
 
 
+class AnimalSerializerLabelRepresentationTests(TestCase):
+    """Ensure API representation exposes labels for species and breed."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.species, _ = Species.objects.get_or_create(name="Dog")
+        self.breed_group = AnimalsBreedGroups.objects.create(
+            group_name="labrador retriever",
+            species=self.species,
+        )
+
+    def test_serializer_maps_species_and_breed_ids_to_labels(self):
+        animal = Animal.objects.create(
+            name="LabelDog",
+            species=str(self.species.id),
+            breed=str(self.breed_group.id),
+            gender=Gender.MALE,
+            size=Size.SMALL,
+        )
+
+        data = AnimalSerializer(animal).data
+
+        self.assertEqual(data["species"], self.species.label)
+        self.assertEqual(data["breed"], self.breed_group.label)
+
+    def test_animals_list_returns_species_and_breed_labels(self):
+        animal = Animal.objects.create(
+            name="ApiDog",
+            species=str(self.species.id),
+            breed=str(self.breed_group.id),
+            gender=Gender.FEMALE,
+            size=Size.MEDIUM,
+        )
+
+        response = self.client.get(reverse("animal-list"))
+
+        self.assertEqual(response.status_code, 200)
+        results = response.data.get("results", response.data)
+        payload = next(item for item in results if item["id"] == animal.id)
+
+        self.assertEqual(payload["species"], self.species.label)
+        self.assertEqual(payload["breed"], self.breed_group.label)
+
+
 class AnimalParentModelTests(TestCase):
     """Validations for AnimalParent relations."""
 
@@ -797,7 +841,7 @@ class AnimalPartialUpdateOrganizationTests(TestCase):
 class AnimalsBreedGroupsEndpointTests(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.species = Species.objects.create(name="Dog")
+        self.species, _ = Species.objects.get_or_create(name="Dog")
 
     def test_list_returns_uppercase_label_for_breed_group(self):
         breed_group = AnimalsBreedGroups.objects.create(
@@ -837,7 +881,7 @@ class AnimalCharacteristicsListEndpointTests(TestCase):
     def setUp(self):
         self.client = APIClient()
 
-    def test_returns_dog_characteristics_with_name_and_uppercase_label(self):
+    def test_returns_dog_characteristics_with_name_uppercase_label_and_species(self):
         response = self.client.get("/animals/characteristics/")
 
         self.assertEqual(response.status_code, 200)
@@ -852,14 +896,32 @@ class AnimalCharacteristicsListEndpointTests(TestCase):
         city = next((item for item in response.data if item["name"] == "canLiveInACity"), None)
         has_chip_db = Characteristics.objects.get(characteristic="hasChip")
         city_db = Characteristics.objects.get(characteristic="canLiveInACity")
+        dog_species = Species.objects.get(label="DOG")
 
         self.assertIsNotNone(has_chip)
         self.assertEqual(has_chip["id"], has_chip_db.id)
         self.assertEqual(has_chip["label"], has_chip_db.label)
+        self.assertEqual(has_chip["species"], dog_species.label)
         self.assertIsNotNone(city)
         self.assertEqual(city["id"], city_db.id)
         self.assertEqual(city["label"], city_db.label)
+        self.assertEqual(city["species"], dog_species.label)
 
         for item in response.data:
             self.assertIsInstance(item["id"], int)
-            self.assertEqual(set(item.keys()), {"id", "name", "label"})
+            self.assertEqual(set(item.keys()), {"id", "name", "label", "species"})
+
+    def test_filters_characteristics_by_species_query_param(self):
+        cat_species = Species.objects.create(name="Cat")
+        cat_characteristic = Characteristics.objects.create(
+            characteristic="usesLitterBox",
+            species=cat_species,
+        )
+
+        response = self.client.get("/animals/characteristics/?species=CAT")
+
+        self.assertEqual(response.status_code, 200)
+        names = {item["name"] for item in response.data}
+        self.assertIn(cat_characteristic.characteristic, names)
+        self.assertNotIn("hasChip", names)
+        self.assertTrue(all(item["species"] == cat_species.label for item in response.data))

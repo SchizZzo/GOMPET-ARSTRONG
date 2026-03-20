@@ -313,6 +313,13 @@ class Characteristics(models.Model):
     id          = models.BigAutoField(primary_key=True)
     characteristic         = models.CharField(max_length=80, unique=True)
     label       = models.CharField(max_length=120, blank=True, default="", db_index=True)
+    species = models.ForeignKey(
+        Species,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="characteristics",
+    )
     description = models.TextField(blank=True, null=True)
 
     created_at  = models.DateTimeField(auto_now_add=True)

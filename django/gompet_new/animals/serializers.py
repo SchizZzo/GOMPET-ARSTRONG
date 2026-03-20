@@ -12,7 +12,7 @@ from .models import (
 from django.contrib.gis.measure import Distance as D
 from django.contrib.gis.db.models.functions import Distance
 
-from users.models import Organization, OrganizationMember
+from users.models import Organization, OrganizationMember, Species
 from users.serializers import OrganizationSerializer, UserSerializer
 
 from .models import ParentRelation
@@ -59,7 +59,7 @@ class Base64ImageField(serializers.ImageField):
 class CharacteristicsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Characteristics
-        fields = ('id', 'characteristic', 'label', 'description', 'created_at', 'updated_at')
+        fields = ('id', 'characteristic', 'label', 'species', 'description', 'created_at', 'updated_at')
         read_only_fields = ('created_at', 'updated_at')
 
 class AnimalCharacteristicSerializer(serializers.ModelSerializer):
@@ -257,6 +257,66 @@ class AnimalSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
+
+    @staticmethod
+    def _normalize_lookup_value(value):
+        if value is None:
+            return None
+        return str(value).strip()
+
+    def _get_species_label(self, value):
+        normalized_value = self._normalize_lookup_value(value)
+        if normalized_value is None:
+            return None
+        if normalized_value == "":
+            return ""
+
+        cache = getattr(self, "_species_label_cache", {})
+        if normalized_value in cache:
+            return cache[normalized_value]
+
+        species = None
+        if normalized_value.isdigit():
+            species = Species.objects.filter(pk=int(normalized_value)).only("label").first()
+        if species is None:
+            species = Species.objects.filter(label__iexact=normalized_value).only("label").first()
+        if species is None:
+            species = Species.objects.filter(name__iexact=normalized_value).only("label").first()
+
+        resolved_label = species.label if species and species.label else normalized_value
+        cache[normalized_value] = resolved_label
+        self._species_label_cache = cache
+        return resolved_label
+
+    def _get_breed_label(self, value):
+        normalized_value = self._normalize_lookup_value(value)
+        if normalized_value is None:
+            return None
+        if normalized_value == "":
+            return ""
+
+        cache = getattr(self, "_breed_label_cache", {})
+        if normalized_value in cache:
+            return cache[normalized_value]
+
+        breed_group = None
+        if normalized_value.isdigit():
+            breed_group = AnimalsBreedGroups.objects.filter(pk=int(normalized_value)).only("label").first()
+        if breed_group is None:
+            breed_group = AnimalsBreedGroups.objects.filter(label__iexact=normalized_value).only("label").first()
+        if breed_group is None:
+            breed_group = AnimalsBreedGroups.objects.filter(group_name__iexact=normalized_value).only("label").first()
+
+        resolved_label = breed_group.label if breed_group and breed_group.label else normalized_value
+        cache[normalized_value] = resolved_label
+        self._breed_label_cache = cache
+        return resolved_label
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation["species"] = self._get_species_label(representation.get("species"))
+        representation["breed"] = self._get_breed_label(representation.get("breed"))
+        return representation
 
     
     def get_age_display(self, obj):

@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
-from users.models import Organization, OrganizationMember, UserRole
+from users.models import Organization, OrganizationMember, Species, UserRole
 from users.role_permissions import ROLE_PERMISSIONS
 
 from .permissions import OrganizationRolePermissions
@@ -941,13 +941,34 @@ class AnimalCharacteristicViewSet(viewsets.ModelViewSet):
     permission_classes = [OrganizationRolePermissions]
 
     def list(self, request, *args, **kwargs):
-        characteristics = Characteristics.objects.all().order_by("id")
+        characteristics = Characteristics.objects.select_related("species").all().order_by("id")
+
+        species_param = request.query_params.get("species")
+        if species_param:
+            species_values = [value.strip() for value in species_param.split(",") if value.strip()]
+            species_filter = Q()
+            for value in species_values:
+                species_filter |= Q(species__label__iexact=value) | Q(species__name__iexact=value)
+                if value.isdigit():
+                    species_filter |= Q(species_id=int(value))
+            if species_filter:
+                characteristics = characteristics.filter(species_filter)
+
         payload = [
             {
                 "id": characteristic.id,
                 "name": characteristic.characteristic,
                 "label": characteristic.label or Characteristics.normalize_label(
                     characteristic.characteristic
+                ),
+                "species": (
+                    characteristic.species.label
+                    if characteristic.species and characteristic.species.label
+                    else (
+                        Species.normalize_label(characteristic.species.name)
+                        if characteristic.species
+                        else None
+                    )
                 ),
             }
             for characteristic in characteristics

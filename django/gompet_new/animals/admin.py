@@ -62,8 +62,9 @@ class AnimalCharacteristicAdmin(admin.ModelAdmin):
 
 @admin.register(Characteristics)
 class CharacteristicsAdmin(admin.ModelAdmin):
-    list_display = ('id', 'characteristic', 'label', 'description', 'created_at', 'updated_at')
+    list_display = ('id', 'characteristic', 'label', 'species', 'description', 'created_at', 'updated_at')
     search_fields = ('characteristic', 'label')
+    list_filter = ('species',)
     readonly_fields = ('label', 'created_at', 'updated_at', 'deleted_at')
 
 

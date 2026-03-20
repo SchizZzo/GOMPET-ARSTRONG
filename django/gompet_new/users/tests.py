@@ -325,6 +325,65 @@ class OrganizationMemberNotificationTests(TestCase):
         self.assertEqual(notification.target_id, org.id)
 
 
+class OrganizationMemberPatchRoleInputTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.owner = User.objects.create_user(
+            email="owner-role-update@example.com",
+            password="secret",
+            first_name="Owner",
+            last_name="RoleUpdate",
+        )
+        self.organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Role Update Shelter",
+            email="role-update-shelter@example.com",
+            image="",
+            phone="",
+            user=self.owner,
+        )
+        OrganizationMember.objects.create(
+            user=self.owner,
+            organization=self.organization,
+            role=MemberRole.OWNER,
+        )
+        self.member_user = User.objects.create_user(
+            email="member-role-update@example.com",
+            password="secret",
+            first_name="Member",
+            last_name="RoleUpdate",
+        )
+        self.membership = OrganizationMember.objects.create(
+            user=self.member_user,
+            organization=self.organization,
+            role=MemberRole.STAFF,
+            invitation_confirmed=True,
+        )
+
+    @staticmethod
+    def _role_id(role_value):
+        return next(
+            index
+            for index, role in enumerate(MemberRole, start=1)
+            if role.value == role_value
+        )
+
+    def test_patch_accepts_role_id_instead_of_role_label(self):
+        self.client.force_authenticate(user=self.owner)
+        moderator_role_id = self._role_id(MemberRole.MODERATOR)
+
+        response = self.client.patch(
+            f"/users/organization-members/{self.membership.id}/",
+            {"role": moderator_role_id},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.membership.refresh_from_db()
+        self.assertEqual(self.membership.role, MemberRole.MODERATOR)
+        self.assertEqual(response.data["role"], MemberRole.MODERATOR)
+
+
 class UserUpdateCurrentAPITests(TestCase):
     def setUp(self):
         self.client = APIClient()

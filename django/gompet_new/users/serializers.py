@@ -1,4 +1,4 @@
-import base64
+﻿import base64
 import binascii
 import imghdr
 import uuid
@@ -44,7 +44,7 @@ class Base64ImageField(serializers.ImageField):
     
 
 class UserSerializer(serializers.ModelSerializer):
-    """Serializer do odczytu danych użytkownika."""
+    """Serializer do odczytu danych uĹĽytkownika."""
     full_name = serializers.CharField(read_only=True)
 
     class Meta:
@@ -68,7 +68,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    """Serializer do tworzenia nowego użytkownika."""
+    """Serializer do tworzenia nowego uĹĽytkownika."""
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     confirm_password = serializers.CharField(write_only=True, required=True)
     email = serializers.EmailField(required=True)
@@ -93,7 +93,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         confirm_password = attrs.get("confirm_password")
 
         if password != confirm_password:
-            raise serializers.ValidationError({"confirm_password": "Hasła muszą być takie same."})
+            raise serializers.ValidationError({"confirm_password": "HasĹ‚a muszÄ… byÄ‡ takie same."})
 
         return attrs
 
@@ -105,7 +105,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
-    """Serializer do aktualizacji danych użytkownika."""
+    """Serializer do aktualizacji danych uĹĽytkownika."""
     password = serializers.CharField(write_only=True, required=False)
 
     image = Base64ImageField(required=False, allow_null=True)
@@ -155,7 +155,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs.get("new_password") != attrs.get("confirm_password"):
-            raise serializers.ValidationError({"confirm_password": "Hasła muszą być takie same."})
+            raise serializers.ValidationError({"confirm_password": "HasĹ‚a muszÄ… byÄ‡ takie same."})
         return attrs
     
 
@@ -197,24 +197,24 @@ class AddressSerializer(serializers.ModelSerializer):
 
         if is_create and not attrs.get("city"):
             raise serializers.ValidationError(
-                {"city": "Pole city jest wymagane, gdy nie da się go wyznaczyć z location."}
+                {"city": "Pole city jest wymagane, gdy nie da siÄ™ go wyznaczyÄ‡ z location."}
             )
 
         return attrs
 
     def get_distance(self, obj):
-        # Jeśli w queryset było .annotate(distance=...), to obj.distance to GEOSDistance
+        # JeĹ›li w queryset byĹ‚o .annotate(distance=...), to obj.distance to GEOSDistance
         dist = getattr(obj, "distance", None)
         if dist is None and hasattr(obj, "organization"):
             dist = getattr(obj.organization, "distance", None)
-        return None if dist is None else round(dist.m)  # zwraca odległość w metrach
+        return None if dist is None else round(dist.m)  # zwraca odlegĹ‚oĹ›Ä‡ w metrach
     
     
     
 
 
 # class SpeciesOrganizationsSerializer(serializers.ModelSerializer):
-#     """Serializer dla organizacji według gatunku."""
+#     """Serializer dla organizacji wedĹ‚ug gatunku."""
 #     class Meta:
 #         model = SpeciesOrganizations
 #         fields = [
@@ -224,7 +224,7 @@ class AddressSerializer(serializers.ModelSerializer):
 #         ]
     
 class BreedingTypeOrganizationsSerializer(serializers.ModelSerializer):
-    """Serializer dla organizacji według typu hodowli."""
+    """Serializer dla organizacji wedĹ‚ug typu hodowli."""
     class Meta:
         model = BreedingTypeOrganizations
         fields = [
@@ -234,7 +234,7 @@ class BreedingTypeOrganizationsSerializer(serializers.ModelSerializer):
         ]
 
 class SpeciesSerializer(serializers.ModelSerializer):
-    """Serializer gatunku zwierzęcia."""
+    """Serializer gatunku zwierzÄ™cia."""
     class Meta:
         model = Species
         fields = [
@@ -251,7 +251,7 @@ class SpeciesSerializer(serializers.ModelSerializer):
             data["name"] = name.upper()
         return data
 class BreedingTypeSerializer(serializers.ModelSerializer):
-    """Serializer typu hodowli zwierzęcia."""
+    """Serializer typu hodowli zwierzÄ™cia."""
     class Meta:
         model = BreedingType
         fields = [
@@ -261,7 +261,7 @@ class BreedingTypeSerializer(serializers.ModelSerializer):
         ]
 
 class OrganizationSerializer(serializers.ModelSerializer):
-    """Serializer odczytu organizacji wraz z adresem i powiązaniami."""
+    """Serializer odczytu organizacji wraz z adresem i powiÄ…zaniami."""
     address = AddressSerializer(required=True)
     image = Base64ImageField(required=False, allow_null=True)
     # species = SpeciesOrganizationsSerializer(
@@ -413,7 +413,7 @@ class OrganizationOwnerChangeSerializer(serializers.Serializer):
 
 
 class OrganizationMemberSerializer(serializers.ModelSerializer):
-    """Serializer odczytu członkostwa."""
+    """Serializer odczytu czĹ‚onkostwa."""
     user = UserSerializer(read_only=True)
     organization = OrganizationSerializer(read_only=True)
 
@@ -433,13 +433,55 @@ class OrganizationMemberSerializer(serializers.ModelSerializer):
 
 
 class ProfileInfoSerializer(serializers.Serializer):
-    """Serializer dla informacji o profilu użytkownika."""
+    """Serializer dla informacji o profilu uĹĽytkownika."""
     user = UserSerializer(read_only=True)
     memberships = OrganizationMemberSerializer(many=True, read_only=True)
 
 
 class OrganizationMemberCreateSerializer(serializers.ModelSerializer):
-    """Serializer dodawania użytkownika do organizacji."""
+    """Serializer dodawania uĹĽytkownika do organizacji."""
+
+    class MemberRoleInputField(serializers.Field):
+        default_error_messages = {
+            "invalid_role": (
+                "Nieprawidłowa rola. Przekaż id roli z /users/organization-member-roles/ "
+                "lub kod roli (np. STAFF)."
+            )
+        }
+
+        @staticmethod
+        def _get_role_by_id(role_id):
+            roles = list(MemberRole)
+            if role_id < 1 or role_id > len(roles):
+                return None
+            return roles[role_id - 1]
+
+        def to_internal_value(self, data):
+            resolved_role = None
+
+            if isinstance(data, int):
+                resolved_role = self._get_role_by_id(data)
+            elif isinstance(data, str):
+                normalized = data.strip()
+                if normalized.isdigit():
+                    resolved_role = self._get_role_by_id(int(normalized))
+                else:
+                    normalized = normalized.upper()
+                    resolved_role = next(
+                        (role for role in MemberRole if role.value == normalized),
+                        None,
+                    )
+
+            if resolved_role is None:
+                self.fail("invalid_role")
+
+            return resolved_role.value
+
+        def to_representation(self, value):
+            return value
+
+    role = MemberRoleInputField(required=False)
+
     class Meta:
         model = OrganizationMember
         fields = [
@@ -452,7 +494,7 @@ class OrganizationMemberCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return OrganizationMember.objects.create(**validated_data)
-    
+
 
 class LatestOrganizationSerializer(serializers.ModelSerializer):
     """Serializer dla ostatnio dodanych organizacji."""
@@ -478,7 +520,7 @@ class LatestOrganizationSerializer(serializers.ModelSerializer):
             "address",
             "members",
         ]
-        # UWAGA: Kolejność zwracanych organizacji ustaw w widoku:
+        # UWAGA: KolejnoĹ›Ä‡ zwracanych organizacji ustaw w widoku:
         # queryset = Organization.objects.order_by('-created_at')[:N]
 
 
@@ -525,5 +567,7 @@ class OrganizationAddressSerializer(AddressSerializer):
             "organization_type",
             *AddressSerializer.Meta.fields,
         ]
+
+
 
 
