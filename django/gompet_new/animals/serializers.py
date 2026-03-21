@@ -264,58 +264,64 @@ class AnimalSerializer(serializers.ModelSerializer):
             return None
         return str(value).strip()
 
-    def _get_species_label(self, value):
+    def _get_species_data(self, value):
         normalized_value = self._normalize_lookup_value(value)
         if normalized_value is None:
             return None
         if normalized_value == "":
-            return ""
+            return {"id": None, "label": ""}
 
-        cache = getattr(self, "_species_label_cache", {})
+        cache = getattr(self, "_species_data_cache", {})
         if normalized_value in cache:
-            return cache[normalized_value]
+            return cache[normalized_value].copy()
 
         species = None
         if normalized_value.isdigit():
-            species = Species.objects.filter(pk=int(normalized_value)).only("label").first()
+            species = Species.objects.filter(pk=int(normalized_value)).only("id", "label").first()
         if species is None:
-            species = Species.objects.filter(label__iexact=normalized_value).only("label").first()
+            species = Species.objects.filter(label__iexact=normalized_value).only("id", "label").first()
         if species is None:
-            species = Species.objects.filter(name__iexact=normalized_value).only("label").first()
+            species = Species.objects.filter(name__iexact=normalized_value).only("id", "label").first()
 
-        resolved_label = species.label if species and species.label else normalized_value
-        cache[normalized_value] = resolved_label
-        self._species_label_cache = cache
-        return resolved_label
+        resolved_data = {
+            "id": species.id if species else None,
+            "label": species.label if species and species.label else normalized_value,
+        }
+        cache[normalized_value] = resolved_data
+        self._species_data_cache = cache
+        return resolved_data.copy()
 
-    def _get_breed_label(self, value):
+    def _get_breed_data(self, value):
         normalized_value = self._normalize_lookup_value(value)
         if normalized_value is None:
             return None
         if normalized_value == "":
-            return ""
+            return {"id": None, "label": ""}
 
-        cache = getattr(self, "_breed_label_cache", {})
+        cache = getattr(self, "_breed_data_cache", {})
         if normalized_value in cache:
-            return cache[normalized_value]
+            return cache[normalized_value].copy()
 
         breed_group = None
         if normalized_value.isdigit():
-            breed_group = AnimalsBreedGroups.objects.filter(pk=int(normalized_value)).only("label").first()
+            breed_group = AnimalsBreedGroups.objects.filter(pk=int(normalized_value)).only("id", "label").first()
         if breed_group is None:
-            breed_group = AnimalsBreedGroups.objects.filter(label__iexact=normalized_value).only("label").first()
+            breed_group = AnimalsBreedGroups.objects.filter(label__iexact=normalized_value).only("id", "label").first()
         if breed_group is None:
-            breed_group = AnimalsBreedGroups.objects.filter(group_name__iexact=normalized_value).only("label").first()
+            breed_group = AnimalsBreedGroups.objects.filter(group_name__iexact=normalized_value).only("id", "label").first()
 
-        resolved_label = breed_group.label if breed_group and breed_group.label else normalized_value
-        cache[normalized_value] = resolved_label
-        self._breed_label_cache = cache
-        return resolved_label
+        resolved_data = {
+            "id": breed_group.id if breed_group else None,
+            "label": breed_group.label if breed_group and breed_group.label else normalized_value,
+        }
+        cache[normalized_value] = resolved_data
+        self._breed_data_cache = cache
+        return resolved_data.copy()
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        representation["species"] = self._get_species_label(representation.get("species"))
-        representation["breed"] = self._get_breed_label(representation.get("breed"))
+        representation["species"] = self._get_species_data(representation.get("species"))
+        representation["breed"] = self._get_breed_data(representation.get("breed"))
         return representation
 
     

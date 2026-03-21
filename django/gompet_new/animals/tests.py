@@ -102,8 +102,10 @@ class AnimalSerializerLabelRepresentationTests(TestCase):
 
         data = AnimalSerializer(animal).data
 
-        self.assertEqual(data["species"], self.species.label)
-        self.assertEqual(data["breed"], self.breed_group.label)
+        self.assertEqual(data["species"]["id"], self.species.id)
+        self.assertEqual(data["species"]["label"], self.species.label)
+        self.assertEqual(data["breed"]["id"], self.breed_group.id)
+        self.assertEqual(data["breed"]["label"], self.breed_group.label)
 
     def test_animals_list_returns_species_and_breed_labels(self):
         animal = Animal.objects.create(
@@ -120,8 +122,10 @@ class AnimalSerializerLabelRepresentationTests(TestCase):
         results = response.data.get("results", response.data)
         payload = next(item for item in results if item["id"] == animal.id)
 
-        self.assertEqual(payload["species"], self.species.label)
-        self.assertEqual(payload["breed"], self.breed_group.label)
+        self.assertEqual(payload["species"]["id"], self.species.id)
+        self.assertEqual(payload["species"]["label"], self.species.label)
+        self.assertEqual(payload["breed"]["id"], self.breed_group.id)
+        self.assertEqual(payload["breed"]["label"], self.breed_group.label)
 
 
 class AnimalParentModelTests(TestCase):
