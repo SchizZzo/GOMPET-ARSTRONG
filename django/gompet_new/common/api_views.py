@@ -16,13 +16,98 @@ from .serializers import (
     FollowSerializer,
 )
 
+
+class StandardizedErrorResponseMixin:
+    """Return consistent error payloads for selected HTTP statuses."""
+
+    VALIDATION_ERROR_CODE = "validation_error"
+    VALIDATION_ERROR_MESSAGE = "Validation error."
+
+    ERROR_PAYLOADS = {
+        status.HTTP_401_UNAUTHORIZED: (
+            "not_authenticated",
+            "Authentication credentials were not provided.",
+        ),
+        status.HTTP_403_FORBIDDEN: (
+            "permission_denied",
+            "You do not have permission to perform this action.",
+        ),
+        status.HTTP_404_NOT_FOUND: (
+            "not_found",
+            "Resource not found.",
+        ),
+        status.HTTP_500_INTERNAL_SERVER_ERROR: (
+            "server_error",
+            "An internal server error occurred.",
+        ),
+    }
+
+    def _build_error_payload(self, status_code):
+        code, message = self.ERROR_PAYLOADS[status_code]
+        return {
+            "status": status_code,
+            "code": code,
+            "message": message,
+            "errors": {},
+        }
+
+    @staticmethod
+    def _is_standard_error_payload(data):
+        return (
+            isinstance(data, dict)
+            and {"status", "code", "message", "errors"}.issubset(data.keys())
+        )
+
+    def _build_validation_error_payload(self, errors):
+        if errors is None:
+            normalized_errors = {}
+        elif isinstance(errors, dict):
+            normalized_errors = errors
+        else:
+            normalized_errors = {"non_field_errors": errors}
+
+        return {
+            "status": status.HTTP_400_BAD_REQUEST,
+            "code": self.VALIDATION_ERROR_CODE,
+            "message": self.VALIDATION_ERROR_MESSAGE,
+            "errors": normalized_errors,
+        }
+
+    def validation_error_response(self, errors):
+        return Response(
+            self._build_validation_error_payload(errors),
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    def handle_exception(self, exc):
+        try:
+            response = super().handle_exception(exc)
+        except Exception:
+            return Response(
+                self._build_error_payload(status.HTTP_500_INTERNAL_SERVER_ERROR),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        if response is None:
+            return response
+
+        if self._is_standard_error_payload(response.data):
+            return response
+
+        if response.status_code == status.HTTP_400_BAD_REQUEST:
+            response.data = self._build_validation_error_payload(response.data)
+        elif response.status_code in self.ERROR_PAYLOADS:
+            response.data = self._build_error_payload(response.status_code)
+
+        return response
+
 # common/api_serializers.py
 
 @extend_schema(
     tags=["comments", "comments_organizations", "comments_orgazanizations_profile"],
     description="CRUD API dla komentarzy. GET list, POST create, PUT/PATCH update, DELETE delete."
 )
-class CommentViewSet(viewsets.ModelViewSet):
+class CommentViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
     CRUD API dla komentarzy.
     GET list, POST create, PUT/PATCH update, DELETE delete.
@@ -94,7 +179,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     tags=["content_types"],
     description="Retrieve a list of all available ContentType entries."
 )
-class ContentTypeViewSet(viewsets.ReadOnlyModelViewSet):
+class ContentTypeViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModelViewSet):
     """
     Read‐only endpoint for listing all ContentType entries.
     """
@@ -109,7 +194,7 @@ class ContentTypeViewSet(viewsets.ReadOnlyModelViewSet):
     tags=["reactions"],
     description="CRUD API dla reakcji. GET list, POST create, PUT/PATCH update, DELETE delete."
 )
-class ReactionViewSet(viewsets.ModelViewSet):
+class ReactionViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
     CRUD API dla reakcji.
 
@@ -255,32 +340,28 @@ class ReactionViewSet(viewsets.ModelViewSet):
 
         if missing_params:
             missing_display = ", ".join(f"'{param}'" for param in missing_params)
-            return Response(
-                {"detail": f"Query parameter(s) {missing_display} are required."},
-                status=status.HTTP_400_BAD_REQUEST,
+            return self.validation_error_response(
+                {"detail": f"Query parameter(s) {missing_display} are required."}
             )
 
         reaction_type_value = reaction_type_param.upper()
         if reaction_type_value not in ReactionType.values:
-            return Response(
-                {"detail": "Invalid 'reaction_type'."},
-                status=status.HTTP_400_BAD_REQUEST,
+            return self.validation_error_response(
+                {"detail": "Invalid 'reaction_type'."}
             )
 
         try:
             reactable_content_type = resolve_content_type(reactable_type_param)
         except ContentType.DoesNotExist:
-            return Response(
-                {"detail": "Invalid 'reactable_type'."},
-                status=status.HTTP_400_BAD_REQUEST,
+            return self.validation_error_response(
+                {"detail": "Invalid 'reactable_type'."}
             )
 
         try:
             reactable_id = int(reactable_id_param)
         except (TypeError, ValueError):
-            return Response(
-                {"detail": "Invalid 'reactable_id'."},
-                status=status.HTTP_400_BAD_REQUEST,
+            return self.validation_error_response(
+                {"detail": "Invalid 'reactable_id'."}
             )
 
         if not request.user.is_authenticated:
@@ -304,7 +385,7 @@ class ReactionViewSet(viewsets.ModelViewSet):
     tags=["notifications"],
     description="Lista powiadomień zalogowanego użytkownika oraz oznaczanie ich jako przeczytane.",
 )
-class NotificationViewSet(viewsets.ModelViewSet):
+class NotificationViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     serializer_class = NotificationSerializer
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get", "patch", "head", "options"]
@@ -319,9 +400,8 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         disallowed_fields = set(request.data.keys()) - {"is_read"}
         if disallowed_fields:
-            return Response(
-                {"detail": "Only 'is_read' can be updated."},
-                status=status.HTTP_400_BAD_REQUEST,
+            return self.validation_error_response(
+                {"detail": "Only 'is_read' can be updated."}
             )
 
         return super().partial_update(request, *args, **kwargs)
@@ -332,7 +412,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
     tags=["follows"],
     description="CRUD API dla obserwowanych obiektów (polimorficznie).",
 )
-class FollowViewSet(viewsets.ModelViewSet):
+class FollowViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     queryset = Follow.objects.all()
     serializer_class = FollowSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -369,25 +449,22 @@ class FollowViewSet(viewsets.ModelViewSet):
         target_id_param = request.query_params.get("target_id")
 
         if target_type_param is None or target_id_param is None:
-            return Response(
-                {"detail": "Query parameters 'target_type' and 'target_id' are required."},
-                status=status.HTTP_400_BAD_REQUEST,
+            return self.validation_error_response(
+                {"detail": "Query parameters 'target_type' and 'target_id' are required."}
             )
 
         try:
             target_content_type = resolve_content_type(target_type_param)
         except ContentType.DoesNotExist:
-            return Response(
-                {"detail": "Invalid 'target_type'."},
-                status=status.HTTP_400_BAD_REQUEST,
+            return self.validation_error_response(
+                {"detail": "Invalid 'target_type'."}
             )
 
         try:
             target_id = int(target_id_param)
         except (TypeError, ValueError):
-            return Response(
-                {"detail": "Invalid 'target_id'."},
-                status=status.HTTP_400_BAD_REQUEST,
+            return self.validation_error_response(
+                {"detail": "Invalid 'target_id'."}
             )
 
         follow_id = (
@@ -414,34 +491,30 @@ class FollowViewSet(viewsets.ModelViewSet):
         target_id_param = request.query_params.get("target_id")
 
         if target_type_param is None or target_id_param is None:
-            return Response(
-                {"detail": "Query parameters 'target_type' and 'target_id' are required."},
-                status=status.HTTP_400_BAD_REQUEST,
+            return self.validation_error_response(
+                {"detail": "Query parameters 'target_type' and 'target_id' are required."}
             )
 
         try:
             target_content_type = resolve_content_type(target_type_param)
         except ContentType.DoesNotExist:
-            return Response(
-                {"detail": "Invalid 'target_type'."},
-                status=status.HTTP_400_BAD_REQUEST,
+            return self.validation_error_response(
+                {"detail": "Invalid 'target_type'."}
             )
 
         if (
             target_content_type.app_label,
             target_content_type.model,
         ) not in {("users", "organization"), ("animals", "animal")}:
-            return Response(
-                {"detail": "'target_type' must be users.organization or animals.animal."},
-                status=status.HTTP_400_BAD_REQUEST,
+            return self.validation_error_response(
+                {"detail": "'target_type' must be users.organization or animals.animal."}
             )
 
         try:
             target_id = int(target_id_param)
         except (TypeError, ValueError):
-            return Response(
-                {"detail": "Invalid 'target_id'."},
-                status=status.HTTP_400_BAD_REQUEST,
+            return self.validation_error_response(
+                {"detail": "Invalid 'target_id'."}
             )
 
         followers_count = Follow.objects.filter(

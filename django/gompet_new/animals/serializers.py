@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.exceptions import NotAuthenticated, PermissionDenied
 
 from .models import (
     Animal,
@@ -379,17 +380,13 @@ class AnimalSerializer(serializers.ModelSerializer):
             return organization
         request = self.context.get("request")
         if not request or not request.user or not request.user.is_authenticated:
-            raise serializers.ValidationError(
-                "Musisz być zalogowany, aby przypisać organizację."
-            )
+            raise NotAuthenticated()
         is_member = OrganizationMember.objects.filter(
             user=request.user,
             organization=organization,
         ).exists()
         if not is_member:
-            raise serializers.ValidationError(
-                "Nie należysz do wskazanej organizacji."
-            )
+            raise PermissionDenied()
         return organization
 
     def get_parents(self, obj):
@@ -586,3 +583,5 @@ class AnimalsBreedGroupsSerializer(serializers.ModelSerializer):
         
 
     
+
+

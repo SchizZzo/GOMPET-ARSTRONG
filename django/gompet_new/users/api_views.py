@@ -35,6 +35,107 @@ from .role_permissions import sync_user_member_role_groups, sync_user_role_group
 
 logger = logging.getLogger(__name__)
 
+
+class StandardizedErrorResponseMixin:
+    """Return consistent error payloads for selected HTTP statuses."""
+
+    VALIDATION_ERROR_CODE = "validation_error"
+    VALIDATION_ERROR_MESSAGE = "Validation error."
+
+    ERROR_PAYLOADS = {
+        status.HTTP_401_UNAUTHORIZED: (
+            "not_authenticated",
+            "Authentication credentials were not provided.",
+        ),
+        status.HTTP_403_FORBIDDEN: (
+            "permission_denied",
+            "You do not have permission to perform this action.",
+        ),
+        status.HTTP_404_NOT_FOUND: (
+            "not_found",
+            "Resource not found.",
+        ),
+        status.HTTP_500_INTERNAL_SERVER_ERROR: (
+            "server_error",
+            "An internal server error occurred.",
+        ),
+    }
+
+    def _build_error_payload(self, status_code):
+        code, message = self.ERROR_PAYLOADS[status_code]
+        return {
+            "status": status_code,
+            "code": code,
+            "message": message,
+            "errors": {},
+        }
+
+    @staticmethod
+    def _is_standard_error_payload(data):
+        return (
+            isinstance(data, dict)
+            and {"status", "code", "message", "errors"}.issubset(data.keys())
+        )
+
+    def _build_validation_error_payload(self, errors):
+        if errors is None:
+            normalized_errors = {}
+        elif isinstance(errors, dict):
+            normalized_errors = errors
+        else:
+            normalized_errors = {"non_field_errors": errors}
+
+        return {
+            "status": status.HTTP_400_BAD_REQUEST,
+            "code": self.VALIDATION_ERROR_CODE,
+            "message": self.VALIDATION_ERROR_MESSAGE,
+            "errors": normalized_errors,
+        }
+
+    def validation_error_response(self, errors):
+        return Response(
+            self._build_validation_error_payload(errors),
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    def unauthorized_response(self):
+        return Response(
+            self._build_error_payload(status.HTTP_401_UNAUTHORIZED),
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    def forbidden_response(self):
+        return Response(
+            self._build_error_payload(status.HTTP_403_FORBIDDEN),
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    def server_error_response(self):
+        return Response(
+            self._build_error_payload(status.HTTP_500_INTERNAL_SERVER_ERROR),
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    def handle_exception(self, exc):
+        try:
+            response = super().handle_exception(exc)
+        except Exception:
+            return self.server_error_response()
+
+        if response is None:
+            return response
+
+        if self._is_standard_error_payload(response.data):
+            return response
+
+        if response.status_code == status.HTTP_400_BAD_REQUEST:
+            response.data = self._build_validation_error_payload(response.data)
+        elif response.status_code in self.ERROR_PAYLOADS:
+            response.data = self._build_error_payload(response.status_code)
+
+        return response
+
+
 class TokenCreateSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
@@ -46,7 +147,7 @@ class TokenCreateSerializer(TokenObtainPairSerializer):
         return data
 
 @extend_schema(tags=["auth"])
-class TokenCreateView(SimpleJWTTokenObtainPairView):
+class TokenCreateView(StandardizedErrorResponseMixin, SimpleJWTTokenObtainPairView):
     """Endpoint do generowania pary tokenów JWT."""
 
     permission_classes = [permissions.AllowAny]
@@ -54,7 +155,7 @@ class TokenCreateView(SimpleJWTTokenObtainPairView):
 
 
 @extend_schema(tags=["auth"])
-class TokenRefreshView(SimpleJWTTokenRefreshView):
+class TokenRefreshView(StandardizedErrorResponseMixin, SimpleJWTTokenRefreshView):
     """Endpoint do odświeżania tokenu JWT."""
 
     permission_classes = [permissions.AllowAny]
@@ -64,7 +165,7 @@ class TokenRefreshView(SimpleJWTTokenRefreshView):
     tags=["users", "users_figma"],
     description="API for managing users and organizations, including CRUD operations."
 )
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
     CRUD API for Users. 
     - list/retrieve: UserSerializer
@@ -105,29 +206,23 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.get_object()
 
         if request.user != user and not request.user.has_perm("users.delete_user"):
-            return Response(
-                {"detail": "Nie masz uprawnień do usunięcia tego konta."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+            return self.forbidden_response()
 
         try:
             delete_user_account(user)
         except CannotDeleteUser as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return self.validation_error_response({"detail": str(exc)})
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def destroy_current(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return Response(
-                {"detail": "Authentication credentials were not provided."},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+            return self.unauthorized_response()
 
         try:
             delete_user_account(request.user)
         except CannotDeleteUser as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return self.validation_error_response({"detail": str(exc)})
 
         return Response(status=status.HTTP_200_OK, data={
             "detail": "Konto zostało usunięte (dezaktywowane i zanonimizowane)."
@@ -135,10 +230,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def update_current(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return Response(
-                {"detail": "Authentication credentials were not provided."},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+            return self.unauthorized_response()
 
         partial = request.method.lower() == "patch"
         serializer = self.get_serializer(
@@ -169,17 +261,14 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class DeleteMeView(APIView):
+class DeleteMeView(StandardizedErrorResponseMixin, APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def delete(self, request):
         try:
             delete_user_account(request.user)
         except CannotDeleteUser as exc:
-            return Response(
-                {"detail": str(exc)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return self.validation_error_response({"detail": str(exc)})
 
         return Response(
             {"detail": "Konto zostało usunięte (dezaktywowane i zanonimizowane)."},
@@ -188,7 +277,7 @@ class DeleteMeView(APIView):
 
 
 @extend_schema(tags=["auth"])
-class PasswordResetRequestView(APIView):
+class PasswordResetRequestView(StandardizedErrorResponseMixin, APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -215,10 +304,7 @@ class PasswordResetRequestView(APIView):
                 )
             except Exception:
                 logger.exception("Nie udało się wysłać maila resetu hasła.")
-                return Response(
-                    {"detail": "Nie udało się wysłać maila resetu hasła."},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
+                return self.server_error_response()
 
         return Response(
             {"detail": "Jeśli konto istnieje, wysłaliśmy instrukcje resetu hasła."},
@@ -227,7 +313,7 @@ class PasswordResetRequestView(APIView):
 
 
 @extend_schema(tags=["auth"])
-class PasswordResetConfirmView(APIView):
+class PasswordResetConfirmView(StandardizedErrorResponseMixin, APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
@@ -245,9 +331,8 @@ class PasswordResetConfirmView(APIView):
 
         user = User.objects.filter(pk=user_id, is_deleted=False).first()
         if not user or not default_token_generator.check_token(user, token):
-            return Response(
-                {"detail": "Nieprawidłowy lub wygasły token resetu hasła."},
-                status=status.HTTP_400_BAD_REQUEST,
+            return self.validation_error_response(
+                {"detail": "Nieprawidłowy lub wygasły token resetu hasła."}
             )
 
         user.set_password(new_password)
@@ -263,7 +348,7 @@ class PasswordResetConfirmView(APIView):
     tags=["organizations", "organizations_profile", "organizations_profile_pupils", "organizations_profile_miots", "organizations_new_profile"],
     description="API for managing organizations, including CRUD operations."
 )
-class OrganizationViewSet(viewsets.ModelViewSet):
+class OrganizationViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
     OrganizationViewSet
     ===================
@@ -356,10 +441,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     def change_owner(self, request, pk=None):
         organization = self.get_object()
         if not request.user.is_superuser and organization.user_id != request.user.id:
-            return Response(
-                {"detail": "Tylko właściciel organizacji może zmienić właściciela."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+            return self.forbidden_response()
 
         serializer = OrganizationOwnerChangeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -451,7 +533,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
 @extend_schema(
     tags=["organizations_recently_added"],
 )
-class OrganizationRecentlyAddedViewSet(viewsets.ReadOnlyModelViewSet):
+class OrganizationRecentlyAddedViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModelViewSet):
  
     """
     API do pobierania niedawno dodanych organizacji (tylko do odczytu).
@@ -496,7 +578,7 @@ class OrganizationRecentlyAddedViewSet(viewsets.ReadOnlyModelViewSet):
     tags=["organization_members", "you_in_organization"],
     description="API for managing organization members, including CRUD operations."
 )
-class OrganizationMemberViewSet(viewsets.ModelViewSet):
+class OrganizationMemberViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
     CRUD API for OrganizationMember.
     - list/retrieve: OrganizationMemberSerializer
@@ -647,7 +729,7 @@ class OrganizationMemberViewSet(viewsets.ModelViewSet):
 @extend_schema(
     tags=["organizations_filtering"],
 )
-class OrganizationFilteringAddedViewSet(viewsets.ReadOnlyModelViewSet):
+class OrganizationFilteringAddedViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModelViewSet):
  
     """
     OrganizationFilteringAddedViewSet
@@ -790,7 +872,7 @@ class OrganizationFilteringAddedViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 @extend_schema(tags=["organization_addresses"])
-class OrganizationAddressViewSet(viewsets.ReadOnlyModelViewSet):
+class OrganizationAddressViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModelViewSet):
     """Endpoint do odczytu adresów organizacji."""
 
     queryset = Address.objects.select_related("organization").prefetch_related("species")
@@ -816,7 +898,7 @@ class OrganizationAddressViewSet(viewsets.ReadOnlyModelViewSet):
     tags=["species", "species_miots"],
     description="API endpoint that allows species to be viewed."
 )
-class SpeciesViewSet(viewsets.ReadOnlyModelViewSet):
+class SpeciesViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModelViewSet):
     """
     API endpoint that allows species to be viewed.
     """
@@ -827,7 +909,7 @@ class SpeciesViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 
-class OrganizationTypeListView(viewsets.ViewSet):
+class OrganizationTypeListView(StandardizedErrorResponseMixin, viewsets.ViewSet):
     """Zwraca listę dostępnych typów organizacji (code + label)."""
 
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -839,7 +921,7 @@ class OrganizationTypeListView(viewsets.ViewSet):
         return Response(serializer.data)
 
 
-class OrganizationMemberRoleListView(viewsets.ViewSet):
+class OrganizationMemberRoleListView(StandardizedErrorResponseMixin, viewsets.ViewSet):
     """Zwraca listę dostępnych ról członków organizacji (code + label)."""
 
     permission_classes = [IsAuthenticatedOrReadOnly]

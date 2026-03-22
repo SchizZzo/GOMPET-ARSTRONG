@@ -813,3 +813,121 @@ class OrganizationUpdateSerializerTests(TestCase):
 
         address.refresh_from_db()
         self.assertEqual(address.city, "Krakow")
+
+
+class UserErrorResponseFormatTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            email="users-format@example.com",
+            password="secret123",
+            first_name="Users",
+            last_name="Format",
+        )
+        self.other_user = User.objects.create_user(
+            email="users-format-other@example.com",
+            password="secret123",
+            first_name="Users",
+            last_name="Other",
+        )
+
+    def test_401_error_payload_format(self):
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer invalid.token.value")
+        response = self.client.get("/users/users/")
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(
+            response.data,
+            {
+                "status": 401,
+                "code": "not_authenticated",
+                "message": "Authentication credentials were not provided.",
+                "errors": {},
+            },
+        )
+
+    def test_403_error_payload_format(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.delete(f"/users/users/{self.other_user.id}/")
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(
+            response.data,
+            {
+                "status": 403,
+                "code": "permission_denied",
+                "message": "You do not have permission to perform this action.",
+                "errors": {},
+            },
+        )
+
+    def test_404_error_payload_format(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get("/users/users/999999/")
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(
+            response.data,
+            {
+                "status": 404,
+                "code": "not_found",
+                "message": "Resource not found.",
+                "errors": {},
+            },
+        )
+
+    def test_400_validation_error_payload_format(self):
+        response = self.client.post(
+            "/users/users/",
+            {
+                "email": "new-user@example.com",
+                "first_name": "New",
+                "last_name": "User",
+                "password": "StrongPass123!",
+                "confirm_password": "DifferentPass123!",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["status"], 400)
+        self.assertEqual(response.data["code"], "validation_error")
+        self.assertEqual(response.data["message"], "Validation error.")
+        self.assertIn("confirm_password", response.data["errors"])
+
+    def test_400_manual_error_payload_format(self):
+        response = self.client.post(
+            "/users/auth/password-reset/confirm/",
+            {
+                "uid": "invalid",
+                "token": "invalid",
+                "new_password": "StrongPass123!",
+                "confirm_password": "StrongPass123!",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["status"], 400)
+        self.assertEqual(response.data["code"], "validation_error")
+        self.assertEqual(response.data["message"], "Validation error.")
+        self.assertEqual(
+            response.data["errors"],
+            {"detail": "Nieprawidłowy lub wygasły token resetu hasła."},
+        )
+
+    def test_500_error_payload_format(self):
+        self.client.force_authenticate(user=self.user)
+        with mock.patch("users.api_views.UserViewSet.list", side_effect=RuntimeError("boom")):
+            response = self.client.get("/users/users/")
+
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        self.assertEqual(
+            response.data,
+            {
+                "status": 500,
+                "code": "server_error",
+                "message": "An internal server error occurred.",
+                "errors": {},
+            },
+        )

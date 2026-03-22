@@ -10,6 +10,86 @@ from .serializers import ArticleSerializer, ArticlesLastSerializer, ArticleCateg
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 
+
+class StandardizedErrorResponseMixin:
+    """Return consistent error payloads for selected HTTP statuses."""
+
+    VALIDATION_ERROR_CODE = "validation_error"
+    VALIDATION_ERROR_MESSAGE = "Validation error."
+
+    ERROR_PAYLOADS = {
+        status.HTTP_401_UNAUTHORIZED: (
+            "not_authenticated",
+            "Authentication credentials were not provided.",
+        ),
+        status.HTTP_403_FORBIDDEN: (
+            "permission_denied",
+            "You do not have permission to perform this action.",
+        ),
+        status.HTTP_404_NOT_FOUND: (
+            "not_found",
+            "Resource not found.",
+        ),
+        status.HTTP_500_INTERNAL_SERVER_ERROR: (
+            "server_error",
+            "An internal server error occurred.",
+        ),
+    }
+
+    def _build_error_payload(self, status_code):
+        code, message = self.ERROR_PAYLOADS[status_code]
+        return {
+            "status": status_code,
+            "code": code,
+            "message": message,
+            "errors": {},
+        }
+
+    @staticmethod
+    def _is_standard_error_payload(data):
+        return (
+            isinstance(data, dict)
+            and {"status", "code", "message", "errors"}.issubset(data.keys())
+        )
+
+    def _build_validation_error_payload(self, errors):
+        if errors is None:
+            normalized_errors = {}
+        elif isinstance(errors, dict):
+            normalized_errors = errors
+        else:
+            normalized_errors = {"non_field_errors": errors}
+
+        return {
+            "status": status.HTTP_400_BAD_REQUEST,
+            "code": self.VALIDATION_ERROR_CODE,
+            "message": self.VALIDATION_ERROR_MESSAGE,
+            "errors": normalized_errors,
+        }
+
+    def handle_exception(self, exc):
+        try:
+            response = super().handle_exception(exc)
+        except Exception:
+            return Response(
+                self._build_error_payload(status.HTTP_500_INTERNAL_SERVER_ERROR),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        if response is None:
+            return response
+
+        if self._is_standard_error_payload(response.data):
+            return response
+
+        if response.status_code == status.HTTP_400_BAD_REQUEST:
+            response.data = self._build_validation_error_payload(response.data)
+        elif response.status_code in self.ERROR_PAYLOADS:
+            response.data = self._build_error_payload(response.status_code)
+
+        return response
+
+
 def _split_csv_param(value):
     if not value:
         return []
@@ -28,7 +108,7 @@ def _split_csv_param(value):
     tags=["articles"],
     description="API endpoint that allows Articles to be viewed or edited. Supports soft-delete on destroy."
 )
-class ArticleViewSet(viewsets.ModelViewSet):
+class ArticleViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
     API endpoint that allows Articles to be viewed or edited.
     Supports soft-delete on destroy.
@@ -126,7 +206,7 @@ class ArticleViewSet(viewsets.ModelViewSet):
     tags=["articles_latest"],
     
 )
-class ArticlesLastViewSet(viewsets.ReadOnlyModelViewSet):
+class ArticlesLastViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModelViewSet):
     """
     # Widok tylko do odczytu - Najnowsze artykuły
     Pobiera do określonej liczby nieusuniętych instancji **Article**, posortowanych malejąco według daty utworzenia.
@@ -206,7 +286,7 @@ class ArticlesLastViewSet(viewsets.ReadOnlyModelViewSet):
     tags=["article_categories"],
     description="API endpoint for managing article categories.",
 )
-class ArticleCategoryViewSet(viewsets.ModelViewSet):
+class ArticleCategoryViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     queryset = ArticleCategory.objects.filter(deleted_at__isnull=True)
     serializer_class = ArticleCategorySerializer
     permission_classes = [permissions.DjangoModelPermissionsOrAnonReadOnly]

@@ -3,6 +3,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APITestCase
+from unittest.mock import patch
 
 from animals.models import Animal, AnimalStatus, Gender, Size
 from common.models import Comment, Follow
@@ -292,3 +293,114 @@ class PostFeedAPITests(APITestCase):
         returned_ids = {item["id"] for item in results}
         self.assertIn(self.animal_post.id, returned_ids)
         self.assertIn(self.org_post.id, returned_ids)
+
+
+class PostErrorResponseFormatTests(APITestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            email="posts-user@example.com",
+            password="password123",
+            first_name="Posts",
+            last_name="User",
+        )
+        self.admin_user = get_user_model().objects.create_superuser(
+            email="posts-admin@example.com",
+            password="password123",
+            first_name="Posts",
+            last_name="Admin",
+        )
+        self.owner = get_user_model().objects.create_user(
+            email="posts-owner@example.com",
+            password="password123",
+            first_name="Posts",
+            last_name="Owner",
+        )
+        self.animal = Animal.objects.create(
+            name="FormatDog",
+            species="Dog",
+            gender=Gender.MALE,
+            size=Size.MEDIUM,
+            status=AnimalStatus.AVAILABLE,
+            owner=self.owner,
+        )
+
+    def test_401_error_payload_format(self):
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer invalid.token.value")
+        response = self.client.post(
+            reverse("post-list"),
+            {"animal": self.animal.id, "content": "Attempt"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(
+            response.data,
+            {
+                "status": 401,
+                "code": "not_authenticated",
+                "message": "Authentication credentials were not provided.",
+                "errors": {},
+            },
+        )
+
+    def test_403_error_payload_format(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(
+            reverse("post-list"),
+            {"animal": self.animal.id, "content": "Attempt"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(
+            response.data,
+            {
+                "status": 403,
+                "code": "permission_denied",
+                "message": "You do not have permission to perform this action.",
+                "errors": {},
+            },
+        )
+
+    def test_404_error_payload_format(self):
+        response = self.client.get(reverse("post-detail", args=[999999]))
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(
+            response.data,
+            {
+                "status": 404,
+                "code": "not_found",
+                "message": "Resource not found.",
+                "errors": {},
+            },
+        )
+
+    def test_400_validation_error_payload_format(self):
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.post(
+            reverse("post-list"),
+            {"animal": self.animal.id},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["status"], 400)
+        self.assertEqual(response.data["code"], "validation_error")
+        self.assertEqual(response.data["message"], "Validation error.")
+        self.assertIn("content", response.data["errors"])
+
+    def test_500_error_payload_format(self):
+        with patch("posts.api_views.PostViewSet.list", side_effect=RuntimeError("boom")):
+            response = self.client.get(reverse("post-list"))
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(
+            response.data,
+            {
+                "status": 500,
+                "code": "server_error",
+                "message": "An internal server error occurred.",
+                "errors": {},
+            },
+        )

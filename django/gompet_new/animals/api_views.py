@@ -36,6 +36,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from rest_framework import serializers
 from rest_framework import permissions
+from rest_framework import status
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from django.contrib.gis.db.models.functions import Distance
@@ -54,11 +55,90 @@ class FamilyTreeNodeSerializer(serializers.Serializer):
     children = serializers.ListField(child=serializers.DictField())
     cycle = serializers.BooleanField(required=False)
 
+
+class StandardizedErrorResponseMixin:
+    """Return consistent error payloads for selected HTTP statuses."""
+
+    VALIDATION_ERROR_CODE = "validation_error"
+    VALIDATION_ERROR_MESSAGE = "Validation error."
+
+    ERROR_PAYLOADS = {
+        status.HTTP_401_UNAUTHORIZED: (
+            "not_authenticated",
+            "Authentication credentials were not provided.",
+        ),
+        status.HTTP_403_FORBIDDEN: (
+            "permission_denied",
+            "You do not have permission to perform this action.",
+        ),
+        status.HTTP_404_NOT_FOUND: (
+            "not_found",
+            "Resource not found.",
+        ),
+        status.HTTP_500_INTERNAL_SERVER_ERROR: (
+            "server_error",
+            "An internal server error occurred.",
+        ),
+    }
+
+    def _build_error_payload(self, status_code):
+        code, message = self.ERROR_PAYLOADS[status_code]
+        return {
+            "status": status_code,
+            "code": code,
+            "message": message,
+            "errors": {},
+        }
+
+    @staticmethod
+    def _is_standard_error_payload(data):
+        return (
+            isinstance(data, dict)
+            and {"status", "code", "message", "errors"}.issubset(data.keys())
+        )
+
+    def _build_validation_error_payload(self, errors):
+        if errors is None:
+            normalized_errors = {}
+        elif isinstance(errors, dict):
+            normalized_errors = errors
+        else:
+            normalized_errors = {"non_field_errors": errors}
+
+        return {
+            "status": status.HTTP_400_BAD_REQUEST,
+            "code": self.VALIDATION_ERROR_CODE,
+            "message": self.VALIDATION_ERROR_MESSAGE,
+            "errors": normalized_errors,
+        }
+
+    def handle_exception(self, exc):
+        try:
+            response = super().handle_exception(exc)
+        except Exception:
+            return Response(
+                self._build_error_payload(status.HTTP_500_INTERNAL_SERVER_ERROR),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        if response is None:
+            return response
+
+        if self._is_standard_error_payload(response.data):
+            return response
+
+        if response.status_code == status.HTTP_400_BAD_REQUEST:
+            response.data = self._build_validation_error_payload(response.data)
+        elif response.status_code in self.ERROR_PAYLOADS:
+            response.data = self._build_error_payload(response.status_code)
+
+        return response
+
 @extend_schema(
     tags=["animals", "animals_new"],
     description="API do zarządzania zwierzętami, ich cechami, galeriami oraz relacjami rodzic–dziecko."
 )
-class AnimalViewSet(viewsets.ModelViewSet):
+class AnimalViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
     list, retrieve, create, update, partial_update, destroy dla modelu Animal
 Opis filtrów
@@ -580,7 +660,7 @@ localhost/animals/animals/?size=MEDIUM
 @extend_schema(
     tags=["animals_new_home"],
 )
-class AnimalRecentlyAddedViewSet(viewsets.ReadOnlyModelViewSet):
+class AnimalRecentlyAddedViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModelViewSet):
     """
     AnimalRecentlyAddedViewSet
     ==========================
@@ -691,7 +771,7 @@ class AnimalRecentlyAddedViewSet(viewsets.ReadOnlyModelViewSet):
 @extend_schema(
     tags=["animals_filtering", "animals_filtering_advanced", "organizations_aniamls_filtering"],
 )
-class AnimalFilterViewSet(viewsets.ReadOnlyModelViewSet):
+class AnimalFilterViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModelViewSet):
     
     """
     AnimalFilterViewSet
@@ -932,7 +1012,7 @@ class AnimalFilterViewSet(viewsets.ReadOnlyModelViewSet):
     tags=["animal_characteristics", "animals_characteristics_new"],
     description="API for managing animal characteristics (boolean features)."
 )
-class AnimalCharacteristicViewSet(viewsets.ModelViewSet):
+class AnimalCharacteristicViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
     CRUD for AnimalCharacteristic
     """
@@ -979,7 +1059,7 @@ class AnimalCharacteristicViewSet(viewsets.ModelViewSet):
 @extend_schema(
     tags=["characteristics_animals_values"],
 )
-class CharacteristicsViewSet(viewsets.ModelViewSet):
+class CharacteristicsViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
     Read-only view for listing all animal characteristics.
     """
@@ -998,7 +1078,7 @@ class CharacteristicsViewSet(viewsets.ModelViewSet):
     tags=["animal_galleries"],
     description="API for managing animal galleries (image URLs)."
 )
-class AnimalGalleryViewSet(viewsets.ModelViewSet):
+class AnimalGalleryViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
     CRUD for AnimalGallery
     """
@@ -1010,7 +1090,7 @@ class AnimalGalleryViewSet(viewsets.ModelViewSet):
     tags=["animal_parentages"],
     description="API for managing parent-child relationships between animals."
 )
-class AnimalParentViewSet(viewsets.ModelViewSet):
+class AnimalParentViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
     CRUD for AnimalParent (parent–child relationships)
 
@@ -1030,7 +1110,7 @@ class AnimalParentViewSet(viewsets.ModelViewSet):
     tags=["animal_family_tree"],
     description="API for retrieving the family tree of an animal (ancestors and descendants)."
 )
-class AnimalFamilyTreeViewSet(viewsets.ViewSet):
+class AnimalFamilyTreeViewSet(StandardizedErrorResponseMixin, viewsets.ViewSet):
     """
     Read-only view for retrieving a simple family tree of an animal.
     """
@@ -1082,7 +1162,7 @@ class AnimalFamilyTreeViewSet(viewsets.ViewSet):
     tags=["animals_breed_groups", "animals_breed_groups_miots"],
     description="CRUD for AnimalsBreedGroups"
 )
-class AnimalsBreedGroupsViewSet(viewsets.ModelViewSet):
+class AnimalsBreedGroupsViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
     CRUD for AnimalsBreedGroups
     """
