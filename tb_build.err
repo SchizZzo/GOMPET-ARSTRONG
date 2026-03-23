@@ -1,0 +1,9 @@
+⚠ Invalid next.config.mjs options detected: 
+⚠     Unrecognized key(s) in object: 'turbo' at "experimental"
+⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+⨯ Another next build process is already running.
+
+  This could be:
+  - A next build still in progress
+  - A previous build that didn't exit cleanly
+

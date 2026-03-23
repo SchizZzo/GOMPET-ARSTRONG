@@ -106,7 +106,7 @@ class FollowViewSetTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn("notification_preferences", response.data)
+        self.assertIn("notification_preferences", response.data.get("errors", {}))
 
     def test_create_follow_rejects_duplicate_follow(self) -> None:
         Follow.objects.create(
@@ -141,7 +141,8 @@ class FollowViewSetTests(TestCase):
         response = self.client.get(self.follow_list_url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 1)
+        results = response.data.get("results", response.data)
+        self.assertEqual(len(results), 1)
 
     def test_is_following_returns_follow_id_when_exists(self) -> None:
         follow = Follow.objects.create(
@@ -206,7 +207,10 @@ class FollowViewSetTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["status"], 400)
+        self.assertEqual(response.data["code"], "validation_error")
+        self.assertEqual(response.data["message"], "Validation error.")
         self.assertEqual(
-            response.data["detail"],
+            response.data["errors"]["detail"],
             "'target_type' must be users.organization or animals.animal.",
         )

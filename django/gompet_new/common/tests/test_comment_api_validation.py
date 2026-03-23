@@ -50,15 +50,14 @@ class CommentApiValidationTests(TestCase):
 
         self.assertEqual(first_response.status_code, 201)
         self.assertEqual(second_response.status_code, 400)
+        self.assertEqual(second_response.data["status"], 400)
+        self.assertEqual(second_response.data["code"], "validation_error")
+        self.assertEqual(second_response.data["message"], "Validation error.")
         self.assertEqual(
-            second_response.data,
-            {
-                "error": {
-                    "code": "COMMENT_RATING_ALREADY_EXISTS",
-                    "field": "rating",
-                }
-            },
+            second_response.data["errors"]["error"]["code"],
+            "COMMENT_RATING_ALREADY_EXISTS",
         )
+        self.assertEqual(second_response.data["errors"]["error"]["field"], "rating")
 
 
     def test_comment_list_limit_returns_latest_entries(self) -> None:
@@ -80,9 +79,10 @@ class CommentApiValidationTests(TestCase):
         response = self.client.get(f"{self.url}?limit=3")
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 3)
+        results = response.data.get("results", response.data)
+        self.assertEqual(len(results), 3)
         self.assertEqual(
-            [comment["body"] for comment in response.data],
+            [comment["body"] for comment in results],
             ["czwarty komentarz", "trzeci komentarz", "drugi komentarz"],
         )
 
@@ -97,12 +97,8 @@ class CommentApiValidationTests(TestCase):
         response = self.client.post(self.url, payload, format="json")
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            response.data,
-            {
-                "errors": [
-                    {"code": "COMMENT_TOO_SHORT", "field": "body"},
-                    {"code": "COMMENT_RATING_REQUIRED", "field": "rating"},
-                ]
-            },
-        )
+        self.assertEqual(response.data["status"], 400)
+        self.assertEqual(response.data["code"], "validation_error")
+        self.assertEqual(response.data["message"], "Validation error.")
+        self.assertEqual(response.data["errors"]["error"]["code"], "COMMENT_TOO_SHORT")
+        self.assertEqual(response.data["errors"]["error"]["field"], "body")

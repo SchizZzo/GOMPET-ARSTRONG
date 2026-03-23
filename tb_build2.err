@@ -1,0 +1,125 @@
+⚠ Invalid next.config.mjs options detected: 
+⚠     Unrecognized key(s) in object: 'turbo' at "experimental"
+⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+Turbopack build encountered 7 warnings:
+./src/styles/editor.scss.css:1:4254
+Parsing CSS source code failed
+[31m[1m>[0m [90m1 |[0m ...und-color:rgba([35m150[0m,[35m150[0m,[35m150[0m,[35m.4[0m)}.emoji-inner::moz-selection{color:rgba([35m0[0m,[35m0[0m,[35m0[0m,[35m0[0m);backgroun...
+  [90m  |[0m                                                [31m[1m^[0m
+
+'moz-selection' is not recognized as a valid pseudo-element. Did you mean ':moz-selection' (pseudo-class) or is this a typo?
+
+Generated code of PostCSS transform of loaders [next/dist/build/webpack/loaders/resolve-url-loader/index, next/dist/compiled/sass-loader] transform of file content of src/styles/editor.scss:
+./src/styles/editor.scss.css:1:4254
+[31m[1m>[0m [90m1 |[0m ...und-color:rgba([35m150[0m,[35m150[0m,[35m150[0m,[35m.4[0m)}.emoji-inner::moz-selection{color:rgba([35m0[0m,[35m0[0m,[35m0[0m,[35m0[0m);backgroun...
+  [90m  |[0m                                                [31m[1m^[0m
+
+Import trace:
+  Client Component Browser:
+    ./src/styles/editor.scss.css [Client Component Browser]
+    ./src/app/[locale]/layout.tsx [Server Component]
+
+
+./src/styles/editor.scss
+Issue while running loader
+SassWarning: 4 repetitive deprecation warnings omitted.
+Run in verbose mode to see all warnings.
+
+
+./src/styles/editor.scss
+Issue while running loader
+SassWarning: Deprecation Warning on line 169, column 2 of file:///C:/Users/dawid/GOMPET-ARSTRONG/FRONTEND/gomPet-main/gomPet-main/src/styles/editor.scss:169:2:
+Sass's behavior for declarations that appear after nested
+rules will be changing to match the behavior specified by CSS in an upcoming
+version. To keep the existing behavior, move the declaration above the nested
+rule. To opt into the new behavior, wrap the declaration in `& {}`.
+
+More info: https://sass-lang.com/d/mixed-decls
+
+169 |   color: $color-foreground;
+
+
+src\styles\editor.scss 170:3  root stylesheet
+
+
+
+./src/styles/editor.scss
+Issue while running loader
+SassWarning: Deprecation Warning on line 170, column 2 of file:///C:/Users/dawid/GOMPET-ARSTRONG/FRONTEND/gomPet-main/gomPet-main/src/styles/editor.scss:170:2:
+Sass's behavior for declarations that appear after nested
+rules will be changing to match the behavior specified by CSS in an upcoming
+version. To keep the existing behavior, move the declaration above the nested
+rule. To opt into the new behavior, wrap the declaration in `& {}`.
+
+More info: https://sass-lang.com/d/mixed-decls
+
+170 |   margin: 0;
+
+
+src\styles\editor.scss 171:3  root stylesheet
+
+
+
+./src/styles/editor.scss
+Issue while running loader
+SassWarning: Deprecation Warning on line 171, column 2 of file:///C:/Users/dawid/GOMPET-ARSTRONG/FRONTEND/gomPet-main/gomPet-main/src/styles/editor.scss:171:2:
+Sass's behavior for declarations that appear after nested
+rules will be changing to match the behavior specified by CSS in an upcoming
+version. To keep the existing behavior, move the declaration above the nested
+rule. To opt into the new behavior, wrap the declaration in `& {}`.
+
+More info: https://sass-lang.com/d/mixed-decls
+
+171 |   margin-bottom: 12px;
+
+
+src\styles\editor.scss 172:3  root stylesheet
+
+
+
+./src/styles/editor.scss
+Issue while running loader
+SassWarning: Deprecation Warning on line 172, column 2 of file:///C:/Users/dawid/GOMPET-ARSTRONG/FRONTEND/gomPet-main/gomPet-main/src/styles/editor.scss:172:2:
+Sass's behavior for declarations that appear after nested
+rules will be changing to match the behavior specified by CSS in an upcoming
+version. To keep the existing behavior, move the declaration above the nested
+rule. To opt into the new behavior, wrap the declaration in `& {}`.
+
+More info: https://sass-lang.com/d/mixed-decls
+
+172 |   padding: 0;
+
+
+src\styles\editor.scss 173:3  root stylesheet
+
+
+
+./src/styles/editor.scss
+Issue while running loader
+SassWarning: Deprecation Warning on line 177, column 2 of file:///C:/Users/dawid/GOMPET-ARSTRONG/FRONTEND/gomPet-main/gomPet-main/src/styles/editor.scss:177:2:
+Sass's behavior for declarations that appear after nested
+rules will be changing to match the behavior specified by CSS in an upcoming
+version. To keep the existing behavior, move the declaration above the nested
+rule. To opt into the new behavior, wrap the declaration in `& {}`.
+
+More info: https://sass-lang.com/d/mixed-decls
+
+177 |   color: $color-foreground;
+
+
+src\styles\editor.scss 178:3  root stylesheet
+
+
+
+
+> Build error occurred
+Error: Turbopack build failed with 1 errors:
+./src/app/favicon.ico
+Processing image failed
+unable to decode image data
+
+Caused by:
+- failed to fill whole buffer
+
+
+    at ignore-listed frames

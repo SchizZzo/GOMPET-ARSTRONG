@@ -1,3 +1,6 @@
+import logging
+
+from django.conf import settings
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Count
@@ -9,6 +12,8 @@ from .serializers import ArticleSerializer, ArticlesLastSerializer, ArticleCateg
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
+
+logger = logging.getLogger(__name__)
 
 
 class StandardizedErrorResponseMixin:
@@ -71,6 +76,9 @@ class StandardizedErrorResponseMixin:
         try:
             response = super().handle_exception(exc)
         except Exception:
+            logger.exception("Unhandled exception in %s", self.__class__.__name__)
+            if settings.DEBUG:
+                raise
             return Response(
                 self._build_error_payload(status.HTTP_500_INTERNAL_SERVER_ERROR),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,

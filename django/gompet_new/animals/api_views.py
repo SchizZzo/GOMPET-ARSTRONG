@@ -1,3 +1,6 @@
+import logging
+
+from django.conf import settings
 from rest_framework import viewsets
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
@@ -47,6 +50,9 @@ import json
 from django.core.exceptions import FieldError, ObjectDoesNotExist
 from common.models import Reaction, ReactionType
 from django.contrib.auth import get_user_model
+
+logger = logging.getLogger(__name__)
+
 
 class FamilyTreeNodeSerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -116,6 +122,9 @@ class StandardizedErrorResponseMixin:
         try:
             response = super().handle_exception(exc)
         except Exception:
+            logger.exception("Unhandled exception in %s", self.__class__.__name__)
+            if settings.DEBUG:
+                raise
             return Response(
                 self._build_error_payload(status.HTTP_500_INTERNAL_SERVER_ERROR),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -329,30 +338,31 @@ localhost/animals/animals/?size=MEDIUM
         save_kwargs = {}
         location = serializer.validated_data.get("location")
         organization_provided = "organization" in serializer.validated_data
-        owner_from_request = None
-        owner_from_request_provided = False
-        if "owner" in self.request.data or "owner_id" in self.request.data:
-            owner_from_request_provided = True
+        owner = instance.owner
+
+        owner_override_requested = "owner" in self.request.data or "owner_id" in self.request.data
+        if owner_override_requested and not self.request.user.is_superuser:
+            raise serializers.ValidationError(
+                {"owner": "Only superusers can reassign animal owner."}
+            )
+
+        if owner_override_requested:
             owner_id = self.request.data.get("owner") or self.request.data.get("owner_id")
             if owner_id in (None, "", "null"):
-                owner_from_request = None
+                owner = None
             else:
                 user_model = get_user_model()
                 try:
-                    owner_from_request = user_model.objects.get(pk=owner_id)
+                    owner = user_model.objects.get(pk=owner_id)
                 except (user_model.DoesNotExist, TypeError, ValueError) as exc:
                     raise serializers.ValidationError(
                         {"owner": "Nieprawidłowy identyfikator właściciela."}
                     ) from exc
-        owner_provided = "owner" in serializer.validated_data or owner_from_request_provided
+            save_kwargs["owner"] = owner
+
         organization = serializer.validated_data.get(
             "organization", instance.organization
         )
-        owner = serializer.validated_data.get("owner", instance.owner)
-
-        if owner_from_request_provided:
-            owner = owner_from_request
-            save_kwargs["owner"] = owner
 
         if organization_provided and organization != instance.organization:
             if organization:
@@ -364,7 +374,7 @@ localhost/animals/animals/?size=MEDIUM
                 location = getattr(owner, "location", None)
 
         if (
-            owner_provided
+            owner_override_requested
             and owner != instance.owner
             and not organization_provided
         ):
@@ -380,6 +390,11 @@ localhost/animals/animals/?size=MEDIUM
     def get_queryset(self):
         qs = Animal.objects.all().order_by('-created_at')
         params = self.request.query_params
+        user_location = (
+            getattr(self.request.user, "location", None)
+            if self.request.user and self.request.user.is_authenticated
+            else None
+        )
         user_location = (
             getattr(self.request.user, "location", None)
             if self.request.user and self.request.user.is_authenticated
@@ -496,9 +511,9 @@ localhost/animals/animals/?size=MEDIUM
             terms = [t.strip() for t in search_param.split(',') if t.strip()]
             if terms:
                 q = Q()
-            for t in terms:
-                q |= Q(name__icontains=t)
-            qs = qs.filter(q)
+                for t in terms:
+                    q |= Q(name__icontains=t)
+                qs = qs.filter(q)
 
         # filtrowanie po zasięgu (parametr "zasieg" – wartość w metrach)
 
@@ -866,6 +881,11 @@ class AnimalFilterViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModel
     def get_queryset(self):
         qs = Animal.objects.all().order_by('-created_at')
         params = self.request.query_params
+        user_location = (
+            getattr(self.request.user, "location", None)
+            if self.request.user and self.request.user.is_authenticated
+            else None
+        )
 
         # multi-value filtering for species (e.g. ?species=dog,cat)
         species_param = params.get('species')
@@ -889,7 +909,7 @@ class AnimalFilterViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModel
         if char_param:
             char_list = [c.strip() for c in char_param.split(',') if c.strip()]
             qs = qs.filter(
-                characteristics_values__characteristic__in=char_list,
+                characteristics_values__characteristics__characteristic__in=char_list,
                 characteristics_values__value=True
             ).distinct()
 

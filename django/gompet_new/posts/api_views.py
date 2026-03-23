@@ -1,3 +1,6 @@
+﻿import logging
+
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from rest_framework import status, viewsets
@@ -8,13 +11,15 @@ from rest_framework.permissions import DjangoModelPermissionsOrAnonReadOnly, IsA
 from rest_framework.response import Response
 from animals.models import Animal
 from common.models import Follow
-from users.models import Organization
+from users.models import Organization, OrganizationMember
 from .models import Post
 from .serializers import PostSerializer
 
 # posts/api_views.py
 
 from drf_spectacular.utils import extend_schema
+
+logger = logging.getLogger(__name__)
 
 
 class StandardizedErrorResponseMixin:
@@ -77,6 +82,9 @@ class StandardizedErrorResponseMixin:
         try:
             response = super().handle_exception(exc)
         except Exception:
+            logger.exception("Unhandled exception in %s", self.__class__.__name__)
+            if settings.DEBUG:
+                raise
             return Response(
                 self._build_error_payload(status.HTTP_500_INTERNAL_SERVER_ERROR),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -110,42 +118,42 @@ class PostViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     PostViewSet
     ===========
 
-    Endpoint REST do pobierania i zarządzania postami (obiekty **Post**).
+    Endpoint REST do pobierania i zarzĂ„â€¦dzania postami (obiekty **Post**).
 
-    Dostępne metody HTTP
+    DostĂ„â„˘pne metody HTTP
     --------------------
-    - **GET /posts/** – lista postów z możliwością filtrowania  
-    - **POST /posts/** – utworzenie nowego postu  
-    - **GET /posts/{id}/** – szczegóły pojedynczego postu  
-    - **PUT /posts/{id}/**, **PATCH /posts/{id}/** – aktualizacja  
-    - **DELETE /posts/{id}/** – usunięcie
+    - **GET /posts/** Ă˘â‚¬â€ś lista postÄ‚Ĺ‚w z moÄąÄ˝liwoÄąâ€şciĂ„â€¦ filtrowania  
+    - **POST /posts/** Ă˘â‚¬â€ś utworzenie nowego postu  
+    - **GET /posts/{id}/** Ă˘â‚¬â€ś szczegÄ‚Ĺ‚Äąâ€šy pojedynczego postu  
+    - **PUT /posts/{id}/**, **PATCH /posts/{id}/** Ă˘â‚¬â€ś aktualizacja  
+    - **DELETE /posts/{id}/** Ă˘â‚¬â€ś usuniĂ„â„˘cie
 
     Parametry zapytania (lista)
     ---------------------------
     - **animal-id** (int, opcjonalny)  
-      ID zwierzęcia; zwraca posty powiązane z danym zwierzęciem
+      ID zwierzĂ„â„˘cia; zwraca posty powiĂ„â€¦zane z danym zwierzĂ„â„˘ciem
       (`Post.animal_id`).
 
     - **organization-id** (int, opcjonalny)  
-      ID organizacji; zwraca posty dotyczące wskazanej organizacji
+      ID organizacji; zwraca posty dotyczĂ„â€¦ce wskazanej organizacji
       (`Post.organization_id`).
 
     Zasady filtrowania
     ------------------
-    - Jeżeli podasz **oba** parametry, rezultaty muszą spełniać *oba*
+    - JeÄąÄ˝eli podasz **oba** parametry, rezultaty muszĂ„â€¦ speÄąâ€šniaĂ„â€ˇ *oba*
       warunki (operator AND).  
-    - Brak parametrów → zwracane są wszystkie posty.
+    - Brak parametrÄ‚Ĺ‚w Ă˘â€ â€™ zwracane sĂ„â€¦ wszystkie posty.
 
-    Przykłady
+    PrzykÄąâ€šady
     ---------
     ```http
-    # Posty dla zwierzęcia o ID 17
+    # Posty dla zwierzĂ„â„˘cia o ID 17
     GET /posts/?animal-id=17
 
     # Posty organizacji 5
     GET /posts/?organization-id=5
 
-    # Posty zwierzęcia 17 w organizacji 5
+    # Posty zwierzĂ„â„˘cia 17 w organizacji 5
     GET /posts/?animal-id=17&organization-id=5
     ```
 
@@ -166,21 +174,43 @@ class PostViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     serializer_class = PostSerializer
     permission_classes = [
         DjangoModelPermissionsOrAnonReadOnly,
-    ] # Każdy może czytać, ale tworzyć/edytować tylko zalogowani
+    ] # KaÄąÄ˝dy moÄąÄ˝e czytaĂ„â€ˇ, ale tworzyĂ„â€ˇ/edytowaĂ„â€ˇ tylko zalogowani
 
     def _ensure_user_can_modify_animal(self, serializer):
+        user = self.request.user
         animal = serializer.validated_data.get("animal")
         if animal is None and getattr(serializer, "instance", None) is not None:
             animal = serializer.instance.animal
 
-        if (
-            animal
-            and not self.request.user.has_perm("animals.change_animal")
-            and animal.owner_id != self.request.user.id
-        ):
-            raise PermissionDenied(
-                "Tylko właściciel zwierzęcia lub administrator może modyfikować post."
-            )
+        organization = serializer.validated_data.get("organization")
+        if organization is None and getattr(serializer, "instance", None) is not None:
+            organization = serializer.instance.organization
+
+        if animal and not user.is_superuser:
+            is_owner = animal.owner_id == user.id
+            is_member_of_animal_org = False
+            if animal.organization_id:
+                is_member_of_animal_org = OrganizationMember.objects.filter(
+                    user=user,
+                    organization_id=animal.organization_id,
+                    invitation_confirmed=True,
+                ).exists()
+            if not is_owner and not is_member_of_animal_org:
+                raise PermissionDenied(
+                    "Tylko wĹ‚aĹ›ciciel zwierzÄ™cia lub czĹ‚onek jego organizacji moĹĽe modyfikowaÄ‡ post."
+                )
+
+        if organization and not user.is_superuser:
+            is_org_owner = organization.user_id == user.id
+            is_org_member = OrganizationMember.objects.filter(
+                user=user,
+                organization=organization,
+                invitation_confirmed=True,
+            ).exists()
+            if not is_org_owner and not is_org_member:
+                raise PermissionDenied(
+                    "Tylko wĹ‚aĹ›ciciel organizacji lub jej czĹ‚onek moĹĽe modyfikowaÄ‡ post."
+                )
 
     def perform_create(self, serializer):
         self._ensure_user_can_modify_animal(serializer)
@@ -313,6 +343,8 @@ class PostViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
         user = self.request.user
         if not user.has_perm("posts.delete_post") and instance.author_id != user.id:
             raise PermissionDenied(
-                "Tylko autor posta lub administrator może go usunąć."
+                "Only the post author or an administrator can delete this post."
             )
         super().perform_destroy(instance)
+
+

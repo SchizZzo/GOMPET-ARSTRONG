@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 import os
 import tempfile
 from dataclasses import dataclass
@@ -42,7 +42,7 @@ User = get_user_model()
 
 class UserManagerTests(TestCase):
     def test_create_user_requires_email(self):
-        with self.assertRaisesMessage(ValueError, "Użytkownik musi mieć adres e-mail"):
+        with self.assertRaisesMessage(ValueError, "U\u017cytkownik musi mie\u0107 adres e-mail"):
             User.objects.create_user(email="", password="secret")
 
     def test_create_user_sets_defaults(self):
@@ -122,6 +122,7 @@ class DeleteUserAccountTests(TestCase):
             user=owner,
             organization=org,
             role=MemberRole.OWNER,
+            invitation_confirmed=True,
         )
         return org
 
@@ -155,6 +156,7 @@ class DeleteUserAccountTests(TestCase):
             user=other_owner,
             organization=org,
             role=MemberRole.OWNER,
+            invitation_confirmed=True,
         )
 
         session = SessionStore()
@@ -204,8 +206,9 @@ class OrganizationMemberNotificationTests(TestCase):
             user=owner,
             organization=org,
             role=MemberRole.OWNER,
+            invitation_confirmed=True,
         )
-        inviter = User.objects.create_user(
+        inviter = User.objects.create_superuser(
             email="inviter@example.com",
             password="secret",
             first_name="Inviter",
@@ -228,7 +231,7 @@ class OrganizationMemberNotificationTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         notification = Notification.objects.get(recipient=owner)
         self.assertEqual(notification.actor, inviter)
-        self.assertEqual(notification.verb, "wysłał(a) zaproszenie do organizacji")
+        self.assertEqual(notification.verb, "wys\u0142a\u0142(a) zaproszenie do organizacji")
         self.assertEqual(notification.target_type, "organization")
         self.assertEqual(notification.target_id, org.id)
 
@@ -251,6 +254,7 @@ class OrganizationMemberNotificationTests(TestCase):
             user=owner,
             organization=org,
             role=MemberRole.OWNER,
+            invitation_confirmed=True,
         )
         invited = User.objects.create_user(
             email="invitee-confirm@example.com",
@@ -275,7 +279,7 @@ class OrganizationMemberNotificationTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         notification = Notification.objects.get(recipient=owner)
         self.assertEqual(notification.actor, invited)
-        self.assertEqual(notification.verb, "potwierdził(a) zaproszenie do organizacji")
+        self.assertEqual(notification.verb, "potwierdzi\u0142(a) zaproszenie do organizacji")
         self.assertEqual(notification.target_type, "organization")
         self.assertEqual(notification.target_id, org.id)
 
@@ -298,6 +302,7 @@ class OrganizationMemberNotificationTests(TestCase):
             user=owner,
             organization=org,
             role=MemberRole.OWNER,
+            invitation_confirmed=True,
         )
         member = User.objects.create_user(
             email="member-remove@example.com",
@@ -320,7 +325,7 @@ class OrganizationMemberNotificationTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         notification = Notification.objects.get(recipient=member)
         self.assertEqual(notification.actor, owner)
-        self.assertEqual(notification.verb, "usunął(a) Cię z organizacji")
+        self.assertEqual(notification.verb, "usun\u0105\u0142(a) Ci\u0119 z organizacji")
         self.assertEqual(notification.target_type, "organization")
         self.assertEqual(notification.target_id, org.id)
 
@@ -346,6 +351,7 @@ class OrganizationMemberPatchRoleInputTests(TestCase):
             user=self.owner,
             organization=self.organization,
             role=MemberRole.OWNER,
+            invitation_confirmed=True,
         )
         self.member_user = User.objects.create_user(
             email="member-role-update@example.com",
@@ -443,6 +449,154 @@ class UserUpdateCurrentAPITests(TestCase):
         user.refresh_from_db()
         self.assertEqual(user.first_name, "After")
         self.assertEqual(user.last_name, "Name")
+
+    def test_patch_rejects_admin_only_fields_for_non_superuser(self):
+        user = User.objects.create_user(
+            email="limited@example.com",
+            password="secret",
+            first_name="Limited",
+            last_name="User",
+            is_staff=False,
+        )
+        self.client.force_authenticate(user=user)
+
+        response = self.client.patch(
+            "/users/users/",
+            {"is_staff": True},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["status"], 400)
+        self.assertIn("is_staff", response.data["errors"])
+        user.refresh_from_db()
+        self.assertFalse(user.is_staff)
+
+
+class UserObjectPermissionTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            email="me@example.com",
+            password="secret",
+            first_name="Me",
+            last_name="User",
+        )
+        self.other_user = User.objects.create_user(
+            email="other-object@example.com",
+            password="secret",
+            first_name="Other",
+            last_name="User",
+        )
+
+    def test_non_superuser_cannot_update_other_user_by_id(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            f"/users/users/{self.other_user.id}/",
+            {"first_name": "Changed"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.other_user.refresh_from_db()
+        self.assertNotEqual(self.other_user.first_name, "Changed")
+
+
+class OrganizationMemberPermissionTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.owner = User.objects.create_user(
+            email="org-owner@example.com",
+            password="secret",
+            first_name="Owner",
+            last_name="Org",
+        )
+        self.organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Permissions Shelter",
+            email="permissions-shelter@example.com",
+            image="",
+            phone="",
+            user=self.owner,
+        )
+        OrganizationMember.objects.create(
+            user=self.owner,
+            organization=self.organization,
+            role=MemberRole.OWNER,
+            invitation_confirmed=True,
+        )
+        self.member_user = User.objects.create_user(
+            email="org-member@example.com",
+            password="secret",
+            first_name="Member",
+            last_name="Org",
+        )
+        self.member_membership = OrganizationMember.objects.create(
+            user=self.member_user,
+            organization=self.organization,
+            role=MemberRole.STAFF,
+            invitation_confirmed=False,
+        )
+        self.outsider = User.objects.create_user(
+            email="org-outsider@example.com",
+            password="secret",
+            first_name="Outsider",
+            last_name="Org",
+        )
+
+    def test_non_owner_cannot_invite_member(self):
+        invitee = User.objects.create_user(
+            email="invitee-permissions@example.com",
+            password="secret",
+            first_name="Invitee",
+            last_name="Org",
+        )
+        self.client.force_authenticate(user=self.outsider)
+
+        response = self.client.post(
+            "/users/organization-members/",
+            {
+                "user": invitee.id,
+                "organization": self.organization.id,
+                "role": MemberRole.STAFF,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(
+            OrganizationMember.objects.filter(
+                user=invitee,
+                organization=self.organization,
+            ).exists()
+        )
+
+    def test_member_cannot_change_own_role(self):
+        self.client.force_authenticate(user=self.member_user)
+
+        response = self.client.patch(
+            f"/users/organization-members/{self.member_membership.id}/",
+            {"role": MemberRole.OWNER},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.member_membership.refresh_from_db()
+        self.assertEqual(self.member_membership.role, MemberRole.STAFF)
+
+    def test_member_can_confirm_own_invitation(self):
+        self.client.force_authenticate(user=self.member_user)
+
+        response = self.client.patch(
+            f"/users/organization-members/{self.member_membership.id}/",
+            {"invitation_confirmed": True},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.member_membership.refresh_from_db()
+        self.assertTrue(self.member_membership.invitation_confirmed)
 
 
 User = get_user_model()
@@ -651,7 +805,7 @@ class OrganizationUpdateSerializerTests(TestCase):
         )
         address = Address.objects.create(
             organization=organization,
-            city="Kraków",
+            city="KrakĂłw",
             street="Stara",
             house_number="1",
             zip_code="30-001",
@@ -662,7 +816,7 @@ class OrganizationUpdateSerializerTests(TestCase):
             data={
                 "name": "Aktualizacja Adresu 2",
                 "address": {
-                    "city": "Gdańsk",
+                    "city": "GdaĹ„sk",
                     "street": "Nowa",
                     "house_number": "5",
                     "zip_code": "80-001",
@@ -682,7 +836,7 @@ class OrganizationUpdateSerializerTests(TestCase):
         address.refresh_from_db()
 
         self.assertEqual(updated.name, "Aktualizacja Adresu 2")
-        self.assertEqual(address.city, "Gdańsk")
+        self.assertEqual(address.city, "GdaĹ„sk")
         self.assertEqual(address.street, "Nowa")
         self.assertEqual(address.house_number, "5")
         self.assertEqual(address.zip_code, "80-001")
@@ -696,20 +850,20 @@ class OrganizationUpdateSerializerTests(TestCase):
         )
         organization = Organization.objects.create(
             type=OrganizationType.SHELTER,
-            name="Aktualizacja Gatunków",
+            name="Aktualizacja GatunkĂłw",
             email="update-species@example.com",
             phone="",
             user=owner,
         )
         address = Address.objects.create(
             organization=organization,
-            city="Poznań",
-            street="Leśna",
+            city="PoznaĹ„",
+            street="LeĹ›na",
             house_number="7",
             zip_code="60-001",
         )
-        dog = Species.objects.create(name="Dog")
-        cat = Species.objects.create(name="Cat")
+        dog = Species.objects.create(name=f"Dog-{owner.pk}")
+        cat = Species.objects.create(name=f"Cat-{owner.pk}")
         address.species.set([dog])
 
         serializer = OrganizationUpdateSerializer(
@@ -913,7 +1067,7 @@ class UserErrorResponseFormatTests(TestCase):
         self.assertEqual(response.data["message"], "Validation error.")
         self.assertEqual(
             response.data["errors"],
-            {"detail": "Nieprawidłowy lub wygasły token resetu hasła."},
+            {"detail": "Nieprawid\u0142owy lub wygas\u0142y token resetu has\u0142a."},
         )
 
     def test_500_error_payload_format(self):
@@ -931,3 +1085,4 @@ class UserErrorResponseFormatTests(TestCase):
                 "errors": {},
             },
         )
+

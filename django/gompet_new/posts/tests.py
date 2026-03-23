@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 from django.urls import reverse
@@ -8,9 +9,14 @@ from unittest.mock import patch
 from animals.models import Animal, AnimalStatus, Gender, Size
 from common.models import Comment, Follow
 
-from users.models import Organization, OrganizationType
+from users.models import MemberRole, Organization, OrganizationMember, OrganizationType
 
 from .models import Post
+
+
+def grant_post_permissions(user, *codenames):
+    for codename in codenames:
+        user.user_permissions.add(Permission.objects.get(codename=codename))
 
 
 class PostDeletionTests(TestCase):
@@ -74,6 +80,8 @@ class PostOwnershipAPITests(APITestCase):
             author=self.owner,
             animal=self.animal,
         )
+        grant_post_permissions(self.owner, "add_post", "change_post")
+        grant_post_permissions(self.other_user, "add_post", "change_post")
 
     def test_owner_can_create_post_for_owned_animal(self):
         self.client.force_authenticate(user=self.owner)
@@ -82,7 +90,7 @@ class PostOwnershipAPITests(APITestCase):
             "content": "New post content",
         }
 
-        response = self.client.post("/posts/", data=payload, format="json")
+        response = self.client.post(reverse("post-list"), data=payload, format="json")
 
         self.assertEqual(response.status_code, 201)
         self.assertTrue(
@@ -96,7 +104,7 @@ class PostOwnershipAPITests(APITestCase):
             "content": "Attempted post",
         }
 
-        response = self.client.post("/posts/", data=payload, format="json")
+        response = self.client.post(reverse("post-list"), data=payload, format="json")
 
         self.assertEqual(response.status_code, 403)
         self.assertFalse(Post.objects.filter(content="Attempted post").exists())
@@ -105,7 +113,7 @@ class PostOwnershipAPITests(APITestCase):
         self.client.force_authenticate(user=self.owner)
 
         response = self.client.patch(
-            f"/posts/{self.post.id}/",
+            reverse("post-detail", args=[self.post.id]),
             data={"content": "Updated content"},
             format="json",
         )
@@ -118,7 +126,7 @@ class PostOwnershipAPITests(APITestCase):
         self.client.force_authenticate(user=self.other_user)
 
         response = self.client.patch(
-            f"/posts/{self.post.id}/",
+            reverse("post-detail", args=[self.post.id]),
             data={"content": "Hacked content"},
             format="json",
         )
@@ -126,6 +134,103 @@ class PostOwnershipAPITests(APITestCase):
         self.assertEqual(response.status_code, 403)
         self.post.refresh_from_db()
         self.assertNotEqual(self.post.content, "Hacked content")
+
+
+class PostOrganizationOwnershipAPITests(APITestCase):
+    def setUp(self):
+        self.org_owner = get_user_model().objects.create_user(
+            email="post-org-owner@example.com",
+            password="password123",
+            first_name="Post",
+            last_name="OrgOwner",
+        )
+        self.member = get_user_model().objects.create_user(
+            email="post-org-member@example.com",
+            password="password123",
+            first_name="Post",
+            last_name="Member",
+        )
+        self.outsider = get_user_model().objects.create_user(
+            email="post-org-outsider@example.com",
+            password="password123",
+            first_name="Post",
+            last_name="Outsider",
+        )
+        self.organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Posts Organization",
+            email="posts-organization@example.com",
+            user=self.org_owner,
+        )
+        OrganizationMember.objects.create(
+            user=self.org_owner,
+            organization=self.organization,
+            role=MemberRole.OWNER,
+            invitation_confirmed=True,
+        )
+        OrganizationMember.objects.create(
+            user=self.member,
+            organization=self.organization,
+            role=MemberRole.STAFF,
+            invitation_confirmed=True,
+        )
+        grant_post_permissions(self.org_owner, "add_post")
+        grant_post_permissions(self.member, "add_post")
+        grant_post_permissions(self.outsider, "add_post")
+
+    def test_organization_owner_can_create_post_for_organization(self):
+        self.client.force_authenticate(user=self.org_owner)
+
+        response = self.client.post(
+            reverse("post-list"),
+            {"organization": self.organization.id, "content": "Owner org post"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(
+            Post.objects.filter(
+                organization=self.organization,
+                content="Owner org post",
+                author=self.org_owner,
+            ).exists()
+        )
+
+    def test_organization_member_can_create_post_for_organization(self):
+        self.client.force_authenticate(user=self.member)
+
+        response = self.client.post(
+            reverse("post-list"),
+            {"organization": self.organization.id, "content": "Member org post"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(
+            Post.objects.filter(
+                organization=self.organization,
+                content="Member org post",
+                author=self.member,
+            ).exists()
+        )
+
+    def test_outsider_cannot_create_post_for_organization(self):
+        self.client.force_authenticate(user=self.outsider)
+
+        response = self.client.post(
+            reverse("post-list"),
+            {"organization": self.organization.id, "content": "Outsider org post"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(
+            Post.objects.filter(
+                organization=self.organization,
+                content="Outsider org post",
+                author=self.outsider,
+            ).exists()
+        )
 
 
 class PostFeedAPITests(APITestCase):

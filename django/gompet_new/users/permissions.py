@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Iterable
 
+from django.apps import apps
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 from .models import MemberRole, Organization, OrganizationMember
@@ -43,13 +44,18 @@ class OrganizationRolePermissions(BasePermission):
                 return True
             return self._has_role_permissions(user, organization, required_perms)
 
-        if (
-            required_perms
-            and user.has_perms(required_perms)
-            and not self._is_org_scoped_model(view)
-        ):
+        lookup_kwarg = getattr(view, "lookup_url_kwarg", None) or getattr(
+            view, "lookup_field", "pk"
+        )
+        if getattr(view, "kwargs", {}).get(lookup_kwarg) is not None:
+            # Defer unsafe detail requests to has_object_permission where
+            # organization and ownership can be resolved from the object itself.
             return True
-        if not organization:
+
+        if not required_perms:
+            return True
+
+        if user.has_perms(required_perms):
             return True
 
         return False
@@ -69,16 +75,17 @@ class OrganizationRolePermissions(BasePermission):
                 return True
             return self._has_role_permissions(user, organization, required_perms)
 
-        if (
-            required_perms
-            and user.has_perms(required_perms)
-            and not self._is_org_scoped_model(view, obj=obj)
-        ):
+        if not required_perms:
             return True
-        if not organization:
+
+        if not user.has_perms(required_perms):
             return False
 
-        return False
+        ownership = self._is_object_owner(user, obj)
+        if ownership is not None:
+            return ownership or user.is_superuser
+
+        return not self._is_org_scoped_model(view, obj=obj)
 
     def _get_required_perms(self, method: str, view) -> list[str]:
         model = self._get_model(view)
@@ -110,6 +117,10 @@ class OrganizationRolePermissions(BasePermission):
                 return obj
             if hasattr(obj, "organization"):
                 return obj.organization
+            if hasattr(obj, "animal"):
+                animal = getattr(obj, "animal", None)
+                if animal is not None and hasattr(animal, "organization"):
+                    return animal.organization
 
         organization_id = (
             request.data.get("organization")
@@ -128,6 +139,32 @@ class OrganizationRolePermissions(BasePermission):
             except (TypeError, ValueError):
                 return None
             return Organization.objects.filter(pk=organization_id).first()
+
+        animal_id = None
+        if hasattr(request, "data"):
+            animal_id = request.data.get("animal")
+        animal_id = animal_id or request.query_params.get("animal")
+        if animal_id is not None:
+            try:
+                animal_id = int(animal_id)
+            except (TypeError, ValueError):
+                return None
+            Animal = apps.get_model("animals", "Animal")
+            animal = Animal.objects.filter(pk=animal_id).only("organization_id").first()
+            if animal is not None:
+                return getattr(animal, "organization", None)
+
+        return None
+
+    @staticmethod
+    def _is_object_owner(user, obj) -> bool | None:
+        for attr in ("owner_id", "author_id", "user_id"):
+            if hasattr(obj, attr):
+                return getattr(obj, attr) == user.id
+
+        animal = getattr(obj, "animal", None)
+        if animal is not None and hasattr(animal, "owner_id"):
+            return animal.owner_id == user.id
 
         return None
 

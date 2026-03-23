@@ -120,6 +120,9 @@ class StandardizedErrorResponseMixin:
         try:
             response = super().handle_exception(exc)
         except Exception:
+            logger.exception("Unhandled exception in %s", self.__class__.__name__)
+            if settings.DEBUG:
+                raise
             return self.server_error_response()
 
         if response is None:
@@ -202,10 +205,28 @@ class UserViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
 
+    @staticmethod
+    def _can_manage_user(actor, target) -> bool:
+        if not actor or not actor.is_authenticated:
+            return False
+        return actor.is_superuser or actor.id == target.id
+
+    def update(self, request, *args, **kwargs):
+        user = self.get_object()
+        if not self._can_manage_user(request.user, user):
+            return self.forbidden_response()
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        user = self.get_object()
+        if not self._can_manage_user(request.user, user):
+            return self.forbidden_response()
+        return super().partial_update(request, *args, **kwargs)
+
     def destroy(self, request, *args, **kwargs):
         user = self.get_object()
 
-        if request.user != user and not request.user.has_perm("users.delete_user"):
+        if not self._can_manage_user(request.user, user):
             return self.forbidden_response()
 
         try:
@@ -589,12 +610,78 @@ class OrganizationMemberViewSet(StandardizedErrorResponseMixin, viewsets.ModelVi
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
     permission_classes = [IsAuthenticated]
 
+    @staticmethod
+    def _is_truthy(value) -> bool:
+        return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+    def _is_organization_owner(self, organization_id: int) -> bool:
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_superuser:
+            return True
+        return OrganizationMember.objects.filter(
+            organization_id=organization_id,
+            user=user,
+            role=MemberRole.OWNER,
+            invitation_confirmed=True,
+        ).exists()
+
+    def _is_self_confirmation_request(self, membership: OrganizationMember) -> bool:
+        if membership.user_id != self.request.user.id:
+            return False
+
+        payload_keys = set(self.request.data.keys())
+        if not payload_keys or not payload_keys.issubset({"invitation_confirmed"}):
+            return False
+
+        return self._is_truthy(self.request.data.get("invitation_confirmed"))
+
+    def _can_update_membership(self, membership: OrganizationMember) -> bool:
+        if self._is_organization_owner(membership.organization_id):
+            return True
+        return self._is_self_confirmation_request(membership)
+
+    def _can_delete_membership(self, membership: OrganizationMember) -> bool:
+        if self._is_organization_owner(membership.organization_id):
+            return True
+        return membership.user_id == self.request.user.id
+
     def get_serializer_class(self):
         if self.action == "create":
             return OrganizationMemberCreateSerializer
         if self.action in ("update", "partial_update"):
             return OrganizationMemberCreateSerializer
         return OrganizationMemberSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        organization = serializer.validated_data.get("organization")
+        if organization is None or not self._is_organization_owner(organization.id):
+            return self.forbidden_response()
+
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def update(self, request, *args, **kwargs):
+        membership = self.get_object()
+        if not self._can_update_membership(membership):
+            return self.forbidden_response()
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        membership = self.get_object()
+        if not self._can_update_membership(membership):
+            return self.forbidden_response()
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        membership = self.get_object()
+        if not self._can_delete_membership(membership):
+            return self.forbidden_response()
+        return super().destroy(request, *args, **kwargs)
 
     def get_queryset(self):
         queryset = OrganizationMember.objects.all()

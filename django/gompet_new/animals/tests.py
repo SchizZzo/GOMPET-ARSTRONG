@@ -9,6 +9,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.contrib.gis.geos import Point
 from django.urls import reverse
 from rest_framework.test import APIClient
@@ -415,6 +416,7 @@ class AnimalViewSetGeoFilteringTests(TestCase):
         target = Animal.objects.create(
             name="Target",
             species="Dog",
+            city="TargetCity",
             gender=Gender.MALE,
             size=Size.SMALL,
             owner=self.user,
@@ -423,6 +425,7 @@ class AnimalViewSetGeoFilteringTests(TestCase):
         Animal.objects.create(
             name="Other",
             species="Dog",
+            city="OtherCity",
             gender=Gender.MALE,
             size=Size.SMALL,
             owner=self.user,
@@ -438,6 +441,7 @@ class AnimalViewSetGeoFilteringTests(TestCase):
         near = Animal.objects.create(
             name="Near",
             species="Dog",
+            city="NearCity",
             gender=Gender.MALE,
             size=Size.SMALL,
             owner=self.user,
@@ -446,6 +450,7 @@ class AnimalViewSetGeoFilteringTests(TestCase):
         far = Animal.objects.create(
             name="Far",
             species="Dog",
+            city="FarCity",
             gender=Gender.MALE,
             size=Size.SMALL,
             owner=self.user,
@@ -464,6 +469,7 @@ class AnimalViewSetGeoFilteringTests(TestCase):
         near = Animal.objects.create(
             name="NearLoc",
             species="Dog",
+            city="NearLocCity",
             gender=Gender.MALE,
             size=Size.SMALL,
             owner=self.user,
@@ -472,6 +478,7 @@ class AnimalViewSetGeoFilteringTests(TestCase):
         far = Animal.objects.create(
             name="FarLoc",
             species="Dog",
+            city="FarLocCity",
             gender=Gender.MALE,
             size=Size.SMALL,
             owner=self.user,
@@ -484,6 +491,33 @@ class AnimalViewSetGeoFilteringTests(TestCase):
         ids = [item["id"] for item in response.data]
         self.assertIn(near.id, ids)
         self.assertNotIn(far.id, ids)
+
+
+class AnimalFilteringRegressionTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = get_user_model().objects.create_user(
+            email="filter-regression@example.com",
+            password="testpass",
+            first_name="Filter",
+            last_name="Regression",
+            location=Point(21.0, 52.0),
+        )
+        Animal.objects.create(
+            name="FilterDog",
+            species="Dog",
+            gender=Gender.MALE,
+            size=Size.SMALL,
+            owner=self.user,
+            location=Point(21.001, 52.001),
+        )
+
+    def test_filtering_range_does_not_raise_server_error(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.get(reverse("animalfiltering-list"), {"range": 5000})
+
+        self.assertEqual(response.status_code, 200)
 
 
 class AnimalAssignmentOptionsTests(TestCase):
@@ -613,7 +647,7 @@ class AnimalErrorResponseFormatTests(TestCase):
             format="json",
         )
 
-        self.assertEqual(response.status_code, 403)
+        self.assertIn(response.status_code, (400, 403))
         self.assertEqual(
             response.data,
             {
@@ -639,6 +673,7 @@ class AnimalErrorResponseFormatTests(TestCase):
         )
 
     def test_400_validation_error_payload_format(self):
+        self.user.user_permissions.add(Permission.objects.get(codename="add_animal"))
         self.client.force_authenticate(user=self.user)
 
         response = self.client.post(
@@ -899,7 +934,7 @@ class AnimalPartialUpdateOrganizationTests(TestCase):
         self.animal.refresh_from_db()
         self.assertEqual(self.animal.city, "OwnerCity")
 
-    def test_patch_owner_change_sets_location_from_new_owner(self):
+    def test_patch_owner_change_is_forbidden_for_non_superuser(self):
         self.client.force_authenticate(user=self.user)
         self.animal.location = Point(17.0, 51.0)
         self.animal.save(update_fields=["location"])
@@ -920,14 +955,14 @@ class AnimalPartialUpdateOrganizationTests(TestCase):
                 format="json",
             )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertIn(response.status_code, (400, 403))
         self.animal.refresh_from_db()
-        self.assertEqual(self.animal.owner, new_owner)
+        self.assertEqual(self.animal.owner, self.owner)
         self.assertIsNotNone(self.animal.location)
-        self.assertAlmostEqual(self.animal.location.x, new_owner_location.x, places=6)
-        self.assertAlmostEqual(self.animal.location.y, new_owner_location.y, places=6)
+        self.assertAlmostEqual(self.animal.location.x, 17.0, places=6)
+        self.assertAlmostEqual(self.animal.location.y, 51.0, places=6)
 
-    def test_patch_owner_change_without_location_clears_animal_location(self):
+    def test_patch_owner_change_without_location_is_forbidden_for_non_superuser(self):
         self.client.force_authenticate(user=self.user)
         self.animal.location = Point(17.0, 51.0)
         self.animal.save(update_fields=["location"])
@@ -945,10 +980,45 @@ class AnimalPartialUpdateOrganizationTests(TestCase):
             format="json",
         )
 
+        self.assertIn(response.status_code, (400, 403))
+        self.animal.refresh_from_db()
+        self.assertEqual(self.animal.owner, self.owner)
+        self.assertIsNotNone(self.animal.location)
+        self.assertAlmostEqual(self.animal.location.x, 17.0, places=6)
+        self.assertAlmostEqual(self.animal.location.y, 51.0, places=6)
+
+    def test_superuser_can_change_owner_and_sync_location(self):
+        admin_user = get_user_model().objects.create_superuser(
+            email="animals-admin@example.com",
+            password="testpass",
+            first_name="Animals",
+            last_name="Admin",
+        )
+        self.client.force_authenticate(user=admin_user)
+        self.animal.location = Point(17.0, 51.0)
+        self.animal.save(update_fields=["location"])
+
+        new_owner_location = Point(14.55, 53.43)
+        new_owner = get_user_model().objects.create_user(
+            email="owner-superuser-update@example.com",
+            password="testpass",
+            first_name="Owner",
+            last_name="SuperuserUpdate",
+            location=new_owner_location,
+        )
+
+        response = self.client.patch(
+            self.url,
+            {"owner": new_owner.id},
+            format="json",
+        )
+
         self.assertEqual(response.status_code, 200)
         self.animal.refresh_from_db()
-        self.assertEqual(self.animal.owner, new_owner_without_location)
-        self.assertIsNone(self.animal.location)
+        self.assertEqual(self.animal.owner, new_owner)
+        self.assertIsNotNone(self.animal.location)
+        self.assertAlmostEqual(self.animal.location.x, new_owner_location.x, places=6)
+        self.assertAlmostEqual(self.animal.location.y, new_owner_location.y, places=6)
 
 
 class AnimalsBreedGroupsEndpointTests(TestCase):

@@ -107,6 +107,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     """Serializer do aktualizacji danych uĹĽytkownika."""
     password = serializers.CharField(write_only=True, required=False)
+    ADMIN_ONLY_FIELDS = {"role", "is_active", "is_staff"}
 
     image = Base64ImageField(required=False, allow_null=True)
 
@@ -124,6 +125,28 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             "is_active",
             "is_staff",
         ]
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        request = self.context.get("request")
+        if not request or not request.user or not request.user.is_authenticated:
+            return attrs
+        if request.user.is_superuser:
+            return attrs
+
+        instance = getattr(self, "instance", None)
+        forbidden_updates = {}
+        for field in self.ADMIN_ONLY_FIELDS:
+            if field not in self.initial_data:
+                continue
+            if instance is not None and field in attrs and attrs[field] == getattr(instance, field):
+                continue
+            forbidden_updates[field] = "Only superusers can modify this field."
+
+        if forbidden_updates:
+            raise serializers.ValidationError(forbidden_updates)
+
+        return attrs
 
     def update(self, instance, validated_data):
         pwd = validated_data.pop("password", None)
@@ -555,7 +578,7 @@ class MemberRoleSerializer(serializers.Serializer):
 class OrganizationAddressSerializer(AddressSerializer):
     """Serializer adresu organizacji rozszerzony o dane organizacji."""
 
-    organization_id = serializers.IntegerField(source="organization_id", read_only=True)
+    organization_id = serializers.IntegerField(read_only=True)
     organization_name = serializers.CharField(source="organization.name", read_only=True)
     organization_type = serializers.CharField(source="organization.type", read_only=True)
 

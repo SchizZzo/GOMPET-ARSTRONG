@@ -1,8 +1,12 @@
+import logging
+
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from common.like_counter import resolve_content_type
@@ -15,6 +19,8 @@ from .serializers import (
     ReactionSerializer,
     FollowSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class StandardizedErrorResponseMixin:
@@ -83,6 +89,9 @@ class StandardizedErrorResponseMixin:
         try:
             response = super().handle_exception(exc)
         except Exception:
+            logger.exception("Unhandled exception in %s", self.__class__.__name__)
+            if settings.DEBUG:
+                raise
             return Response(
                 self._build_error_payload(status.HTTP_500_INTERNAL_SERVER_ERROR),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -132,6 +141,12 @@ class CommentViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = [permissions.DjangoModelPermissionsOrAnonReadOnly]
 
+    def _can_manage_comment(self, comment: Comment) -> bool:
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return False
+        return user.is_superuser or comment.user_id == user.id
+
     def get_queryset(self):
         """
         Optionally restricts the returned comments to a given object,
@@ -170,6 +185,17 @@ class CommentViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
                 queryset = queryset[:limit_value]
             
         return queryset
+
+    def perform_update(self, serializer):
+        comment = serializer.instance
+        if not self._can_manage_comment(comment):
+            raise PermissionDenied("You do not have permission to modify this comment.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if not self._can_manage_comment(instance):
+            raise PermissionDenied("You do not have permission to delete this comment.")
+        instance.delete()
 
 
     
@@ -243,6 +269,12 @@ class ReactionViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     permission_classes = [permissions.DjangoModelPermissionsOrAnonReadOnly]
     http_method_names = ["get", "post", "put", "patch", "delete"]
 
+    def _can_manage_reaction(self, reaction: Reaction) -> bool:
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return False
+        return user.is_superuser or reaction.user_id == user.id
+
 
 
     def get_queryset(self):
@@ -276,6 +308,17 @@ class ReactionViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
                 queryset = queryset.filter(reactable_type_id=reactable_type)
             
         return queryset
+
+    def perform_update(self, serializer):
+        reaction = serializer.instance
+        if not self._can_manage_reaction(reaction):
+            raise PermissionDenied("You do not have permission to modify this reaction.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if not self._can_manage_reaction(instance):
+            raise PermissionDenied("You do not have permission to delete this reaction.")
+        instance.delete()
 
     # @action(detail=False, methods=["delete"], url_path="like", url_name="remove-like")
     # def remove_like(self, request):

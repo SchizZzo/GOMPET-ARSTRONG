@@ -1,10 +1,17 @@
-from rest_framework import status, viewsets
-from rest_framework.response import Response
-from .models import Litter, LitterAnimal
-from .serializers import LitterSerializer, LitterAnimalSerializer
+import logging
 
-
+from django.conf import settings
 from drf_spectacular.utils import extend_schema
+from rest_framework import permissions, status, viewsets
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
+
+from users.models import OrganizationMember
+
+from .models import Litter, LitterAnimal
+from .serializers import LitterAnimalSerializer, LitterSerializer
+
+logger = logging.getLogger(__name__)
 
 
 class StandardizedErrorResponseMixin:
@@ -67,6 +74,9 @@ class StandardizedErrorResponseMixin:
         try:
             response = super().handle_exception(exc)
         except Exception:
+            logger.exception("Unhandled exception in %s", self.__class__.__name__)
+            if settings.DEBUG:
+                raise
             return Response(
                 self._build_error_payload(status.HTTP_500_INTERNAL_SERVER_ERROR),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -86,49 +96,82 @@ class StandardizedErrorResponseMixin:
         return response
 
 
+class _LitterAccessMixin:
+    @staticmethod
+    def _is_organization_member(user, organization_id: int) -> bool:
+        if not user or not user.is_authenticated:
+            return False
+        return OrganizationMember.objects.filter(
+            user=user,
+            organization_id=organization_id,
+            invitation_confirmed=True,
+        ).exists()
+
+    def _can_manage_litter(self, litter: Litter) -> bool:
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_superuser:
+            return True
+        if litter.owner_id:
+            return litter.owner_id == user.id
+        if litter.organization_id:
+            return (
+                litter.organization.user_id == user.id
+                or self._is_organization_member(user, litter.organization_id)
+            )
+        return False
+
+
 @extend_schema(
     tags=["litters", "organizations_miots", "litters_new_profile"],
-    description="API endpoint that allows litters to be viewed or edited."
+    description="API endpoint that allows litters to be viewed or edited.",
 )
-class LitterViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
-    """
-    LitterViewSet
-    =============
-
-    Endpoint tylko do odczytu zwracający listę miotów (*Litter*).
-    Pozwala zawęzić wyniki do miotów określonej organizacji **lub** właściciela.
-
-    Parametry zapytania
-    -------------------
-    - **organization-id** (int, opcjonalny)  
-      ID organizacji. Jeżeli podany, zwracane są wyłącznie mioty
-      przypisane do tej organizacji.
-
-    - **user-id** (int, opcjonalny)  
-      ID użytkownika–właściciela. Stosowany tylko wtedy, gdy
-      `organization-id` nie został podany; zwraca mioty należące
-      do wskazanego użytkownika.
-
-    Zasady filtrowania
-    ------------------
-    1. Jeśli obecny jest `organization-id`, filtr ten ma **pierwszeństwo**.  
-    2. W przeciwnym razie – jeśli podano `user-id` – zwracane są mioty
-       danego użytkownika.  
-    3. Brak obu parametrów zwraca wszystkie mioty w bazie.
-
-    Przykłady
-    ---------
-    ```http
-    # wszystkie mioty danej organizacji
-    GET /litters/?organization-id=15
-
-    # mioty konkretnego użytkownika (gdy brak organization-id)
-    GET /litters/?user-id=42
-    ```
-    """
-    
+class LitterViewSet(StandardizedErrorResponseMixin, _LitterAccessMixin, viewsets.ModelViewSet):
     queryset = Litter.objects.all()
     serializer_class = LitterSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        owner = serializer.validated_data.get("owner")
+        organization = serializer.validated_data.get("organization")
+
+        if user.is_superuser:
+            serializer.save()
+            return
+
+        if owner and owner.id != user.id:
+            raise PermissionDenied("Cannot create litter for another owner.")
+
+        if organization:
+            if not (
+                organization.user_id == user.id
+                or self._is_organization_member(user, organization.id)
+            ):
+                raise PermissionDenied("Cannot create litter for this organization.")
+            serializer.save(owner=None, organization=organization)
+            return
+
+        serializer.save(owner=user, organization=None)
+
+    def perform_update(self, serializer):
+        litter = serializer.instance
+        if not self._can_manage_litter(litter):
+            raise PermissionDenied("You do not have permission to modify this litter.")
+
+        if not self.request.user.is_superuser:
+            forbidden_fields = {"owner", "organization"} & set(self.request.data.keys())
+            if forbidden_fields:
+                raise PermissionDenied("Only superusers can reassign litter ownership.")
+
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if not self._can_manage_litter(instance):
+            raise PermissionDenied("You do not have permission to delete this litter.")
+        instance.delete()
+
     def get_queryset(self):
         qs = super().get_queryset()
         organization_id = self.request.query_params.get("organization-id")
@@ -144,11 +187,26 @@ class LitterViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
 
 @extend_schema(
     tags=["litter-animals"],
-    description="API endpoint that allows litter‐animals to be viewed or edited."
+    description="API endpoint that allows litter-animals to be viewed or edited.",
 )
-class LitterAnimalViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
-    """
-    API endpoint that allows litter‐animals to be viewed or edited.
-    """
+class LitterAnimalViewSet(StandardizedErrorResponseMixin, _LitterAccessMixin, viewsets.ModelViewSet):
     queryset = LitterAnimal.objects.all()
     serializer_class = LitterAnimalSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def perform_create(self, serializer):
+        litter = serializer.validated_data["litter"]
+        if not self._can_manage_litter(litter):
+            raise PermissionDenied("You do not have permission to modify this litter.")
+        serializer.save()
+
+    def perform_update(self, serializer):
+        litter_animal = serializer.instance
+        if not self._can_manage_litter(litter_animal.litter):
+            raise PermissionDenied("You do not have permission to modify this litter.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if not self._can_manage_litter(instance.litter):
+            raise PermissionDenied("You do not have permission to delete this litter item.")
+        instance.delete()
