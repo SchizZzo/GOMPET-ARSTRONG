@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
@@ -18,6 +19,8 @@ import { FamilyTreeWrapper } from './components/FamilyTree/FamilyTreeWrapper';
 import RelatedAnimals from './components/RelatedAnimals';
 
 import style from './AnimalProfile.module.scss';
+
+dayjs.extend(utc);
 
 type AnimalProfileProps = {
     animal: IAnimal;
@@ -40,7 +43,7 @@ const AnimalInformation = ({ animal, followers, comments }: AnimalProfileProps) 
     console.log("animalanimalanimal:: ", animal);
 
     const formatDate = (dateString: string) => {
-        return dayjs(dateString).format('DD.MM.YYYY, godz. HH:mm');
+        return dayjs.utc(dateString).format('DD.MM.YYYY, godz. HH:mm');
       };
 
   return (

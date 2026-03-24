@@ -4,7 +4,8 @@ import { getRequestConfig } from 'next-intl/server';
 import { Locale, locales } from './navigation';
 
 export default getRequestConfig(async ({ locale, requestLocale }) => {
-  const requestedLocale = locale ?? (await requestLocale);
+  const fallbackLocale = locales[0];
+  const requestedLocale = locale ?? (await requestLocale) ?? fallbackLocale;
 
   // Validate that the incoming `locale` parameter is valid
   if (!requestedLocale || !locales.includes(requestedLocale as Locale)) notFound();

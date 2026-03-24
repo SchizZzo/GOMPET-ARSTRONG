@@ -41,6 +41,9 @@ runserver:
 run:
 	$(DC) up
 
+run-with-nextjs:
+	$(DC) down nextjs
+
 down:
 	$(DC) down	
 

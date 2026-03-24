@@ -4,9 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev -p 5001",
-    "build": "next build --webpack",
-    "start": "next start",
+
+    "dev": "next dev -H 0.0.0.0 -p 3000",
+    "build": "next build  --webpack",
+    "start": "next start -p 3000",
     "lint": "eslint ."
   },
   "dependencies": {

@@ -29,7 +29,19 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-local-dev-key-chang
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "1").strip().lower() in {"1", "true", "yes", "on"}
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']  # Allow all hosts for development; change in production
+DEFAULT_ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "web",
+    "nginx",
+    "nextjs",
+    "nextjs_app",
+]
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv("DJANGO_ALLOWED_HOSTS", ",".join(DEFAULT_ALLOWED_HOSTS)).split(",")
+    if host.strip()
+]
 
 
 # Application definition

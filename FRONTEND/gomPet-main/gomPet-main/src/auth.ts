@@ -225,7 +225,16 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         const { data: freshUser } = await AuthApi.getLoginUser(access);
         session.user = freshUser;
       } catch (error) {
-        console.error('Unable to fetch user for session:', error);
+        if (isAxiosError(error)) {
+          console.error('Unable to fetch user for session:', {
+            code: error.code,
+            status: error.response?.status,
+            url: error.config?.url,
+            baseURL: error.config?.baseURL
+          });
+        } else {
+          console.error('Unable to fetch user for session:', error);
+        }
       }
 
       return session;

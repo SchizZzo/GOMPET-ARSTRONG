@@ -10,6 +10,38 @@ networks:
   webnet:
 
 services:
+
+  
+  nextjs:
+    build:
+      context: ./FRONTEND/gomPet-main/gomPet-main
+      dockerfile: Dockerfile
+    working_dir: /app
+    restart: unless-stopped
+    command:
+      - sh
+      - -c
+      - npm run dev -- -p 5001
+    
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./FRONTEND/gomPet-main/gomPet-main:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - INTERNAL_API_URL=http://web:8000
+      - AUTH_URL=http://localhost:5001
+      - NEXTAUTH_URL=http://localhost:5001
+      - AUTH_URL_INTERNAL=http://nextjs:5001
+      - NEXTAUTH_URL_INTERNAL=http://nextjs:5001
+    depends_on:
+      web:
+        condition: service_healthy
+    networks:
+      - webnet
+
   db:
     image: postgis/postgis:15-3.3
     environment:
@@ -67,7 +99,11 @@ services:
     ports:
       - "8000:8000"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen("http://localhost:8000/api/v1/docs/").read(1)
       interval: 30s
       retries: 3
     restart: always
