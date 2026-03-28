@@ -5,6 +5,9 @@ import style from './AnimalProfile.module.scss';
 import { AnimalsApi, PostsApi } from 'src/api';
 import TabView from '../components/AnimalProfile/TabView';
 
+export const dynamicParams = true;
+export const dynamic = 'force-dynamic';
+
 const getAnimalData = async (id: number): Promise<IAnimal | undefined> => {
   try {
     const animalProfileRes = await AnimalsApi.getAnimalProfile(id);

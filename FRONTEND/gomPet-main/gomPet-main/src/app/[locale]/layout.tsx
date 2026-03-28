@@ -21,6 +21,8 @@ const raleway = Raleway({
   subsets: ['latin', 'latin-ext']
 });
 
+export const dynamicParams = true;
+
 export async function generateMetadata({
   params
 }: {
@@ -34,10 +36,6 @@ export async function generateMetadata({
     title: 'Gompet',
     description: 'Gompet'
   };
-}
-
-export async function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
 }
 
 const RootLayout = async ({

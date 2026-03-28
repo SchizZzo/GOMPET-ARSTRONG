@@ -63,7 +63,8 @@ class LikeCounterConsumer(AsyncJsonWebsocketConsumer):
         return build_payload(ref)
 
     async def receive_json(self, content: Any, **kwargs: Any) -> None:  # pragma: no cover - API read-only
-        raise ValidationError("Ten websocket służy wyłącznie do odczytu.")
+        logger.warning("Attempt to write to read-only LikeCounterConsumer WebSocket: %s", content)
+        await self.close(code=4403)
 
     async def like_count_update(self, event: dict[str, Any]) -> None:
         await self.send_json(event["payload"])
@@ -101,7 +102,8 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
         await super().disconnect(code)
 
     async def receive_json(self, content: Any, **kwargs: Any) -> None:  # pragma: no cover - API read-only
-        raise ValidationError("Ten websocket służy wyłącznie do odczytu.")
+        logger.warning("Attempt to write to read-only NotificationConsumer WebSocket: %s", content)
+        await self.close(code=4403)
 
     async def notification_message(self, event: dict[str, Any]) -> None:
         await self.send_json(event["payload"])
