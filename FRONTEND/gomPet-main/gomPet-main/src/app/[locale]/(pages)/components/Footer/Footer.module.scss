@@ -1,8 +1,0 @@
-@import 'styles';
-
-.footer {
-  width: calc(100% - 2 * $space-padding-around-page);
-  min-height: $size-footer-height;
-  @include flex-center;
-  margin: $space-padding-around-page;
-}

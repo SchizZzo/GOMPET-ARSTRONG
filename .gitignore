@@ -23,3 +23,4 @@ endpoints.txt
 node_modules  
 .env
 BACKUP/*.zip
+FRONTEND/*
