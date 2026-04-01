@@ -116,27 +116,6 @@ class StandardizedErrorResponseMixin:
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
-    def handle_exception(self, exc):
-        try:
-            response = super().handle_exception(exc)
-        except Exception:
-            logger.exception("Unhandled exception in %s", self.__class__.__name__)
-            if settings.DEBUG:
-                raise
-            return self.server_error_response()
-
-        if response is None:
-            return response
-
-        if self._is_standard_error_payload(response.data):
-            return response
-
-        if response.status_code == status.HTTP_400_BAD_REQUEST:
-            response.data = self._build_validation_error_payload(response.data)
-        elif response.status_code in self.ERROR_PAYLOADS:
-            response.data = self._build_error_payload(response.status_code)
-
-        return response
 
 
 class TokenCreateSerializer(TokenObtainPairSerializer):

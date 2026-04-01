@@ -1,6 +1,3 @@
-﻿import logging
-
-from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from rest_framework import status, viewsets
@@ -18,8 +15,6 @@ from .serializers import PostSerializer
 # posts/api_views.py
 
 from drf_spectacular.utils import extend_schema
-
-logger = logging.getLogger(__name__)
 
 
 class StandardizedErrorResponseMixin:
@@ -77,33 +72,6 @@ class StandardizedErrorResponseMixin:
             "message": self.VALIDATION_ERROR_MESSAGE,
             "errors": normalized_errors,
         }
-
-    def handle_exception(self, exc):
-        try:
-            response = super().handle_exception(exc)
-        except Exception:
-            logger.exception("Unhandled exception in %s", self.__class__.__name__)
-            if settings.DEBUG:
-                raise
-            return Response(
-                self._build_error_payload(status.HTTP_500_INTERNAL_SERVER_ERROR),
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-        if response is None:
-            return response
-
-        if self._is_standard_error_payload(response.data):
-            return response
-
-        if response.status_code == status.HTTP_400_BAD_REQUEST:
-            response.data = self._build_validation_error_payload(response.data)
-        elif response.status_code in self.ERROR_PAYLOADS:
-            response.data = self._build_error_payload(response.status_code)
-
-        return response
-
-
 
 class FeedPagePagination(PageNumberPagination):
     page_size = 10

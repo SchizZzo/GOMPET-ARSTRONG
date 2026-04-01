@@ -1,6 +1,3 @@
-import logging
-
-from django.conf import settings
 from rest_framework import viewsets
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
@@ -50,8 +47,6 @@ import json
 from django.core.exceptions import FieldError, ObjectDoesNotExist
 from common.models import Reaction, ReactionType
 from django.contrib.auth import get_user_model
-
-logger = logging.getLogger(__name__)
 
 
 class FamilyTreeNodeSerializer(serializers.Serializer):
@@ -118,30 +113,6 @@ class StandardizedErrorResponseMixin:
             "errors": normalized_errors,
         }
 
-    def handle_exception(self, exc):
-        try:
-            response = super().handle_exception(exc)
-        except Exception:
-            logger.exception("Unhandled exception in %s", self.__class__.__name__)
-            if settings.DEBUG:
-                raise
-            return Response(
-                self._build_error_payload(status.HTTP_500_INTERNAL_SERVER_ERROR),
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-        if response is None:
-            return response
-
-        if self._is_standard_error_payload(response.data):
-            return response
-
-        if response.status_code == status.HTTP_400_BAD_REQUEST:
-            response.data = self._build_validation_error_payload(response.data)
-        elif response.status_code in self.ERROR_PAYLOADS:
-            response.data = self._build_error_payload(response.status_code)
-
-        return response
 
 @extend_schema(
     tags=["animals", "animals_new"],

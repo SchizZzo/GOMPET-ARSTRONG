@@ -1,6 +1,3 @@
-import logging
-
-from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 
 from drf_spectacular.utils import extend_schema
@@ -20,49 +17,11 @@ from .serializers import (
     FollowSerializer,
 )
 
-logger = logging.getLogger(__name__)
-
-
 class StandardizedErrorResponseMixin:
-    """Return consistent error payloads for selected HTTP statuses."""
+    """Helper for explicit 400 responses built inside action methods."""
 
     VALIDATION_ERROR_CODE = "validation_error"
     VALIDATION_ERROR_MESSAGE = "Validation error."
-
-    ERROR_PAYLOADS = {
-        status.HTTP_401_UNAUTHORIZED: (
-            "not_authenticated",
-            "Authentication credentials were not provided.",
-        ),
-        status.HTTP_403_FORBIDDEN: (
-            "permission_denied",
-            "You do not have permission to perform this action.",
-        ),
-        status.HTTP_404_NOT_FOUND: (
-            "not_found",
-            "Resource not found.",
-        ),
-        status.HTTP_500_INTERNAL_SERVER_ERROR: (
-            "server_error",
-            "An internal server error occurred.",
-        ),
-    }
-
-    def _build_error_payload(self, status_code):
-        code, message = self.ERROR_PAYLOADS[status_code]
-        return {
-            "status": status_code,
-            "code": code,
-            "message": message,
-            "errors": {},
-        }
-
-    @staticmethod
-    def _is_standard_error_payload(data):
-        return (
-            isinstance(data, dict)
-            and {"status", "code", "message", "errors"}.issubset(data.keys())
-        )
 
     def _build_validation_error_payload(self, errors):
         if errors is None:
@@ -84,31 +43,6 @@ class StandardizedErrorResponseMixin:
             self._build_validation_error_payload(errors),
             status=status.HTTP_400_BAD_REQUEST,
         )
-
-    def handle_exception(self, exc):
-        try:
-            response = super().handle_exception(exc)
-        except Exception:
-            logger.exception("Unhandled exception in %s", self.__class__.__name__)
-            if settings.DEBUG:
-                raise
-            return Response(
-                self._build_error_payload(status.HTTP_500_INTERNAL_SERVER_ERROR),
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-        if response is None:
-            return response
-
-        if self._is_standard_error_payload(response.data):
-            return response
-
-        if response.status_code == status.HTTP_400_BAD_REQUEST:
-            response.data = self._build_validation_error_payload(response.data)
-        elif response.status_code in self.ERROR_PAYLOADS:
-            response.data = self._build_error_payload(response.status_code)
-
-        return response
 
 # common/api_serializers.py
 

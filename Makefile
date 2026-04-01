@@ -41,8 +41,10 @@ runserver:
 run:
 	$(DC) up
 
-run-with-nextjs:
-	$(DC) down nextjs
+run-backend:
+	$(DC) up web nginx db redis mailpit
+
+
 
 down:
 	$(DC) down	
