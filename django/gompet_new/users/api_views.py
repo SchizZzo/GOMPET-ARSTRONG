@@ -637,8 +637,21 @@ class OrganizationMemberViewSet(StandardizedErrorResponseMixin, viewsets.ModelVi
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         organization = serializer.validated_data.get("organization")
-        if organization is None or not self._is_organization_owner(organization.id):
+        if organization is None:
             return self.forbidden_response()
+
+        is_owner = self._is_organization_owner(organization.id)
+        if not is_owner:
+            requested_user = serializer.validated_data.get("user")
+            if requested_user is None or requested_user.id != request.user.id:
+                return self.forbidden_response()
+
+            requested_role = serializer.validated_data.get("role")
+            if requested_role == MemberRole.OWNER:
+                return self.forbidden_response()
+
+            # Non-owner can only create their own join request.
+            serializer.validated_data["invitation_confirmed"] = False
 
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)

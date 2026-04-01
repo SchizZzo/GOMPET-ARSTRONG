@@ -572,6 +572,77 @@ class OrganizationMemberPermissionTests(TestCase):
             ).exists()
         )
 
+    def test_non_owner_can_create_own_join_request(self):
+        self.client.force_authenticate(user=self.outsider)
+
+        response = self.client.post(
+            "/users/organization-members/",
+            {
+                "user": self.outsider.id,
+                "organization": self.organization.id,
+                "role": MemberRole.VOLUNTEER,
+                "invitation_confirmed": True,
+                "invitation_message": "Chce dolaczyc",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        membership = OrganizationMember.objects.get(
+            user=self.outsider,
+            organization=self.organization,
+        )
+        self.assertEqual(membership.role, MemberRole.VOLUNTEER)
+        self.assertFalse(membership.invitation_confirmed)
+
+    def test_non_owner_cannot_request_owner_role(self):
+        self.client.force_authenticate(user=self.outsider)
+
+        response = self.client.post(
+            "/users/organization-members/",
+            {
+                "user": self.outsider.id,
+                "organization": self.organization.id,
+                "role": MemberRole.OWNER,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(
+            OrganizationMember.objects.filter(
+                user=self.outsider,
+                organization=self.organization,
+            ).exists()
+        )
+
+    def test_non_owner_cannot_create_membership_for_other_user(self):
+        invitee = User.objects.create_user(
+            email="invitee-other@example.com",
+            password="secret",
+            first_name="Invitee",
+            last_name="Other",
+        )
+        self.client.force_authenticate(user=self.outsider)
+
+        response = self.client.post(
+            "/users/organization-members/",
+            {
+                "user": invitee.id,
+                "organization": self.organization.id,
+                "role": MemberRole.STAFF,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(
+            OrganizationMember.objects.filter(
+                user=invitee,
+                organization=self.organization,
+            ).exists()
+        )
+
     def test_member_cannot_change_own_role(self):
         self.client.force_authenticate(user=self.member_user)
 
