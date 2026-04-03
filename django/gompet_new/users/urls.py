@@ -9,6 +9,7 @@ from .api_views import (
     TokenRefreshView,
     UserViewSet,
     DeleteMeView,
+    OrganizationMembershipCheckView,
     OrganizationViewSet,
     OrganizationMemberViewSet,
     OrganizationRecentlyAddedViewSet,
@@ -59,6 +60,11 @@ urlpatterns = [
     path('auth/password-reset/', PasswordResetRequestView.as_view(), name='password-reset-request'),
     path('auth/password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     path('users/me/delete/', DeleteMeView.as_view(), name='user-delete-me'),
+    path(
+        'organization/check-membership/<int:organization_id>/',
+        OrganizationMembershipCheckView.as_view(),
+        name='organization-check-membership',
+    ),
     
     path('', include(router.urls)),
 ]

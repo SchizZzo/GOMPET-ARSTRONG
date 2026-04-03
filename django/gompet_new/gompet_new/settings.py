@@ -358,31 +358,93 @@ V2_TAGS = [
 
 
 ]
-# separate servers for v1 and v2
-SPECTACULAR_SETTINGS_V1 = {
-    'TITLE': 'Gompet API v1',
-    'DESCRIPTION': 'Dokumentacja API v1',
-    'VERSION': '{version}',
+# tags used by the readability-focused v3 schema
+V3_TAGS = [
+    {"name": "Authentication", "description": "Logowanie, tokeny oraz reset hasla."},
+    {"name": "Users", "description": "Konta uzytkownikow i profil."},
+    {"name": "Organizations", "description": "Organizacje, role i adresy."},
+    {"name": "Animals", "description": "Zwierzeta, cechy, galerie i relacje."},
+    {"name": "Litters", "description": "Mioty oraz powiazania ze zwierzetami."},
+    {"name": "Posts", "description": "Posty i aktywnosc."},
+    {"name": "Articles", "description": "Artykuly i kategorie."},
+    {"name": "Community", "description": "Komentarze, reakcje, obserwacje i powiadomienia."},
+    {"name": "System", "description": "Pozostale endpointy techniczne."},
+]
+
+# common Swagger/OpenAPI options shared by v1, v2 and v3 schema views
+SPECTACULAR_SETTINGS_BASE = {
+    'COMPONENT_SPLIT_REQUEST': True,
+    'APPEND_COMPONENTS': {
+        'securitySchemes': {
+            'BearerAuth': {
+                'type': 'http',
+                'scheme': 'bearer',
+                'bearerFormat': 'JWT',
+            }
+        }
+    },
+    'SECURITY': [{'BearerAuth': []}],
+    'SWAGGER_UI_SETTINGS': {
+        'persistAuthorization': True,
+    },
+    # API routes are mounted from root paths (e.g. /users/, /animals/),
+    # so server URL must stay at root for Try it out to call valid endpoints.
     'SERVERS': [
         {
-            'url': '/api/v1/',
-            'description': 'Gompet API v1',
-        },
+            'url': '/',
+            'description': 'Gompet API',
+        }
     ],
+}
+
+SPECTACULAR_SETTINGS_V1 = {
+    **SPECTACULAR_SETTINGS_BASE,
+    'TITLE': 'Gompet API v1',
+    'DESCRIPTION': 'Dokumentacja API v1',
+    'VERSION': '1.0.0',
     'TAGS': V1_TAGS,
 }
 
 SPECTACULAR_SETTINGS_V2 = {
+    **SPECTACULAR_SETTINGS_BASE,
     'TITLE': 'Gompet API v2',
     'DESCRIPTION': 'Dokumentacja API v2',
-    'VERSION': '{version}',
-    'SERVERS': [
-        {
-            'url': '/api/v2/',
-            'description': 'Gompet API v2',
-        },
-    ],
+    'VERSION': '2.0.0',
     'TAGS': V2_TAGS,
+}
+
+SPECTACULAR_SETTINGS_V3 = {
+    **SPECTACULAR_SETTINGS_BASE,
+    'TITLE': 'Gompet API v3',
+    'DESCRIPTION': (
+        'Czytelna dokumentacja Swagger. Endpointy sa pogrupowane tematycznie, '
+        'opisy sa skrocone, a operacje uporzadkowane alfabetycznie.'
+    ),
+    'VERSION': '3.0.0',
+    'TAGS': V3_TAGS,
+    'POSTPROCESSING_HOOKS': [
+        'common.openapi.readable_v3_postprocessing_hook',
+    ],
+    'SORT_OPERATIONS': True,
+    'SORT_OPERATION_PARAMETERS': True,
+    'SWAGGER_UI_SETTINGS': {
+        **SPECTACULAR_SETTINGS_BASE['SWAGGER_UI_SETTINGS'],
+        'deepLinking': True,
+        'displayRequestDuration': True,
+        'docExpansion': 'list',
+        'defaultModelsExpandDepth': -1,
+        'filter': True,
+        'operationsSorter': 'alpha',
+        'tagsSorter': 'alpha',
+    },
+}
+
+# Default schema settings used by management command `manage.py spectacular`.
+SPECTACULAR_SETTINGS = {
+    **SPECTACULAR_SETTINGS_V3,
+    'SERVE_INCLUDE_SCHEMA': False,
+    'TITLE': 'Gompet API',
+    'DESCRIPTION': 'Domyslna dokumentacja API (v3 - czytelna).',
 }
 
 

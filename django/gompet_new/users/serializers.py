@@ -7,6 +7,8 @@ import requests
 from django.core.files.base import ContentFile
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 
 from .models import User
 from .models import Organization, Address, OrganizationMember, BreedingTypeOrganizations, \
@@ -225,7 +227,7 @@ class AddressSerializer(serializers.ModelSerializer):
 
         return attrs
 
-    def get_distance(self, obj):
+    def get_distance(self, obj) -> int | None:
         # JeĹ›li w queryset byĹ‚o .annotate(distance=...), to obj.distance to GEOSDistance
         dist = getattr(obj, "distance", None)
         if dist is None and hasattr(obj, "organization"):
@@ -464,6 +466,7 @@ class ProfileInfoSerializer(serializers.Serializer):
 class OrganizationMemberCreateSerializer(serializers.ModelSerializer):
     """Serializer dodawania uĹĽytkownika do organizacji."""
 
+    @extend_schema_field(OpenApiTypes.STR)
     class MemberRoleInputField(serializers.Field):
         default_error_messages = {
             "invalid_role": (

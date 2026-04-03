@@ -363,16 +363,13 @@ class ReactionViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     description="Lista powiadomień zalogowanego użytkownika oraz oznaczanie ich jako przeczytane.",
 )
 class NotificationViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
+    queryset = Notification.objects.select_related("actor").all()
     serializer_class = NotificationSerializer
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get", "patch", "head", "options"]
 
     def get_queryset(self):
-        return (
-            Notification.objects.filter(recipient=self.request.user)
-            .select_related("actor")
-            .order_by("-created_at")
-        )
+        return self.queryset.filter(recipient=self.request.user).order_by("-created_at")
 
     def partial_update(self, request, *args, **kwargs):
         disallowed_fields = set(request.data.keys()) - {"is_read"}

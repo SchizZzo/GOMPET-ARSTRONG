@@ -7,8 +7,8 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from drf_spectacular.utils import extend_schema
-from rest_framework import permissions, status, viewsets
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
@@ -190,18 +190,34 @@ class UserViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
             return False
         return actor.is_superuser or actor.id == target.id
 
+    @extend_schema(
+        operation_id="users_users_update_by_id",
+        summary="Zastap uzytkownika po ID",
+        request=UserUpdateSerializer,
+        responses=UserSerializer,
+    )
     def update(self, request, *args, **kwargs):
         user = self.get_object()
         if not self._can_manage_user(request.user, user):
             return self.forbidden_response()
         return super().update(request, *args, **kwargs)
 
+    @extend_schema(
+        operation_id="users_users_partial_update_by_id",
+        summary="Czesciowo zaktualizuj uzytkownika po ID",
+        request=UserUpdateSerializer,
+        responses=UserSerializer,
+    )
     def partial_update(self, request, *args, **kwargs):
         user = self.get_object()
         if not self._can_manage_user(request.user, user):
             return self.forbidden_response()
         return super().partial_update(request, *args, **kwargs)
 
+    @extend_schema(
+        operation_id="users_users_destroy_by_id",
+        summary="Usun uzytkownika po ID",
+    )
     def destroy(self, request, *args, **kwargs):
         user = self.get_object()
 
@@ -264,6 +280,17 @@ class UserViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
 class DeleteMeView(StandardizedErrorResponseMixin, APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        tags=["users"],
+        summary="Usuń własne konto",
+        description="Usuwa (dezaktywuje i anonimizuje) aktualnie zalogowane konto użytkownika.",
+        responses={
+            200: inline_serializer(
+                name="DeleteMeSuccessResponse",
+                fields={"detail": serializers.CharField()},
+            )
+        },
+    )
     def delete(self, request):
         try:
             delete_user_account(request.user)
@@ -280,6 +307,17 @@ class DeleteMeView(StandardizedErrorResponseMixin, APIView):
 class PasswordResetRequestView(StandardizedErrorResponseMixin, APIView):
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(
+        tags=["auth"],
+        summary="Poproś o reset hasła",
+        request=PasswordResetRequestSerializer,
+        responses={
+            200: inline_serializer(
+                name="PasswordResetRequestResponse",
+                fields={"detail": serializers.CharField()},
+            )
+        },
+    )
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -316,6 +354,17 @@ class PasswordResetRequestView(StandardizedErrorResponseMixin, APIView):
 class PasswordResetConfirmView(StandardizedErrorResponseMixin, APIView):
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(
+        tags=["auth"],
+        summary="Ustaw nowe hasło",
+        request=PasswordResetConfirmSerializer,
+        responses={
+            200: inline_serializer(
+                name="PasswordResetConfirmResponse",
+                fields={"detail": serializers.CharField()},
+            )
+        },
+    )
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -803,6 +852,70 @@ class OrganizationMemberViewSet(StandardizedErrorResponseMixin, viewsets.ModelVi
         member.delete()
     
 
+@extend_schema(
+    tags=["organization_members", "you_in_organization"],
+    summary="Sprawdz czlonkostwo w organizacji",
+    description=(
+        "Sprawdza, czy aktualnie zalogowany uzytkownik (`request.user`) "
+        "jest czlonkiem wskazanej organizacji. "
+        "Nie wymaga parametru `user_id` w query."
+    ),
+)
+class OrganizationMembershipCheckView(StandardizedErrorResponseMixin, APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        operation_id="users_organization_check_membership",
+        responses={
+            200: inline_serializer(
+                name="OrganizationMembershipCheckResponse",
+                fields={
+                    "organization_id": serializers.IntegerField(),
+                    "user_id": serializers.IntegerField(),
+                    "is_member": serializers.BooleanField(),
+                    "membership_id": serializers.IntegerField(allow_null=True),
+                    "role": serializers.CharField(allow_null=True),
+                    "invitation_confirmed": serializers.BooleanField(allow_null=True),
+                },
+            )
+        },
+    )
+    def get(self, request, organization_id: int):
+        membership = (
+            OrganizationMember.objects.filter(
+                organization_id=organization_id,
+                user=request.user,
+            )
+            .order_by("-invitation_confirmed", "id")
+            .first()
+        )
+
+        if not membership:
+            return Response(
+                {
+                    "organization_id": organization_id,
+                    "user_id": request.user.id,
+                    "is_member": False,
+                    "membership_id": None,
+                    "role": None,
+                    "invitation_confirmed": None,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(
+            {
+                "organization_id": organization_id,
+                "user_id": request.user.id,
+                "is_member": True,
+                "membership_id": membership.id,
+                "role": membership.role,
+                "invitation_confirmed": membership.invitation_confirmed,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 
 
 @extend_schema(
@@ -993,6 +1106,11 @@ class OrganizationTypeListView(StandardizedErrorResponseMixin, viewsets.ViewSet)
 
     permission_classes = [IsAuthenticatedOrReadOnly]
 
+    @extend_schema(
+        tags=["organizations"],
+        summary="Lista typów organizacji",
+        responses=OrganizationTypeSerializer(many=True),
+    )
     def list(self, request):
         serializer = OrganizationTypeSerializer(
             OrganizationTypeSerializer.get_choices(), many=True
@@ -1005,6 +1123,14 @@ class OrganizationMemberRoleListView(StandardizedErrorResponseMixin, viewsets.Vi
 
     permission_classes = [IsAuthenticatedOrReadOnly]
 
+    @extend_schema(
+        tags=["organization_members"],
+        summary="Lista ról członka organizacji",
+        responses=inline_serializer(
+            name="OrganizationMemberRoleListResponse",
+            fields={"roles": MemberRoleSerializer(many=True)},
+        ),
+    )
     def list(self, request):
         serializer = MemberRoleSerializer(
             MemberRoleSerializer.get_choices(), many=True

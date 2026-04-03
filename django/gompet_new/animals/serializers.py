@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from rest_framework.exceptions import NotAuthenticated, PermissionDenied
+from drf_spectacular.utils import extend_schema_field
 
 from .models import (
     Animal,
@@ -130,6 +131,7 @@ class GrandparentSerializer(serializers.ModelSerializer):
         model = AnimalParent
         fields = ("id", "animal_id", "name", "photos", "parentsOfWho")
 
+    @extend_schema_field(serializers.URLField(allow_null=True))
     def get_photos(self, obj):
         image = getattr(obj.parent, "image", None)
         if not image:
@@ -152,6 +154,7 @@ class ParentWithGrandparentsSerializer(serializers.ModelSerializer):
         model = AnimalParent
         fields = ("id", "animal_id", "name", "gender", "photos", "grandparents")
 
+    @extend_schema_field(serializers.URLField(allow_null=True))
     def get_photos(self, obj):
         image = getattr(obj.parent, "image", None)
         if not image:
@@ -160,6 +163,7 @@ class ParentWithGrandparentsSerializer(serializers.ModelSerializer):
         url = image.url
         return request.build_absolute_uri(url) if request else url
 
+    @extend_schema_field(GrandparentSerializer(many=True))
     def get_grandparents(self, obj):
         qs = AnimalParent.objects.filter(animal=obj.parent)
         serializer = GrandparentSerializer(qs, many=True, context=self.context)
@@ -326,6 +330,7 @@ class AnimalSerializer(serializers.ModelSerializer):
         return representation
 
     
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_age_display(self, obj):
         return obj.age_display
 
@@ -363,11 +368,13 @@ class AnimalSerializer(serializers.ModelSerializer):
         return attrs
     
     
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
     def get_distance(self, obj):
         # Jeśli w queryset było .annotate(distance=...), to obj.distance to GEOSDistance
         dist = getattr(obj, "distance", None)
         return None if dist is None else round(dist.m)  # zwraca odległość w metrach
     
+    @extend_schema_field(OrganizationSerializer)
     def get_organization(self, obj):
         """Return organization data only from explicit animal relation."""
         organization = getattr(obj, "organization", None)
@@ -389,6 +396,7 @@ class AnimalSerializer(serializers.ModelSerializer):
             raise PermissionDenied()
         return organization
 
+    @extend_schema_field(ParentWithGrandparentsSerializer(many=True))
     def get_parents(self, obj):
         qs = AnimalParent.objects.filter(animal=obj)
         serializer = ParentWithGrandparentsSerializer(qs, many=True, context=self.context)
@@ -542,6 +550,7 @@ class RecentlyAddedAnimalSerializer(serializers.ModelSerializer):
     #         }
     #         for ac in obj.characteristics_values.all()
     #     ]
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
     def get_distance(self, obj):
         # Jeśli w queryset było .annotate(distance=...), to obj.distance to GEOSDistance
         dist = getattr(obj, "distance", None)

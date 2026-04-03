@@ -8,7 +8,7 @@ MANAGE=$(DC) run --rm web python manage.py
 
 
 
-.PHONY: help makemigrations migrate
+.PHONY: help makemigrations migrate swagger swagger-json swagger-v3 swagger-v3-json
 
 
 help:
@@ -21,6 +21,10 @@ help:
 	@echo "  make down        - stop the server"
 	@echo "  make collectstatic - collect static files"
 	@echo "  make createsuperuser - create a superuser"
+	@echo "  make swagger     - generate OpenAPI YAML schema"
+	@echo "  make swagger-json - generate OpenAPI JSON schema"
+	@echo "  make swagger-v3  - generate readable v3 OpenAPI YAML schema"
+	@echo "  make swagger-v3-json - generate readable v3 OpenAPI JSON schema"
 
 
 
@@ -92,5 +96,17 @@ test-users:
 
 test-posts:
 	$(MANAGE) test posts
+
+swagger:
+	$(DC) run --rm web sh -c "mkdir -p docs && python manage.py spectacular --file docs/openapi.yaml"
+
+swagger-json:
+	$(DC) run --rm web sh -c "mkdir -p docs && python manage.py spectacular --format openapi-json --file docs/openapi.json"
+
+swagger-v3:
+	$(DC) run --rm web sh -c "mkdir -p docs && python manage.py spectacular --file docs/openapi-v3.yaml"
+
+swagger-v3-json:
+	$(DC) run --rm web sh -c "mkdir -p docs && python manage.py spectacular --format openapi-json --file docs/openapi-v3.json"
 
 

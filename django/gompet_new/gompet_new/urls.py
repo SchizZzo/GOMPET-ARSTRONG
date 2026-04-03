@@ -22,7 +22,11 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, Sp
 from django.conf import settings
 from django.conf.urls.static import static
 
-from .settings import SPECTACULAR_SETTINGS_V1, SPECTACULAR_SETTINGS_V2
+from .settings import (
+    SPECTACULAR_SETTINGS_V1,
+    SPECTACULAR_SETTINGS_V2,
+    SPECTACULAR_SETTINGS_V3,
+)
 
 
 urlpatterns = [
@@ -74,6 +78,52 @@ urlpatterns = [
             url_name='schema-v2'
         ),
         name='redoc-v2'
+    ),
+
+    # --- V3 (czytelna wersja Swagger) ---
+    path(
+        'api/v3/schema/',
+        SpectacularAPIView.as_view(
+            custom_settings=SPECTACULAR_SETTINGS_V3
+        ),
+        name='schema-v3'
+    ),
+    path(
+        'api/v3/docs/',
+        SpectacularSwaggerView.as_view(
+            url_name='schema-v3'
+        ),
+        name='swagger-ui-v3'
+    ),
+    path(
+        'api/v3/redoc/',
+        SpectacularRedocView.as_view(
+            url_name='schema-v3'
+        ),
+        name='redoc-v3'
+    ),
+
+    # Domyslna dokumentacja wskazuje na v3.
+    path(
+        'api/schema/',
+        SpectacularAPIView.as_view(
+            custom_settings=SPECTACULAR_SETTINGS_V3
+        ),
+        name='schema'
+    ),
+    path(
+        'api/docs/',
+        SpectacularSwaggerView.as_view(
+            url_name='schema'
+        ),
+        name='swagger-ui'
+    ),
+    path(
+        'api/redoc/',
+        SpectacularRedocView.as_view(
+            url_name='schema'
+        ),
+        name='redoc'
     ),
 
 

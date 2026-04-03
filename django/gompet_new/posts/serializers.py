@@ -55,11 +55,11 @@ class PostSerializer(serializers.ModelSerializer):
         read_only_fields = ("author",)
 
 
-    def get_animal_name(self, obj):
+    def get_animal_name(self, obj) -> str | None:
         # Pobiera nazwę zwierzęcia z powiązanego modelu Animal
         return obj.animal.name if obj.animal else None
     
-    def get_organization_name(self, obj):
+    def get_organization_name(self, obj) -> str | None:
         # Pobiera nazwę organizacji z powiązanego modelu Organization
         return obj.organization.name if obj.organization else None
     

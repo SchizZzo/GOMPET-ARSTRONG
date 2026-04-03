@@ -670,6 +670,74 @@ class OrganizationMemberPermissionTests(TestCase):
         self.assertTrue(self.member_membership.invitation_confirmed)
 
 
+class OrganizationMembershipCheckViewTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.member = User.objects.create_user(
+            email="check-member@example.com",
+            password="secret",
+            first_name="Check",
+            last_name="Member",
+        )
+        self.non_member = User.objects.create_user(
+            email="check-non-member@example.com",
+            password="secret",
+            first_name="Check",
+            last_name="NonMember",
+        )
+        self.organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Membership Check Shelter",
+            email="membership-check@example.com",
+            image="",
+            phone="",
+            user=self.member,
+        )
+        self.membership = OrganizationMember.objects.create(
+            user=self.member,
+            organization=self.organization,
+            role=MemberRole.OWNER,
+            invitation_confirmed=True,
+        )
+
+    def test_requires_authentication(self):
+        response = self.client.get(
+            f"/users/organization/check-membership/{self.organization.id}/"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_returns_membership_for_authenticated_user(self):
+        self.client.force_authenticate(user=self.member)
+
+        response = self.client.get(
+            f"/users/organization/check-membership/{self.organization.id}/"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["is_member"])
+        self.assertEqual(response.data["organization_id"], self.organization.id)
+        self.assertEqual(response.data["user_id"], self.member.id)
+        self.assertEqual(response.data["membership_id"], self.membership.id)
+        self.assertEqual(response.data["role"], MemberRole.OWNER)
+        self.assertTrue(response.data["invitation_confirmed"])
+
+    def test_returns_false_for_non_member(self):
+        self.client.force_authenticate(user=self.non_member)
+
+        response = self.client.get(
+            f"/users/organization/check-membership/{self.organization.id}/"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["is_member"])
+        self.assertEqual(response.data["organization_id"], self.organization.id)
+        self.assertEqual(response.data["user_id"], self.non_member.id)
+        self.assertIsNone(response.data["membership_id"])
+        self.assertIsNone(response.data["role"])
+        self.assertIsNone(response.data["invitation_confirmed"])
+
+
 User = get_user_model()
 
 

@@ -14,24 +14,36 @@ all:
 po uruchomieniu wszyskiekgo bedzie wstepnie wypelniona baza jesli utworzyc superuser to bedziesz miec uzytkownika do testow.
 
 
-dokładny adres dla api:
+Dokumentacja Swagger/ReDoc:
+http://localhost/api/docs/
+http://localhost/api/redoc/
+
+Wersje dokumentacji:
+http://localhost/api/v1/docs/
+http://localhost/api/v1/redoc/
+http://localhost/api/v2/docs/
 http://localhost/api/v2/redoc/
+http://localhost/api/v3/docs/
+http://localhost/api/v3/redoc/
 
-np. bierzesz adres 
-http://localhost/api/v2/users/users/
+Swagger v3 (bardziej czytelny):
+- endpointy sa pogrupowane tematycznie,
+- operacje sa posortowane alfabetycznie,
+- opisy sa krotsze i latwiejsze do skanowania.
 
-to musisz z endpointa usunac /api/v2 aby działalo poprawnie.
-
-POST
-http://localhost/users/users/
+Generowanie statycznej schemy OpenAPI:
+make swagger
+make swagger-json
+make swagger-v3
+make swagger-v3-json
 
 ## Backend API
 
-Dokumentacja interaktywna: `http://localhost/api/v2/redoc/` oraz `http://localhost/api/v2/docs/`.
+Dokumentacja interaktywna: `http://localhost/api/v3/redoc/` oraz `http://localhost/api/v3/docs/`.
 
 ### Endpointy (główne) i filtry
 
-> Uwaga: endpointy w aplikacji działają **bez** prefiksu `/api/v2` (prefiks dotyczy tylko dokumentacji).
+> Uwaga: endpointy API działają bez prefiksu `/api/v1` i `/api/v2` (np. `/users/users/`, `/animals/animals/`).
 
 **Animals**
 - `/animals/animals/` — CRUD zwierząt; filtry: `organization-type`, `organization-id`, `gender`, `species`, `breed`, `name`, `location`, `range`, `age`, `age-min`, `age-max`, `age-range`, `characteristics`, `city`, `size`.  
