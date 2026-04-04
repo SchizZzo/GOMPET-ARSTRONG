@@ -1,4 +1,8 @@
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_view,
+)
 from rest_framework import permissions, status, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
@@ -94,9 +98,32 @@ class _LitterAccessMixin:
         return False
 
 
+LITTER_LIST_FILTER_PARAMETERS = [
+    OpenApiParameter(
+        name="organization-id",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Filter litters by organization ID.",
+    ),
+    OpenApiParameter(
+        name="user-id",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Filter litters by owner user ID.",
+    ),
+]
+
+
 @extend_schema(
     tags=["litters", "organizations_miots", "litters_new_profile"],
     description="API endpoint that allows litters to be viewed or edited.",
+)
+@extend_schema_view(
+    list=extend_schema(
+        summary="Lista miotow z filtrami",
+        description="Udostepnia filtry query dla listy miotow w Swagger UI.",
+        parameters=LITTER_LIST_FILTER_PARAMETERS,
+    )
 )
 class LitterViewSet(StandardizedErrorResponseMixin, _LitterAccessMixin, viewsets.ModelViewSet):
     queryset = Litter.objects.all()

@@ -385,7 +385,8 @@ SPECTACULAR_SETTINGS_BASE = {
     },
     'SECURITY': [{'BearerAuth': []}],
     'SWAGGER_UI_SETTINGS': {
-        'persistAuthorization': True,
+        # Avoid stale/expired JWT being silently reused in Swagger Try it out.
+        'persistAuthorization': False,
     },
     # API routes are mounted from root paths (e.g. /users/, /animals/),
     # so server URL must stay at root for Try it out to call valid endpoints.

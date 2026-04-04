@@ -1,6 +1,10 @@
 from django.contrib.contenttypes.models import ContentType
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_view,
+)
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -44,11 +48,70 @@ class StandardizedErrorResponseMixin:
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+
+COMMENT_LIST_FILTER_PARAMETERS = [
+    OpenApiParameter(
+        name="object_id",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Filter comments by target object ID.",
+    ),
+    OpenApiParameter(
+        name="content_type",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Content type ID or app_label.model.",
+    ),
+    OpenApiParameter(
+        name="limit",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Maximum number of returned comments.",
+    ),
+]
+
+REACTION_LIST_FILTER_PARAMETERS = [
+    OpenApiParameter(
+        name="reactable_id",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Filter reactions by target object ID.",
+    ),
+    OpenApiParameter(
+        name="reactable_type",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Content type ID or app_label.model.",
+    ),
+]
+
+FOLLOW_LIST_FILTER_PARAMETERS = [
+    OpenApiParameter(
+        name="target_id",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Filter follows by target object ID.",
+    ),
+    OpenApiParameter(
+        name="target_type",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Content type ID or app_label.model.",
+    ),
+]
+
 # common/api_serializers.py
 
 @extend_schema(
     tags=["comments", "comments_organizations", "comments_orgazanizations_profile"],
     description="CRUD API dla komentarzy. GET list, POST create, PUT/PATCH update, DELETE delete."
+)
+@extend_schema_view(
+    list=extend_schema(
+        summary="Lista komentarzy z filtrami",
+        description="Udostepnia filtry query dla listy komentarzy.",
+        parameters=COMMENT_LIST_FILTER_PARAMETERS,
+    )
 )
 class CommentViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
@@ -153,6 +216,13 @@ class ContentTypeViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModelV
 @extend_schema(
     tags=["reactions"],
     description="CRUD API dla reakcji. GET list, POST create, PUT/PATCH update, DELETE delete."
+)
+@extend_schema_view(
+    list=extend_schema(
+        summary="Lista reakcji z filtrami",
+        description="Udostepnia filtry query dla listy reakcji.",
+        parameters=REACTION_LIST_FILTER_PARAMETERS,
+    )
 )
 class ReactionViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
@@ -385,6 +455,13 @@ class NotificationViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet)
 @extend_schema(
     tags=["follows"],
     description="CRUD API dla obserwowanych obiektów (polimorficznie).",
+)
+@extend_schema_view(
+    list=extend_schema(
+        summary="Lista obserwowanych obiektow z filtrami",
+        description="Udostepnia filtry query dla listy follow.",
+        parameters=FOLLOW_LIST_FILTER_PARAMETERS,
+    )
 )
 class FollowViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     queryset = Follow.objects.all()

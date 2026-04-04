@@ -14,7 +14,11 @@ from .serializers import PostSerializer
 
 # posts/api_views.py
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_view,
+)
 
 
 class StandardizedErrorResponseMixin:
@@ -77,9 +81,32 @@ class FeedPagePagination(PageNumberPagination):
     page_size = 10
 
 
+POST_LIST_FILTER_PARAMETERS = [
+    OpenApiParameter(
+        name="animal-id",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Filter posts by animal ID.",
+    ),
+    OpenApiParameter(
+        name="organization-id",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Filter posts by organization ID.",
+    ),
+]
+
+
 @extend_schema(
     tags=["posts", "posts_organizations", "posts_animals"],
     description="API endpoint to list and create posts."
+)
+@extend_schema_view(
+    list=extend_schema(
+        summary="Lista postow z filtrami",
+        description="Udostepnia filtry query dla listy postow w Swagger UI.",
+        parameters=POST_LIST_FILTER_PARAMETERS,
+    )
 )
 class PostViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """

@@ -27,7 +27,11 @@ from .serializers import (
 
     
 )
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_view,
+)
 from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
@@ -114,9 +118,266 @@ class StandardizedErrorResponseMixin:
         }
 
 
+ANIMAL_LIST_FILTER_PARAMETERS = [
+    OpenApiParameter(
+        name="organization-type",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated organization types, e.g. SHELTER,BREEDER.",
+    ),
+    OpenApiParameter(
+        name="organization-id",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated organization IDs from memberships.",
+    ),
+    OpenApiParameter(
+        name="organization-ids",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated direct organization IDs.",
+    ),
+    OpenApiParameter(
+        name="liked-by",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Return animals liked by selected user ID.",
+    ),
+    OpenApiParameter(
+        name="liked",
+        type=bool,
+        location=OpenApiParameter.QUERY,
+        description="Set to true to return only animals liked by current user.",
+    ),
+    OpenApiParameter(
+        name="gender",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated genders.",
+    ),
+    OpenApiParameter(
+        name="species",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated species.",
+    ),
+    OpenApiParameter(
+        name="breed",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated breeds.",
+    ),
+    OpenApiParameter(
+        name="location",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Reference location (WKT) or raw value used by backend filters.",
+    ),
+    OpenApiParameter(
+        name="name",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Animal name search (comma-separated terms supported).",
+    ),
+    OpenApiParameter(
+        name="range",
+        type=float,
+        location=OpenApiParameter.QUERY,
+        description="Maximum distance in meters from reference location.",
+    ),
+    OpenApiParameter(
+        name="age",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Exact age in years.",
+    ),
+    OpenApiParameter(
+        name="age-min",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Minimum age in years.",
+    ),
+    OpenApiParameter(
+        name="age-max",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Maximum age in years.",
+    ),
+    OpenApiParameter(
+        name="age-range",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Age range in format min-max, min,max or min:max.",
+    ),
+    OpenApiParameter(
+        name="characteristics",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated characteristic keys or JSON list.",
+    ),
+    OpenApiParameter(
+        name="city",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Filter by city name (case-insensitive).",
+    ),
+    OpenApiParameter(
+        name="size",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated size values (e.g. SMALL,MEDIUM,LARGE).",
+    ),
+    OpenApiParameter(
+        name="user-animals",
+        type=bool,
+        location=OpenApiParameter.QUERY,
+        description="Set to true to return animals owned by current user.",
+    ),
+    OpenApiParameter(
+        name="user-animals-by-id",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Return animals for selected owner ID.",
+    ),
+    OpenApiParameter(
+        name="limit",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Maximum number of returned items.",
+    ),
+]
+
+ANIMAL_RECENTLY_ADDED_FILTER_PARAMETERS = [
+    OpenApiParameter(
+        name="species",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated species.",
+    ),
+    OpenApiParameter(
+        name="breed",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated breeds.",
+    ),
+    OpenApiParameter(
+        name="organization-type",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated organization types.",
+    ),
+    OpenApiParameter(
+        name="name",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Case-insensitive name filter.",
+    ),
+    OpenApiParameter(
+        name="characteristics",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated characteristic keys.",
+    ),
+    OpenApiParameter(
+        name="limit",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Maximum number of returned items (1-50).",
+    ),
+]
+
+ANIMAL_FILTERING_FILTER_PARAMETERS = [
+    OpenApiParameter(
+        name="species",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated species.",
+    ),
+    OpenApiParameter(
+        name="organization-type",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated organization types.",
+    ),
+    OpenApiParameter(
+        name="organization-id",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated organization IDs.",
+    ),
+    OpenApiParameter(
+        name="organization-ids",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated direct organization IDs.",
+    ),
+    OpenApiParameter(
+        name="name",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Case-insensitive name filter.",
+    ),
+    OpenApiParameter(
+        name="size",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated size values.",
+    ),
+    OpenApiParameter(
+        name="gender",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated gender values.",
+    ),
+    OpenApiParameter(
+        name="age",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Exact age in years.",
+    ),
+    OpenApiParameter(
+        name="characteristics",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated characteristic keys.",
+    ),
+    OpenApiParameter(
+        name="location",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated location values.",
+    ),
+    OpenApiParameter(
+        name="range",
+        type=float,
+        location=OpenApiParameter.QUERY,
+        description="Maximum distance in meters.",
+    ),
+    OpenApiParameter(
+        name="breed-groups",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated breed group names.",
+    ),
+    OpenApiParameter(
+        name="breed",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated breed values.",
+    ),
+]
+
+
 @extend_schema(
     tags=["animals", "animals_new"],
     description="API do zarządzania zwierzętami, ich cechami, galeriami oraz relacjami rodzic–dziecko."
+)
+@extend_schema_view(
+    list=extend_schema(
+        summary="Lista zwierzat z filtrami",
+        description="Zwraca liste zwierzat i udostepnia filtry query widoczne w Swagger UI.",
+        parameters=ANIMAL_LIST_FILTER_PARAMETERS,
+    )
 )
 class AnimalViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
@@ -646,6 +907,13 @@ localhost/animals/animals/?size=MEDIUM
 @extend_schema(
     tags=["animals_new_home"],
 )
+@extend_schema_view(
+    list=extend_schema(
+        summary="Najnowsze zwierzeta z filtrami",
+        description="Zwraca najnowsze zwierzeta z parametrami filtrowania dostepnymi w Swagger UI.",
+        parameters=ANIMAL_RECENTLY_ADDED_FILTER_PARAMETERS,
+    )
+)
 class AnimalRecentlyAddedViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModelViewSet):
     """
     AnimalRecentlyAddedViewSet
@@ -756,6 +1024,13 @@ class AnimalRecentlyAddedViewSet(StandardizedErrorResponseMixin, viewsets.ReadOn
 
 @extend_schema(
     tags=["animals_filtering", "animals_filtering_advanced", "organizations_aniamls_filtering"],
+)
+@extend_schema_view(
+    list=extend_schema(
+        summary="Zaawansowane filtrowanie zwierzat",
+        description="Endpoint listy zwierzat z kompletem filtrow query dostepnych w Swagger UI.",
+        parameters=ANIMAL_FILTERING_FILTER_PARAMETERS,
+    )
 )
 class AnimalFilterViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModelViewSet):
     

@@ -7,7 +7,11 @@ from .models import Article, ArticleCategory
 
 from .serializers import ArticleSerializer, ArticlesLastSerializer, ArticleCategorySerializer
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_view,
+)
 from rest_framework.decorators import action
 
 
@@ -83,9 +87,59 @@ def _split_csv_param(value):
 
     return [item.strip() for item in value.split(",") if item.strip()]
 
+
+ARTICLE_LIST_FILTER_PARAMETERS = [
+    OpenApiParameter(
+        name="has-category",
+        type=bool,
+        location=OpenApiParameter.QUERY,
+        description="Filter by presence of categories (true/false).",
+    ),
+    OpenApiParameter(
+        name="category",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated category IDs (alias for categories).",
+    ),
+    OpenApiParameter(
+        name="category-slug",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated category slugs (alias for categories__slug).",
+    ),
+    OpenApiParameter(
+        name="limit",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Maximum number of returned items.",
+    ),
+]
+
+ARTICLES_LATEST_FILTER_PARAMETERS = [
+    OpenApiParameter(
+        name="author",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Author first name fragment (case-insensitive).",
+    ),
+    OpenApiParameter(
+        name="limit",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Maximum number of returned items (default: 10).",
+    ),
+]
+
 @extend_schema(
     tags=["articles"],
     description="API endpoint that allows Articles to be viewed or edited. Supports soft-delete on destroy."
+)
+@extend_schema_view(
+    list=extend_schema(
+        summary="Lista artykulow z filtrami",
+        description="Udostepnia filtry query dla listy artykulow w Swagger UI.",
+        parameters=ARTICLE_LIST_FILTER_PARAMETERS,
+    )
 )
 class ArticleViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
@@ -184,6 +238,13 @@ class ArticleViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
 @extend_schema(
     tags=["articles_latest"],
     
+)
+@extend_schema_view(
+    list=extend_schema(
+        summary="Najnowsze artykuly z filtrami",
+        description="Udostepnia filtry query dla listy najnowszych artykulow.",
+        parameters=ARTICLES_LATEST_FILTER_PARAMETERS,
+    )
 )
 class ArticlesLastViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModelViewSet):
     """

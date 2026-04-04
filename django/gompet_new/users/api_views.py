@@ -7,7 +7,13 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_view,
+    inline_serializer,
+)
+from django.db.models import Q
 from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
@@ -34,6 +40,166 @@ from .services import CannotDeleteUser, delete_user_account, transfer_organizati
 from .role_permissions import sync_user_member_role_groups, sync_user_role_groups
 
 logger = logging.getLogger(__name__)
+
+
+ORGANIZATION_LIST_FILTER_PARAMETERS = [
+    OpenApiParameter(
+        name="name",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Organization name fragment (case-insensitive).",
+    ),
+    OpenApiParameter(
+        name="range",
+        type=float,
+        location=OpenApiParameter.QUERY,
+        description="Maximum distance in meters from current user location.",
+    ),
+    OpenApiParameter(
+        name="city",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Exact city name.",
+    ),
+    OpenApiParameter(
+        name="organization-type",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated organization types.",
+    ),
+    OpenApiParameter(
+        name="species",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated species names from organization address.",
+    ),
+    OpenApiParameter(
+        name="species-type",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Alias for species (comma-separated) from organization address.",
+    ),
+    OpenApiParameter(
+        name="breeding-type",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated breeding type names.",
+    ),
+    OpenApiParameter(
+        name="user-id",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Filter organizations by owner user ID.",
+    ),
+]
+
+ORGANIZATION_RECENT_LIST_FILTER_PARAMETERS = [
+    OpenApiParameter(
+        name="organization-type",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated organization types.",
+    ),
+    OpenApiParameter(
+        name="limit",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Maximum number of returned organizations (default: 10).",
+    ),
+]
+
+ORGANIZATION_MEMBER_LIST_FILTER_PARAMETERS = [
+    OpenApiParameter(
+        name="mine",
+        type=bool,
+        location=OpenApiParameter.QUERY,
+        description="Set to true to return memberships of current user.",
+    ),
+    OpenApiParameter(
+        name="organizations-user-by-id",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Filter by organization owner user ID.",
+    ),
+    OpenApiParameter(
+        name="organization-id",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Pending invitations for selected organization ID.",
+    ),
+    OpenApiParameter(
+        name="organization-id-confirmed",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Confirmed memberships for selected organization ID.",
+    ),
+    OpenApiParameter(
+        name="organization-member-user-id",
+        type=int,
+        location=OpenApiParameter.QUERY,
+        description="Filter memberships by member user ID.",
+    ),
+]
+
+ORGANIZATION_FILTERING_LIST_FILTER_PARAMETERS = [
+    OpenApiParameter(
+        name="name",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Organization name fragment.",
+    ),
+    OpenApiParameter(
+        name="range",
+        type=float,
+        location=OpenApiParameter.QUERY,
+        description="Maximum distance in meters from current user location.",
+    ),
+    OpenApiParameter(
+        name="city",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Exact city name.",
+    ),
+    OpenApiParameter(
+        name="organization-type",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated organization types.",
+    ),
+    OpenApiParameter(
+        name="species",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated species names from organization address.",
+    ),
+    OpenApiParameter(
+        name="species-type",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Alias for species (comma-separated) from organization address.",
+    ),
+    OpenApiParameter(
+        name="breeding-type",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated breeding type names.",
+    ),
+]
+
+ORGANIZATION_ADDRESS_LIST_FILTER_PARAMETERS = [
+    OpenApiParameter(
+        name="city",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Exact city name.",
+    ),
+    OpenApiParameter(
+        name="organization-type",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Comma-separated organization types.",
+    ),
+]
 
 
 class StandardizedErrorResponseMixin:
@@ -397,6 +563,13 @@ class PasswordResetConfirmView(StandardizedErrorResponseMixin, APIView):
     tags=["organizations", "organizations_profile", "organizations_profile_pupils", "organizations_profile_miots", "organizations_new_profile"],
     description="API for managing organizations, including CRUD operations."
 )
+@extend_schema_view(
+    list=extend_schema(
+        summary="Lista organizacji z filtrami",
+        description="Udostepnia filtry query dla listy organizacji w Swagger UI.",
+        parameters=ORGANIZATION_LIST_FILTER_PARAMETERS,
+    )
+)
 class OrganizationViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
     OrganizationViewSet
@@ -551,12 +724,28 @@ class OrganizationViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet)
         species = self.request.query_params.get('species')
         if species:
             species_list = [s.strip() for s in species.split(',') if s.strip()]
-            qs = qs.filter(species_organizations__species__name__in=species_list)
+            species_query = Q()
+            for value in species_list:
+                species_query |= Q(address__species__name__iexact=value)
+                species_query |= Q(address__species__label__iexact=value)
+            qs = qs.filter(species_query).distinct()
 
         breeding_type = self.request.query_params.get('breeding-type')
         if breeding_type:
             breeding_types = [bt.strip() for bt in breeding_type.split(',') if bt.strip()]
             qs = qs.filter(breeding_type_organizations__breeding_type__name__in=breeding_types)
+
+
+        species_type = self.request.query_params.get('species-type')
+        if species_type:
+            species_types = [st.strip() for st in species_type.split(',') if st.strip()]
+            species_type_query = Q()
+            for value in species_types:
+                species_type_query |= Q(address__species__name__iexact=value)
+                species_type_query |= Q(address__species__label__iexact=value)
+            qs = qs.filter(species_type_query).distinct()
+
+         # filter by owner user ID
 
         org_user_id = self.request.query_params.get('user-id')
         if org_user_id:
@@ -581,6 +770,13 @@ class OrganizationViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet)
     
 @extend_schema(
     tags=["organizations_recently_added"],
+)
+@extend_schema_view(
+    list=extend_schema(
+        summary="Najnowsze organizacje z filtrami",
+        description="Udostepnia filtry query dla listy najnowszych organizacji.",
+        parameters=ORGANIZATION_RECENT_LIST_FILTER_PARAMETERS,
+    )
 )
 class OrganizationRecentlyAddedViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModelViewSet):
  
@@ -626,6 +822,13 @@ class OrganizationRecentlyAddedViewSet(StandardizedErrorResponseMixin, viewsets.
 @extend_schema(
     tags=["organization_members", "you_in_organization"],
     description="API for managing organization members, including CRUD operations."
+)
+@extend_schema_view(
+    list=extend_schema(
+        summary="Lista czlonkow organizacji z filtrami",
+        description="Udostepnia filtry query dla listy czlonkow organizacji.",
+        parameters=ORGANIZATION_MEMBER_LIST_FILTER_PARAMETERS,
+    )
 )
 class OrganizationMemberViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
@@ -921,6 +1124,13 @@ class OrganizationMembershipCheckView(StandardizedErrorResponseMixin, APIView):
 @extend_schema(
     tags=["organizations_filtering"],
 )
+@extend_schema_view(
+    list=extend_schema(
+        summary="Filtrowanie organizacji",
+        description="Udostepnia filtry query dla endpointu organization-filtering.",
+        parameters=ORGANIZATION_FILTERING_LIST_FILTER_PARAMETERS,
+    )
+)
 class OrganizationFilteringAddedViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModelViewSet):
  
     """
@@ -1052,7 +1262,20 @@ class OrganizationFilteringAddedViewSet(StandardizedErrorResponseMixin, viewsets
         species = self.request.query_params.get("species")
         if species:
             species_list = [s.strip() for s in species.split(",") if s.strip()]
-            qs = qs.filter(species_organizations__species__name__in=species_list)
+            species_query = Q()
+            for value in species_list:
+                species_query |= Q(address__species__name__iexact=value)
+                species_query |= Q(address__species__label__iexact=value)
+            qs = qs.filter(species_query)
+
+        species_type = self.request.query_params.get("species-type")
+        if species_type:
+            species_type_list = [s.strip() for s in species_type.split(",") if s.strip()]
+            species_type_query = Q()
+            for value in species_type_list:
+                species_type_query |= Q(address__species__name__iexact=value)
+                species_type_query |= Q(address__species__label__iexact=value)
+            qs = qs.filter(species_type_query)
 
         breeding_type = self.request.query_params.get("breeding-type")
         if breeding_type:
@@ -1064,6 +1287,13 @@ class OrganizationFilteringAddedViewSet(StandardizedErrorResponseMixin, viewsets
 
 
 @extend_schema(tags=["organization_addresses"])
+@extend_schema_view(
+    list=extend_schema(
+        summary="Lista adresow organizacji z filtrami",
+        description="Udostepnia filtry query dla listy adresow organizacji.",
+        parameters=ORGANIZATION_ADDRESS_LIST_FILTER_PARAMETERS,
+    )
+)
 class OrganizationAddressViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModelViewSet):
     """Endpoint do odczytu adresów organizacji."""
 
