@@ -38,6 +38,7 @@ from .serializers import (
 from .permissions import OrganizationRolePermissions
 from .services import CannotDeleteUser, delete_user_account, transfer_organization_owner
 from .role_permissions import sync_user_member_role_groups, sync_user_role_groups
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank, TrigramSimilarity
 
 logger = logging.getLogger(__name__)
 
@@ -683,7 +684,25 @@ class OrganizationViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet)
 
         name = self.request.query_params.get('name')
         if name:
-            qs = qs.filter(name__icontains=name)
+            search_vector = (
+                SearchVector('name', weight='A') +
+                SearchVector('email', weight='B') +
+                SearchVector('address__city', weight='C')
+            )
+            search_query = SearchQuery(name, search_type='websearch')
+
+            qs = qs.annotate(
+                search=search_vector,
+                rank=SearchRank(search_vector, search_query),
+                similarity=(
+                    TrigramSimilarity('name', name) +
+                    TrigramSimilarity('email', name) * 0.5 +
+                    TrigramSimilarity('address__city', name) * 0.3
+                )
+            ).filter(
+                Q(search=search_query) |
+                Q(similarity__gt=0.2)
+            ).order_by('-rank', '-similarity')
 
         # filtrowanie po zasięgu (parametr "zasieg" – wartość w metrach)
         zasieg_param = self.request.query_params.get('range')

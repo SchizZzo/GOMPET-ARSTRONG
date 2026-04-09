@@ -8,7 +8,7 @@ MANAGE=$(DC) run --rm web python manage.py
 
 
 
-.PHONY: help makemigrations migrate swagger swagger-json swagger-v3 swagger-v3-json
+.PHONY: help makemigrations migrate swagger swagger-json swagger-v3 swagger-v3-json create-extension
 
 
 help:
@@ -110,3 +110,5 @@ swagger-v3-json:
 	$(DC) run --rm web sh -c "mkdir -p docs && python manage.py spectacular --format openapi-json --file docs/openapi-v3.json"
 
 
+create-extension:
+	$(DC) exec db sh -c 'psql -U "$${POSTGRES_USER:-postgres}" -d "$${POSTGRES_DB:-gis}" -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"'
