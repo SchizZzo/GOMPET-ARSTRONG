@@ -30,7 +30,7 @@ from common.notifications import broadcast_user_notification, build_notification
 from .models import Address, MemberRole, Organization, OrganizationMember, OrganizationType, Species, User
 from .serializers import (
     OrganizationTypeSerializer, MemberRoleSerializer, UserSerializer, UserCreateSerializer, UserUpdateSerializer,
-    OrganizationSerializer, OrganizationCreateSerializer, OrganizationUpdateSerializer,
+    OrganizationSerializer, OrganizationCreateSerializer, OrganizationUpdateSerializer, OrganizationRetrieveSerializer,
     OrganizationMemberSerializer, OrganizationMemberCreateSerializer, LatestOrganizationSerializer, SpeciesSerializer,
     OrganizationAddressSerializer, OrganizationOwnerChangeSerializer, ProfileInfoSerializer,
     PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
@@ -569,7 +569,12 @@ class PasswordResetConfirmView(StandardizedErrorResponseMixin, APIView):
         summary="Lista organizacji z filtrami",
         description="Udostepnia filtry query dla listy organizacji w Swagger UI.",
         parameters=ORGANIZATION_LIST_FILTER_PARAMETERS,
-    )
+    ),
+    retrieve=extend_schema(
+        summary="Szczegoly organizacji",
+        description="Zwraca szczegoly organizacji. Pole address.species zawiera liste obiektow z id i label zapisanym wielkimi literami.",
+        responses=OrganizationRetrieveSerializer,
+    ),
 )
 class OrganizationViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
@@ -637,6 +642,8 @@ class OrganizationViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet)
             return OrganizationCreateSerializer
         if self.action in {"update", "partial_update"}:
             return OrganizationUpdateSerializer
+        if self.action == "retrieve":
+            return OrganizationRetrieveSerializer
         return super().get_serializer_class()
 
     def update(self, request, *args, **kwargs):

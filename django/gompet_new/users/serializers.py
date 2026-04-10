@@ -275,6 +275,32 @@ class SpeciesSerializer(serializers.ModelSerializer):
         if isinstance(name, str):
             data["name"] = name.upper()
         return data
+
+
+class SpeciesIdLabelSerializer(serializers.ModelSerializer):
+    """Read-only species representation for organization details."""
+
+    label = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Species
+        fields = [
+            "id",
+            "label",
+        ]
+
+    def get_label(self, obj):
+        label = obj.label or obj.name
+        if isinstance(label, str):
+            return label.upper()
+        return label
+
+
+class OrganizationAddressReadSerializer(AddressSerializer):
+    """Address serializer used for organization retrieve responses."""
+
+    species = SpeciesIdLabelSerializer(many=True, read_only=True)
+
 class BreedingTypeSerializer(serializers.ModelSerializer):
     """Serializer typu hodowli zwierzÄ™cia."""
     class Meta:
@@ -353,6 +379,12 @@ class OrganizationSerializer(serializers.ModelSerializer):
                 address.species.set(species)
 
         return instance
+
+
+class OrganizationRetrieveSerializer(OrganizationSerializer):
+    """Serializer for GET /users/organizations/{id}/ responses."""
+
+    address = OrganizationAddressReadSerializer(read_only=True)
 
 
 class OrganizationCreateSerializer(serializers.ModelSerializer):

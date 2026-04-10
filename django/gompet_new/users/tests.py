@@ -880,6 +880,46 @@ class OrganizationAddressViewSetTests(TestCase):
         self.assertEqual(payload["city"], address.city)
 
 
+class OrganizationRetrieveSpeciesFormatTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_retrieve_returns_species_id_and_uppercase_label(self):
+        owner = User.objects.create_user(
+            email="owner-retrieve-species@example.com",
+            password="secret",
+            first_name="Owner",
+            last_name="Retrieve",
+        )
+        organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Retrieve Species Org",
+            email="retrieve-species-org@example.com",
+            phone="",
+            user=owner,
+        )
+        address = Address.objects.create(
+            organization=organization,
+            city="Warsaw",
+            street="Api",
+            house_number="1",
+            zip_code="00-001",
+        )
+        species = Species.objects.create(name="dog")
+        Species.objects.filter(pk=species.pk).update(label="dog_label")
+        species.refresh_from_db()
+        address.species.set([species])
+
+        response = self.client.get(f"/users/organizations/{organization.id}/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        species_payload = response.data["address"]["species"]
+        self.assertEqual(len(species_payload), 1)
+        self.assertEqual(set(species_payload[0].keys()), {"id", "label"})
+        self.assertEqual(species_payload[0]["id"], species.id)
+        self.assertEqual(species_payload[0]["label"], "DOG_LABEL")
+
+
 class OrganizationMemberRoleListViewTests(TestCase):
     def setUp(self):
         self.client = APIClient()
