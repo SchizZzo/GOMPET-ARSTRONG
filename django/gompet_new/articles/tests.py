@@ -1,13 +1,15 @@
 from unittest.mock import patch
+from collections import Counter
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from common.models import Comment, Reaction, ReactionType
 
-from .models import Article
+from .models import Article, ArticleCategory, ArticleCategoryGroup
 
 
 class ArticleDeletionTests(TestCase):
@@ -201,3 +203,136 @@ class ArticleErrorResponseFormatTests(TestCase):
                 "errors": {},
             },
         )
+
+
+class ArticleCategoryGroupsEndpointTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.baseline_counts = Counter(
+            ArticleCategory.objects.filter(deleted_at__isnull=True).values_list("group", flat=True)
+        )
+
+        ArticleCategory.objects.create(
+            name="Endpoint Basics Category",
+            slug="endpoint-basics-category",
+            group=ArticleCategoryGroup.BASICS,
+        )
+        ArticleCategory.objects.create(
+            name="Endpoint Training Category",
+            slug="endpoint-training-category",
+            group=ArticleCategoryGroup.TRAINING,
+        )
+
+        deleted_health = ArticleCategory.objects.create(
+            name="Endpoint Deleted Health Category",
+            slug="endpoint-deleted-health-category",
+            group=ArticleCategoryGroup.HEALTH,
+        )
+        deleted_health.deleted_at = timezone.now()
+        deleted_health.save(update_fields=["deleted_at"])
+
+    def test_groups_endpoint_returns_declared_groups_with_counts(self):
+        response = self.client.get(reverse("article-category-groups"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+
+        returned_values = [item["value"] for item in response.data]
+        expected_values = [value for value, _ in ArticleCategoryGroup.choices]
+        self.assertEqual(returned_values, expected_values)
+
+        grouped = {item["value"]: item for item in response.data}
+
+        for value, label in ArticleCategoryGroup.choices:
+            self.assertIn(value, grouped)
+            self.assertEqual(grouped[value]["label"], label)
+
+        self.assertEqual(
+            grouped[ArticleCategoryGroup.BASICS]["categories_count"],
+            self.baseline_counts.get(ArticleCategoryGroup.BASICS, 0) + 1,
+        )
+        self.assertEqual(
+            grouped[ArticleCategoryGroup.TRAINING]["categories_count"],
+            self.baseline_counts.get(ArticleCategoryGroup.TRAINING, 0) + 1,
+        )
+        self.assertEqual(
+            grouped[ArticleCategoryGroup.HEALTH]["categories_count"],
+            self.baseline_counts.get(ArticleCategoryGroup.HEALTH, 0),
+        )
+
+
+class ArticleCategoryListFilterTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+        self.health_category = ArticleCategory.objects.create(
+            name="Filter Health Category",
+            slug="filter-health-category",
+            group=ArticleCategoryGroup.HEALTH,
+        )
+        self.shopping_category = ArticleCategory.objects.create(
+            name="Filter Shopping Category",
+            slug="filter-shopping-category",
+            group=ArticleCategoryGroup.SHOPPING,
+        )
+
+        self.deleted_shopping_category = ArticleCategory.objects.create(
+            name="Filter Deleted Shopping Category",
+            slug="filter-deleted-shopping-category",
+            group=ArticleCategoryGroup.SHOPPING,
+        )
+        self.deleted_shopping_category.deleted_at = timezone.now()
+        self.deleted_shopping_category.save(update_fields=["deleted_at"])
+
+    @staticmethod
+    def _extract_results(data):
+        if isinstance(data, dict) and "results" in data:
+            return data["results"]
+        return data
+
+    def test_list_can_be_filtered_by_single_group(self):
+        response = self.client.get(
+            reverse("article-category-list"),
+            {"group": ArticleCategoryGroup.HEALTH},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        items = self._extract_results(response.data)
+        names = {item["name"] for item in items}
+
+        self.assertIn(self.health_category.name, names)
+        self.assertNotIn(self.shopping_category.name, names)
+        self.assertTrue(all(item["group"] == ArticleCategoryGroup.HEALTH for item in items))
+
+    def test_list_can_be_filtered_by_multiple_groups_csv(self):
+        response = self.client.get(
+            reverse("article-category-list"),
+            {"group": f"{ArticleCategoryGroup.HEALTH},{ArticleCategoryGroup.SHOPPING}"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        items = self._extract_results(response.data)
+        names = {item["name"] for item in items}
+        groups = {item["group"] for item in items}
+
+        self.assertIn(self.health_category.name, names)
+        self.assertIn(self.shopping_category.name, names)
+        self.assertNotIn(self.deleted_shopping_category.name, names)
+        self.assertTrue(
+            groups.issubset({ArticleCategoryGroup.HEALTH, ArticleCategoryGroup.SHOPPING})
+        )
+
+    def test_list_can_be_filtered_by_groups_alias(self):
+        response = self.client.get(
+            reverse("article-category-list"),
+            {"groups": ArticleCategoryGroup.SHOPPING},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        items = self._extract_results(response.data)
+        names = {item["name"] for item in items}
+
+        self.assertIn(self.shopping_category.name, names)
+        self.assertNotIn(self.health_category.name, names)
+        self.assertNotIn(self.deleted_shopping_category.name, names)
+        self.assertTrue(all(item["group"] == ArticleCategoryGroup.SHOPPING for item in items))

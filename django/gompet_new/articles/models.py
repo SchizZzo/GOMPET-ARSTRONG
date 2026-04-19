@@ -21,10 +21,26 @@ class TimeStampedModel(models.Model):
         self.save(update_fields=["deleted_at"])
 
 
+class ArticleCategoryGroup(models.TextChoices):
+    BASICS = "basics", "🐾 Podstawowe kategorie"
+    BY_SPECIES = "by_species", "🐶 Podział według gatunków"
+    DAILY_CARE = "daily_care", "🏠 Opieka codzienna"
+    TRAINING = "training", "🧠 Szkolenie i rozwój"
+    HEALTH = "health", "🏥 Zdrowie"
+    SHOPPING = "shopping", "🛒 Zakupy i produkty"
+    LIFESTYLE = "lifestyle", "🧳 Styl życia"
+
+
 class ArticleCategory(TimeStampedModel):
     """Category assigned to articles in the Knowledge section."""
 
     id = models.BigAutoField(primary_key=True)
+    group = models.CharField(
+        max_length=32,
+        choices=ArticleCategoryGroup.choices,
+        default=ArticleCategoryGroup.BASICS,
+        db_index=True,
+    )
     name = models.CharField(max_length=150, unique=True)
     slug = models.SlugField(unique=True, blank=True)
     description = models.TextField(blank=True)

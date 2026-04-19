@@ -3,7 +3,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Count
 from rest_framework import serializers, viewsets, permissions, filters, status
 from rest_framework.response import Response
-from .models import Article, ArticleCategory
+from .models import Article, ArticleCategory, ArticleCategoryGroup
 
 from .serializers import ArticleSerializer, ArticlesLastSerializer, ArticleCategorySerializer
 
@@ -127,6 +127,21 @@ ARTICLES_LATEST_FILTER_PARAMETERS = [
         type=int,
         location=OpenApiParameter.QUERY,
         description="Maximum number of returned items (default: 10).",
+    ),
+]
+
+ARTICLE_CATEGORY_LIST_FILTER_PARAMETERS = [
+    OpenApiParameter(
+        name="group",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Single group value or comma-separated list of group values.",
+    ),
+    OpenApiParameter(
+        name="groups",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Alias for group; supports comma-separated values.",
     ),
 ]
 
@@ -326,10 +341,55 @@ class ArticlesLastViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModel
     tags=["article_categories"],
     description="API endpoint for managing article categories.",
 )
+@extend_schema_view(
+    list=extend_schema(
+        summary="Lista kategorii artykułów z filtrami",
+        description="Udostepnia filtry query dla listy kategorii artykułów.",
+        parameters=ARTICLE_CATEGORY_LIST_FILTER_PARAMETERS,
+    )
+)
 class ArticleCategoryViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     queryset = ArticleCategory.objects.filter(deleted_at__isnull=True)
     serializer_class = ArticleCategorySerializer
     permission_classes = [permissions.DjangoModelPermissionsOrAnonReadOnly]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ["name", "slug"]
-    ordering_fields = ["name", "created_at"]
+    search_fields = ["name", "slug", "group"]
+    ordering_fields = ["group", "name", "created_at"]
+
+    def get_queryset(self):
+        queryset = ArticleCategory.objects.filter(deleted_at__isnull=True)
+
+        groups = _split_csv_param(self.request.query_params.getlist("group"))
+        groups.extend(_split_csv_param(self.request.query_params.getlist("groups")))
+
+        if groups:
+            allowed_groups = {value for value, _ in ArticleCategoryGroup.choices}
+            normalized_groups = [group for group in groups if group in allowed_groups]
+            if normalized_groups:
+                queryset = queryset.filter(group__in=normalized_groups)
+            else:
+                queryset = queryset.none()
+
+        return queryset
+
+    @extend_schema(
+        summary="Lista grup kategorii artykułów",
+        description="Zwraca wszystkie dostępne grupy kategorii wraz z liczbą aktywnych kategorii.",
+        tags=["article_categories"],
+    )
+    @action(detail=False, methods=["get"], url_path="groups")
+    def groups(self, request, *args, **kwargs):
+        grouped_counts = {
+            item["group"]: item["categories_count"]
+            for item in self.get_queryset().values("group").annotate(categories_count=Count("id"))
+        }
+
+        data = [
+            {
+                "value": value,
+                "label": label,
+                "categories_count": grouped_counts.get(value, 0),
+            }
+            for value, label in ArticleCategoryGroup.choices
+        ]
+        return Response(data)
