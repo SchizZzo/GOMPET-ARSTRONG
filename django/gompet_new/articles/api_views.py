@@ -88,6 +88,11 @@ def _split_csv_param(value):
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def _normalize_category_groups(groups):
+    allowed_groups = {value for value, _ in ArticleCategoryGroup.choices}
+    return [group for group in groups if group in allowed_groups]
+
+
 ARTICLE_LIST_FILTER_PARAMETERS = [
     OpenApiParameter(
         name="has-category",
@@ -106,6 +111,18 @@ ARTICLE_LIST_FILTER_PARAMETERS = [
         type=str,
         location=OpenApiParameter.QUERY,
         description="Comma-separated category slugs (alias for categories__slug).",
+    ),
+    OpenApiParameter(
+        name="category-group",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Single category group value or comma-separated list (alias for categories__group).",
+    ),
+    OpenApiParameter(
+        name="category-groups",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Alias for category-group; supports comma-separated values.",
     ),
     OpenApiParameter(
         name="limit",
@@ -127,6 +144,18 @@ ARTICLES_LATEST_FILTER_PARAMETERS = [
         type=int,
         location=OpenApiParameter.QUERY,
         description="Maximum number of returned items (default: 10).",
+    ),
+    OpenApiParameter(
+        name="category-group",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Single category group value or comma-separated list (alias for categories__group).",
+    ),
+    OpenApiParameter(
+        name="category-groups",
+        type=str,
+        location=OpenApiParameter.QUERY,
+        description="Alias for category-group; supports comma-separated values.",
     ),
 ]
 
@@ -174,6 +203,7 @@ class ArticleViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     filterset_fields = {
         "categories": ["exact"],
         "categories__slug": ["exact"],
+        "categories__group": ["exact"],
         
     }
 
@@ -212,6 +242,20 @@ class ArticleViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
         categories_slugs = _split_csv_param(categories_slug_param)
         if categories_slugs:
             queryset = queryset.filter(categories__slug__in=categories_slugs)
+
+        category_group_values = _split_csv_param(self.request.query_params.getlist("category-group"))
+        category_group_values.extend(
+            _split_csv_param(self.request.query_params.getlist("category-groups"))
+        )
+        category_group_values.extend(
+            _split_csv_param(self.request.query_params.getlist("categories__group"))
+        )
+        if category_group_values:
+            normalized_category_groups = _normalize_category_groups(category_group_values)
+            if normalized_category_groups:
+                queryset = queryset.filter(categories__group__in=normalized_category_groups)
+            else:
+                queryset = queryset.none()
 
 
 
@@ -270,6 +314,7 @@ class ArticlesLastViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModel
     - `author` (str, opcjonalnie): filtr częściowy (case-insensitive) na nazwę użytkownika autora artykułu.
     - `categories` (int, opcjonalnie): filtruje po identyfikatorze kategorii.
     - `categories__slug` (str, opcjonalnie): filtruje po slug kategorii.
+    - `category-group` (str, opcjonalnie): filtruje po grupie kategorii (pojedyncza wartość lub CSV).
     - `limit` (int, opcjonalnie): maksymalna liczba zwracanych artykułów (domyślnie 10, jeśli brak lub nieprawidłowy).
 
     ## Funkcjonalności
@@ -295,6 +340,7 @@ class ArticlesLastViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModel
     filterset_fields = {
         "categories": ["exact"],
         "categories__slug": ["exact"],
+        "categories__group": ["exact"],
     }
     
 
@@ -314,6 +360,20 @@ class ArticlesLastViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModel
         categories_slugs = _split_csv_param(categories_slug_param)
         if categories_slugs:
             queryset = queryset.filter(categories__slug__in=categories_slugs)
+
+        category_group_values = _split_csv_param(self.request.query_params.getlist("category-group"))
+        category_group_values.extend(
+            _split_csv_param(self.request.query_params.getlist("category-groups"))
+        )
+        category_group_values.extend(
+            _split_csv_param(self.request.query_params.getlist("categories__group"))
+        )
+        if category_group_values:
+            normalized_category_groups = _normalize_category_groups(category_group_values)
+            if normalized_category_groups:
+                queryset = queryset.filter(categories__group__in=normalized_category_groups)
+            else:
+                queryset = queryset.none()
 
         return queryset.distinct().order_by('-created_at')
 
@@ -363,8 +423,7 @@ class ArticleCategoryViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewS
         groups.extend(_split_csv_param(self.request.query_params.getlist("groups")))
 
         if groups:
-            allowed_groups = {value for value, _ in ArticleCategoryGroup.choices}
-            normalized_groups = [group for group in groups if group in allowed_groups]
+            normalized_groups = _normalize_category_groups(groups)
             if normalized_groups:
                 queryset = queryset.filter(group__in=normalized_groups)
             else:

@@ -336,3 +336,101 @@ class ArticleCategoryListFilterTests(TestCase):
         self.assertNotIn(self.health_category.name, names)
         self.assertNotIn(self.deleted_shopping_category.name, names)
         self.assertTrue(all(item["group"] == ArticleCategoryGroup.SHOPPING for item in items))
+
+
+class ArticleCategoryGroupFilterOnArticlesTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        User = get_user_model()
+        self.author = User.objects.create_user(
+            email="filter-author@example.com",
+            password="testpass123",
+            first_name="Filter",
+            last_name="Author",
+        )
+
+        self.health_category = ArticleCategory.objects.create(
+            name="Articles Filter Health Category",
+            slug="articles-filter-health-category",
+            group=ArticleCategoryGroup.HEALTH,
+        )
+        self.shopping_category = ArticleCategory.objects.create(
+            name="Articles Filter Shopping Category",
+            slug="articles-filter-shopping-category",
+            group=ArticleCategoryGroup.SHOPPING,
+        )
+
+        self.health_article = Article.objects.create(
+            title="Health Filter Article",
+            content={"body": "health"},
+            author=self.author,
+        )
+        self.health_article.categories.add(self.health_category)
+
+        self.shopping_article = Article.objects.create(
+            title="Shopping Filter Article",
+            content={"body": "shopping"},
+            author=self.author,
+        )
+        self.shopping_article.categories.add(self.shopping_category)
+
+        self.uncategorized_article = Article.objects.create(
+            title="Uncategorized Filter Article",
+            content={"body": "none"},
+            author=self.author,
+        )
+
+        self.deleted_health_article = Article.objects.create(
+            title="Deleted Health Filter Article",
+            content={"body": "deleted"},
+            author=self.author,
+        )
+        self.deleted_health_article.categories.add(self.health_category)
+        self.deleted_health_article.deleted_at = timezone.now()
+        self.deleted_health_article.save(update_fields=["deleted_at"])
+
+    @staticmethod
+    def _extract_results(data):
+        if isinstance(data, dict) and "results" in data:
+            return data["results"]
+        return data
+
+    def test_article_list_can_be_filtered_by_category_group(self):
+        response = self.client.get(
+            reverse("article-list"),
+            {"category-group": ArticleCategoryGroup.HEALTH},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        items = self._extract_results(response.data)
+        slugs = {item["slug"] for item in items}
+
+        self.assertIn(self.health_article.slug, slugs)
+        self.assertNotIn(self.shopping_article.slug, slugs)
+        self.assertNotIn(self.uncategorized_article.slug, slugs)
+        self.assertNotIn(self.deleted_health_article.slug, slugs)
+
+    def test_articles_latest_can_be_filtered_by_category_groups_alias(self):
+        response = self.client.get(
+            reverse("articles-latest-list"),
+            {"category-groups": ArticleCategoryGroup.SHOPPING},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        items = self._extract_results(response.data)
+        slugs = {item["slug"] for item in items}
+
+        self.assertIn(self.shopping_article.slug, slugs)
+        self.assertNotIn(self.health_article.slug, slugs)
+        self.assertNotIn(self.uncategorized_article.slug, slugs)
+        self.assertNotIn(self.deleted_health_article.slug, slugs)
+
+    def test_article_list_with_invalid_category_group_returns_empty(self):
+        response = self.client.get(
+            reverse("article-list"),
+            {"category-group": "invalid-group"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        items = self._extract_results(response.data)
+        self.assertEqual(items, [])

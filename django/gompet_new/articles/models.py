@@ -22,13 +22,13 @@ class TimeStampedModel(models.Model):
 
 
 class ArticleCategoryGroup(models.TextChoices):
-    BASICS = "basics", "🐾 Podstawowe kategorie"
-    BY_SPECIES = "by_species", "🐶 Podział według gatunków"
-    DAILY_CARE = "daily_care", "🏠 Opieka codzienna"
-    TRAINING = "training", "🧠 Szkolenie i rozwój"
-    HEALTH = "health", "🏥 Zdrowie"
-    SHOPPING = "shopping", "🛒 Zakupy i produkty"
-    LIFESTYLE = "lifestyle", "🧳 Styl życia"
+    BASICS = "basics", "BASICS"
+    BY_SPECIES = "by_species", "BY_SPECIES"
+    DAILY_CARE = "daily_care", "DAILY_CARE"
+    TRAINING = "training", "TRAINING"
+    HEALTH = "health", "HEALTH"
+    SHOPPING = "shopping", "SHOPPING"
+    LIFESTYLE = "lifestyle", "LIFESTYLE"
 
 
 class ArticleCategory(TimeStampedModel):
