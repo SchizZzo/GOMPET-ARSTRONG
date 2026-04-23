@@ -693,7 +693,14 @@ class AnimalErrorResponseFormatTests(TestCase):
         self.assertEqual(response.data["message"], "Validation error.")
         self.assertEqual(
             response.data["errors"],
-            {"image": ["This field is required."]},
+            {
+                "image": [
+                    {
+                        "code": "required",
+                        "message": "This field is required.",
+                    }
+                ]
+            },
         )
 
     def test_500_error_payload_format(self):

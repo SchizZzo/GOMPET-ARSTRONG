@@ -27,6 +27,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from common.models import Notification
 from common.notifications import broadcast_user_notification, build_notification_payload
+from common.exceptions import normalize_validation_errors
 from .models import Address, MemberRole, Organization, OrganizationMember, OrganizationType, Species, User
 from .serializers import (
     OrganizationTypeSerializer, MemberRoleSerializer, UserSerializer, UserCreateSerializer, UserUpdateSerializer,
@@ -248,9 +249,11 @@ class StandardizedErrorResponseMixin:
         if errors is None:
             normalized_errors = {}
         elif isinstance(errors, dict):
-            normalized_errors = errors
+            normalized_errors = normalize_validation_errors(errors)
         else:
-            normalized_errors = {"non_field_errors": errors}
+            normalized_errors = {
+                "non_field_errors": normalize_validation_errors(errors)
+            }
 
         return {
             "status": status.HTTP_400_BAD_REQUEST,

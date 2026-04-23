@@ -1,5 +1,6 @@
 from django.conf import settings
 from rest_framework import status
+from rest_framework.exceptions import ErrorDetail
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
@@ -37,13 +38,49 @@ def _build_error_payload(status_code: int) -> dict:
     }
 
 
+def _is_preformatted_error_object(value) -> bool:
+    return (
+        isinstance(value, dict)
+        and "code" in value
+        and ("message" in value or "field" in value)
+    )
+
+
+def normalize_validation_errors(errors):
+    """Convert DRF validation details into JSON-friendly objects with explicit codes."""
+    if isinstance(errors, ErrorDetail):
+        return {
+            "code": getattr(errors, "code", "invalid") or "invalid",
+            "message": str(errors),
+        }
+
+    if _is_preformatted_error_object(errors):
+        return errors
+
+    if isinstance(errors, dict):
+        return {key: normalize_validation_errors(value) for key, value in errors.items()}
+
+    if isinstance(errors, (list, tuple)):
+        return [normalize_validation_errors(item) for item in errors]
+
+    if errors is None:
+        return None
+
+    return {
+        "code": "invalid",
+        "message": str(errors),
+    }
+
+
 def _build_validation_error_payload(errors) -> dict:
     if errors is None:
         normalized_errors = {}
     elif isinstance(errors, dict):
-        normalized_errors = errors
+        normalized_errors = normalize_validation_errors(errors)
     else:
-        normalized_errors = {"non_field_errors": errors}
+        normalized_errors = {
+            "non_field_errors": normalize_validation_errors(errors)
+        }
 
     return {
         "status": status.HTTP_400_BAD_REQUEST,

@@ -12,6 +12,7 @@ from rest_framework.response import Response
 
 from common.like_counter import resolve_content_type
 from common.models import Comment, Follow, Notification, Reaction, ReactionType
+from common.exceptions import normalize_validation_errors
 
 from .serializers import (
     CommentSerializer,
@@ -31,9 +32,11 @@ class StandardizedErrorResponseMixin:
         if errors is None:
             normalized_errors = {}
         elif isinstance(errors, dict):
-            normalized_errors = errors
+            normalized_errors = normalize_validation_errors(errors)
         else:
-            normalized_errors = {"non_field_errors": errors}
+            normalized_errors = {
+                "non_field_errors": normalize_validation_errors(errors)
+            }
 
         return {
             "status": status.HTTP_400_BAD_REQUEST,

@@ -124,7 +124,12 @@ class CommonErrorResponseFormatTests(TestCase):
         self.assertEqual(response.data["message"], "Validation error.")
         self.assertEqual(
             response.data["errors"],
-            {"detail": "Query parameters 'target_type' and 'target_id' are required."},
+            {
+                "detail": {
+                    "code": "invalid",
+                    "message": "Query parameters 'target_type' and 'target_id' are required.",
+                }
+            },
         )
 
     def test_500_error_payload_format(self) -> None:

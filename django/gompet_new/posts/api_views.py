@@ -11,6 +11,7 @@ from common.models import Follow
 from users.models import Organization, OrganizationMember
 from .models import Post
 from .serializers import PostSerializer
+from common.exceptions import normalize_validation_errors
 
 # posts/api_views.py
 
@@ -66,9 +67,11 @@ class StandardizedErrorResponseMixin:
         if errors is None:
             normalized_errors = {}
         elif isinstance(errors, dict):
-            normalized_errors = errors
+            normalized_errors = normalize_validation_errors(errors)
         else:
-            normalized_errors = {"non_field_errors": errors}
+            normalized_errors = {
+                "non_field_errors": normalize_validation_errors(errors)
+            }
 
         return {
             "status": status.HTTP_400_BAD_REQUEST,

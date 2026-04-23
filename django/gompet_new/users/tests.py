@@ -1228,6 +1228,27 @@ class UserErrorResponseFormatTests(TestCase):
         self.assertEqual(response.data["message"], "Validation error.")
         self.assertIn("confirm_password", response.data["errors"])
 
+    def test_400_password_validation_error_includes_per_error_code(self):
+        response = self.client.post(
+            "/users/users/",
+            {
+                "email": "short-password@example.com",
+                "first_name": "Short",
+                "last_name": "Password",
+                "password": "123",
+                "confirm_password": "123",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["status"], 400)
+        self.assertEqual(response.data["code"], "validation_error")
+        self.assertIn("password", response.data["errors"])
+        self.assertTrue(len(response.data["errors"]["password"]) > 0)
+        self.assertIn("code", response.data["errors"]["password"][0])
+        self.assertIn("message", response.data["errors"]["password"][0])
+
     def test_400_manual_error_payload_format(self):
         response = self.client.post(
             "/users/auth/password-reset/confirm/",
@@ -1246,7 +1267,12 @@ class UserErrorResponseFormatTests(TestCase):
         self.assertEqual(response.data["message"], "Validation error.")
         self.assertEqual(
             response.data["errors"],
-            {"detail": "Nieprawid\u0142owy lub wygas\u0142y token resetu has\u0142a."},
+            {
+                "detail": {
+                    "code": "invalid",
+                    "message": "Nieprawid\u0142owy lub wygas\u0142y token resetu has\u0142a.",
+                }
+            },
         )
 
     def test_500_error_payload_format(self):

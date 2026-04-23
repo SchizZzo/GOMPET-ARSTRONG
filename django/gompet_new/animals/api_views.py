@@ -50,6 +50,7 @@ from django.db.models import Q
 import json
 from django.core.exceptions import FieldError, ObjectDoesNotExist
 from common.models import Reaction, ReactionType
+from common.exceptions import normalize_validation_errors
 from django.contrib.auth import get_user_model
 
 
@@ -106,9 +107,11 @@ class StandardizedErrorResponseMixin:
         if errors is None:
             normalized_errors = {}
         elif isinstance(errors, dict):
-            normalized_errors = errors
+            normalized_errors = normalize_validation_errors(errors)
         else:
-            normalized_errors = {"non_field_errors": errors}
+            normalized_errors = {
+                "non_field_errors": normalize_validation_errors(errors)
+            }
 
         return {
             "status": status.HTTP_400_BAD_REQUEST,

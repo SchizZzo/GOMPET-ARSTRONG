@@ -212,5 +212,8 @@ class FollowViewSetTests(TestCase):
         self.assertEqual(response.data["message"], "Validation error.")
         self.assertEqual(
             response.data["errors"]["detail"],
-            "'target_type' must be users.organization or animals.animal.",
+            {
+                "code": "invalid",
+                "message": "'target_type' must be users.organization or animals.animal.",
+            },
         )

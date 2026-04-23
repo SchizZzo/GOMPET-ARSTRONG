@@ -187,7 +187,7 @@ class ArticleErrorResponseFormatTests(TestCase):
         self.assertEqual(response.data["message"], "Validation error.")
         self.assertIn("title", response.data["errors"])
         self.assertEqual(len(response.data["errors"]["title"]), 1)
-        self.assertEqual(response.data["errors"]["title"][0].code, "required")
+        self.assertEqual(response.data["errors"]["title"][0]["code"], "required")
 
     def test_500_error_payload_format(self):
         with patch("articles.api_views.ArticleViewSet.list", side_effect=RuntimeError("boom")):
