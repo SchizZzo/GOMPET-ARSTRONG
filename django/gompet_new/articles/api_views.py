@@ -393,3 +393,41 @@ class ArticleCategoryViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewS
             for value, label in ArticleCategoryGroup.choices
         ]
         return Response(data)
+
+
+class ArticleCategoryGroupSerializer(serializers.Serializer):
+    value = serializers.CharField()
+    label = serializers.CharField()
+    categories_count = serializers.IntegerField()
+
+
+@extend_schema(
+    tags=["article_categories"],
+    description="API endpoint for listing article category groups.",
+)
+class ArticleCategoryGroupViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.AllowAny]
+    http_method_names = ["get", "head", "options"]
+
+    @extend_schema(
+        summary="Lista grup kategorii artykułów",
+        description="Zwraca wszystkie dostępne grupy kategorii wraz z liczbą aktywnych kategorii.",
+        responses=ArticleCategoryGroupSerializer(many=True),
+    )
+    def list(self, request):
+        grouped_counts = {
+            item["group"]: item["categories_count"]
+            for item in ArticleCategory.objects.filter(deleted_at__isnull=True)
+            .values("group")
+            .annotate(categories_count=Count("id"))
+        }
+
+        data = [
+            {
+                "value": value,
+                "label": label,
+                "categories_count": grouped_counts.get(value, 0),
+            }
+            for value, label in ArticleCategoryGroup.choices
+        ]
+        return Response(data)
