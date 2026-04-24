@@ -3,6 +3,8 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.text import slugify
+import re
+import unicodedata
 
 from common.models import Comment, Reaction
 
@@ -43,11 +45,23 @@ class ArticleCategory(TimeStampedModel):
     )
     name = models.CharField(max_length=150, unique=True)
     slug = models.SlugField(unique=True, blank=True)
+    code = models.SlugField(unique=True, blank=True)
     description = models.TextField(blank=True)
+
+    @staticmethod
+    def _normalize_code(value: str) -> str:
+        normalized = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
+        normalized = re.sub(r"[^A-Za-z0-9]+", "_", normalized).strip("_")
+        normalized = re.sub(r"_+", "_", normalized)
+        return normalized.upper()
 
     def save(self, *args, **kwargs):
         if not self.slug and self.name:
             self.slug = slugify(self.name)
+        if not self.code:
+            self.code = self._normalize_code(self.slug or self.name)
+        else:
+            self.code = self._normalize_code(self.code)
         super().save(*args, **kwargs)
 
     class Meta:

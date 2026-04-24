@@ -105,6 +105,7 @@ class ArticleCategorySerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "group",
+            "code",
             "name",
             "slug",
             "description",

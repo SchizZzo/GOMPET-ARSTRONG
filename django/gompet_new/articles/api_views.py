@@ -414,6 +414,7 @@ class ArticlesLastViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModel
 class ArticleCategoryViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     queryset = ArticleCategory.objects.filter(deleted_at__isnull=True)
     serializer_class = ArticleCategorySerializer
+    pagination_class = None
     permission_classes = [permissions.DjangoModelPermissionsOrAnonReadOnly]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["name", "slug", "group"]
@@ -468,6 +469,7 @@ class ArticleCategoryGroupSerializer(serializers.Serializer):
     description="API endpoint for listing article category groups.",
 )
 class ArticleCategoryGroupViewSet(viewsets.ViewSet):
+    pagination_class = None
     permission_classes = [permissions.AllowAny]
     http_method_names = ["get", "head", "options"]
 

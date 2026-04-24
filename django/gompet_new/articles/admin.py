@@ -30,7 +30,7 @@ class ArticleAdmin(admin.ModelAdmin):
 
 @admin.register(ArticleCategory)
 class ArticleCategoryAdmin(admin.ModelAdmin):
-    list_display = ("id", "group", "name", "slug")
+    list_display = ("id", "group", "code", "name", "slug")
     list_filter = ("group",)
     prepopulated_fields = {"slug": ("name",)}
     ordering = ("name",)

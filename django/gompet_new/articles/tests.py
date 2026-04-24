@@ -1,3 +1,4 @@
+import re
 from unittest.mock import patch
 from collections import Counter
 
@@ -336,6 +337,16 @@ class ArticleCategoryListFilterTests(TestCase):
         self.assertNotIn(self.health_category.name, names)
         self.assertNotIn(self.deleted_shopping_category.name, names)
         self.assertTrue(all(item["group"] == ArticleCategoryGroup.SHOPPING for item in items))
+
+    def test_list_contains_code_for_each_category(self):
+        response = self.client.get(reverse("article-category-list"))
+
+        self.assertEqual(response.status_code, 200)
+        items = self._extract_results(response.data)
+        self.assertTrue(items)
+        self.assertTrue(all("code" in item and item["code"] for item in items))
+        code_pattern = re.compile(r"^[A-Z0-9_]+$")
+        self.assertTrue(all(code_pattern.match(item["code"]) for item in items))
 
 
 class ArticleCategoryGroupFilterOnArticlesTests(TestCase):
