@@ -445,3 +445,17 @@ class ArticleCategoryGroupFilterOnArticlesTests(TestCase):
         self.assertEqual(response.status_code, 200)
         items = self._extract_results(response.data)
         self.assertEqual(items, [])
+
+    def test_article_list_returns_categories_with_id_and_code(self):
+        response = self.client.get(reverse("article-list"))
+
+        self.assertEqual(response.status_code, 200)
+        items = self._extract_results(response.data)
+        self.assertTrue(items)
+
+        health_item = next(item for item in items if item["slug"] == self.health_article.slug)
+        self.assertIn("categories", health_item)
+        self.assertEqual(
+            health_item["categories"],
+            [{"id": self.health_category.id, "code": self.health_category.code}],
+        )

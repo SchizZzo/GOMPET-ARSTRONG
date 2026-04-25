@@ -26,13 +26,26 @@ class AuthorSerializer(serializers.ModelSerializer):
         model = User
         fields = ("id", "email")
 
+
+class CategoryIdCodeRelatedField(serializers.PrimaryKeyRelatedField):
+    """
+    Accept category IDs on write, but render compact category objects on read.
+    """
+
+    def to_representation(self, value):
+        return {
+            "id": value.id,
+            "code": value.code,
+        }
+
+
 class ArticleSerializer(serializers.ModelSerializer):
     #author = AuthorSerializer(read_only=True)
     comments = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     reactions = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     image = Base64ImageField(required=False, allow_null=True)
 
-    categories = serializers.PrimaryKeyRelatedField(
+    categories = CategoryIdCodeRelatedField(
         many=True,
         queryset=ArticleCategory.objects.all(),
         required=False,
