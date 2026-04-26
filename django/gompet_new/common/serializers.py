@@ -119,7 +119,10 @@ class ReactionSerializer(serializers.ModelSerializer):
         # upewnij się, że podany typ jest wśród dostępnych
         choices = [c[0] for c in ReactionType.choices]
         if value not in choices:
-            raise serializers.ValidationError(f"Invalid reaction type: {value}")
+            raise serializers.ValidationError(
+                f"Invalid reaction type: {value}",
+                code="ERR_INVALID_REACTION_TYPE",
+            )
         return value
 
     def create(self, validated_data):
@@ -166,7 +169,10 @@ class FollowSerializer(serializers.ModelSerializer):
 
     def validate_notification_preferences(self, value):
         if not isinstance(value, dict):
-            raise serializers.ValidationError("notification_preferences must be an object.")
+            raise serializers.ValidationError(
+                "notification_preferences must be an object.",
+                code="ERR_NOTIF_PREFS_INVALID_FORMAT",
+            )
 
         allowed = {"posts", "status_changes", "comments"}
         unknown = set(value.keys()) - allowed

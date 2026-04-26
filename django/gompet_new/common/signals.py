@@ -177,7 +177,14 @@ def notify_owner_about_like(reaction: Reaction, previous_type: ReactionType | No
     )
 
     broadcast_user_notification(
-        recipient.id, build_notification_payload(notification)
+        recipient.id,
+        build_notification_payload(
+            notification,
+            extra_payload={
+                "code": "NOTIF_LIKED_OBJECT",
+                "type": "NOTIF_LIKED_OBJECT",
+            },
+        ),
     )
 
 
@@ -229,7 +236,14 @@ def notify_content_author_about_comment(comment: Comment) -> None:
     )
 
     broadcast_user_notification(
-        recipient.id, build_notification_payload(notification)
+        recipient.id,
+        build_notification_payload(
+            notification,
+            extra_payload={
+                "code": "NOTIF_COMMENTED_OBJECT",
+                "type": "NOTIF_COMMENTED_OBJECT",
+            },
+        ),
     )
 
 
@@ -280,7 +294,16 @@ def notify_target_owner_about_follow(follow: Follow) -> None:
         created_object_id=follow.id,
     )
 
-    broadcast_user_notification(recipient.id, build_notification_payload(notification))
+    broadcast_user_notification(
+        recipient.id,
+        build_notification_payload(
+            notification,
+            extra_payload={
+                "code": "NOTIF_STARTED_FOLLOWING",
+                "type": "NOTIF_STARTED_FOLLOWING",
+            },
+        ),
+    )
 
 
 def notify_followers_about_new_post(post: Post) -> None:
@@ -334,7 +357,16 @@ def notify_followers_about_new_post(post: Post) -> None:
             target_id=target_id,
             created_object_id=post.id,
         )
-        broadcast_user_notification(recipient_id, build_notification_payload(notification))
+        broadcast_user_notification(
+            recipient_id,
+            build_notification_payload(
+                notification,
+                extra_payload={
+                    "code": "NOTIF_NEW_POST_FROM_FOLLOWED",
+                    "type": "NOTIF_NEW_POST_FROM_FOLLOWED",
+                },
+            ),
+        )
 
 
 __all__ = ["broadcast_like_count"]

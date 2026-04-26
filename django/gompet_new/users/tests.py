@@ -1224,7 +1224,7 @@ class UserErrorResponseFormatTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["status"], 400)
-        self.assertEqual(response.data["code"], "validation_error")
+        self.assertEqual(response.data["code"], "ERR_GENERIC_VALIDATION")
         self.assertEqual(response.data["message"], "Validation error.")
         self.assertIn("confirm_password", response.data["errors"])
 
@@ -1243,7 +1243,7 @@ class UserErrorResponseFormatTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["status"], 400)
-        self.assertEqual(response.data["code"], "validation_error")
+        self.assertEqual(response.data["code"], "ERR_GENERIC_VALIDATION")
         self.assertIn("password", response.data["errors"])
         self.assertTrue(len(response.data["errors"]["password"]) > 0)
         self.assertIn("code", response.data["errors"]["password"][0])
@@ -1263,13 +1263,13 @@ class UserErrorResponseFormatTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["status"], 400)
-        self.assertEqual(response.data["code"], "validation_error")
+        self.assertEqual(response.data["code"], "ERR_GENERIC_VALIDATION")
         self.assertEqual(response.data["message"], "Validation error.")
         self.assertEqual(
             response.data["errors"],
             {
                 "detail": {
-                    "code": "invalid",
+                    "code": "ERR_INVALID_OR_EXPIRED_TOKEN",
                     "message": "Nieprawid\u0142owy lub wygas\u0142y token resetu has\u0142a.",
                 }
             },
@@ -1285,7 +1285,7 @@ class UserErrorResponseFormatTests(TestCase):
             response.data,
             {
                 "status": 500,
-                "code": "server_error",
+                "code": "ERR_INTERNAL_SERVER_ERROR",
                 "message": "An internal server error occurred.",
                 "errors": {},
             },

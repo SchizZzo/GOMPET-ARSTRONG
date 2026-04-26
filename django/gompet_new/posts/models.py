@@ -94,7 +94,12 @@ class Post(TimeStampedModel):
         super().clean()
         if not (bool(self.animal) ^ bool(self.organization)):
             raise ValidationError(
-                {"__all__": _("Musisz wskazać dokładnie jedno z pól: „animal” lub „organization”.")}
+                {
+                    "__all__": ValidationError(
+                        _("Musisz wskazać dokładnie jedno z pól: „animal” lub „organization”."),
+                        code="ERR_POST_ANIMAL_OR_ORG_REQUIRED",
+                    )
+                }
             )
 
     def save(self, *args, **kwargs):

@@ -98,7 +98,7 @@ class LitterErrorResponseFormatTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["status"], 400)
-        self.assertEqual(response.data["code"], "validation_error")
+        self.assertEqual(response.data["code"], "ERR_GENERIC_VALIDATION")
         self.assertEqual(response.data["message"], "Validation error.")
         self.assertIn("title", response.data["errors"])
 
@@ -111,7 +111,7 @@ class LitterErrorResponseFormatTests(TestCase):
             response.data,
             {
                 "status": 500,
-                "code": "server_error",
+                "code": "ERR_INTERNAL_SERVER_ERROR",
                 "message": "An internal server error occurred.",
                 "errors": {},
             },

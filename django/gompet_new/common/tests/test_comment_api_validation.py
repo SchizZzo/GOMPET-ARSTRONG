@@ -51,11 +51,11 @@ class CommentApiValidationTests(TestCase):
         self.assertEqual(first_response.status_code, 201)
         self.assertEqual(second_response.status_code, 400)
         self.assertEqual(second_response.data["status"], 400)
-        self.assertEqual(second_response.data["code"], "validation_error")
+        self.assertEqual(second_response.data["code"], "ERR_GENERIC_VALIDATION")
         self.assertEqual(second_response.data["message"], "Validation error.")
         self.assertEqual(
             second_response.data["errors"]["error"]["code"],
-            "COMMENT_RATING_ALREADY_EXISTS",
+            "ERR_SINGLE_RATING_ONLY",
         )
         self.assertEqual(second_response.data["errors"]["error"]["field"], "rating")
 
@@ -98,7 +98,7 @@ class CommentApiValidationTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["status"], 400)
-        self.assertEqual(response.data["code"], "validation_error")
+        self.assertEqual(response.data["code"], "ERR_GENERIC_VALIDATION")
         self.assertEqual(response.data["message"], "Validation error.")
-        self.assertEqual(response.data["errors"]["error"]["code"], "COMMENT_TOO_SHORT")
+        self.assertEqual(response.data["errors"]["error"]["code"], "ERR_COMMENT_TOO_SHORT")
         self.assertEqual(response.data["errors"]["error"]["field"], "body")

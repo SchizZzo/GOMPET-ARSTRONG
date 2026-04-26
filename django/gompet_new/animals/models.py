@@ -111,7 +111,10 @@ class Animal(models.Model):
 
     def validate_birth_date(value):
         if value > timezone.now().date():
-            raise ValidationError("Zwierzę nie może mieć daty urodzenia w przyszłości.")
+            raise ValidationError(
+                "Zwierzę nie może mieć daty urodzenia w przyszłości.",
+                code="ERR_ANIMAL_BIRTH_DATE_FUTURE",
+            )
         
 
     id          = models.BigAutoField(primary_key=True)
@@ -432,32 +435,40 @@ class AnimalParent(models.Model):
             expected_relation = ParentRelation.FATHER
         else:
             raise ValidationError(
-                "Rodzic musi mieć płeć MALE lub FEMALE, aby określić relację."
+                "Rodzic musi mieć płeć MALE lub FEMALE, aby określić relację.",
+                code="ERR_PARENT_GENDER_REQUIRED",
             )
         if self.relation != expected_relation:
             raise ValidationError(
-                f"Relacja '{self.relation}' nie pasuje do płci rodzica '{self.parent.gender}'."
+                f"Relacja '{self.relation}' nie pasuje do płci rodzica '{self.parent.gender}'.",
+                code="ERR_PARENT_GENDER_MISMATCH",
             )
         if self.parent.birth_date and self.animal.birth_date:
             if self.parent.birth_date >= self.animal.birth_date:
                 raise ValidationError(
-                    "Rodzic musi być starszy od zwierzęcia."
+                    "Rodzic musi być starszy od zwierzęcia.",
+                    code="ERR_PARENT_MUST_BE_OLDER",
                 )
         if self.parent.species and self.animal.species:
             parent_species = self.parent.species.strip().lower()
             animal_species = self.animal.species.strip().lower()
             if parent_species != animal_species:
                 raise ValidationError(
-                    "Rodzic i dziecko muszą być tego samego gatunku."
+                    "Rodzic i dziecko muszą być tego samego gatunku.",
+                    code="ERR_SPECIES_MISMATCH",
                 )
         qs = self.__class__.objects.filter(animal=self.animal)
         if self.pk:
             qs = qs.exclude(pk=self.pk)
         if qs.count() >= 2:
-            raise ValidationError("Zwierzę może mieć maksymalnie dwóch rodziców.")
+            raise ValidationError(
+                "Zwierzę może mieć maksymalnie dwóch rodziców.",
+                code="ERR_MAX_PARENTS_EXCEEDED",
+            )
         if qs.filter(relation=self.relation).exists():
             raise ValidationError(
-                f"Zwierzę {self.animal} już ma relację {self.relation}."
+                f"Zwierzę {self.animal} już ma relację {self.relation}.",
+                code="ERR_RELATION_ALREADY_EXISTS",
             )
 
 

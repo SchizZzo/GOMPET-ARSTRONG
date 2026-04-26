@@ -5,8 +5,13 @@ from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
 
-VALIDATION_ERROR_CODE = "validation_error"
+VALIDATION_ERROR_CODE = "ERR_GENERIC_VALIDATION"
 VALIDATION_ERROR_MESSAGE = "Validation error."
+
+HTTP_STATUS_CODE_KEYS = {
+    status.HTTP_422_UNPROCESSABLE_ENTITY: "ERROR_VALIDATION_FAILED",
+    status.HTTP_500_INTERNAL_SERVER_ERROR: "ERROR_INTERNAL_SERVER_ERROR",
+}
 
 ERROR_PAYLOADS = {
     status.HTTP_401_UNAUTHORIZED: (
@@ -22,7 +27,7 @@ ERROR_PAYLOADS = {
         "Resource not found.",
     ),
     status.HTTP_500_INTERNAL_SERVER_ERROR: (
-        "server_error",
+        "ERR_INTERNAL_SERVER_ERROR",
         "An internal server error occurred.",
     ),
 }

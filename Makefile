@@ -2,13 +2,19 @@
 
 DC=docker-compose
 MANAGE=$(DC) run --rm web python manage.py
+DB_SERVICE=db
+DB_USER=postgres
+DB_NAME=gis
+BACKUP_DIR=BACKUP/db
+BACKUP_TIMESTAMP:=$(shell powershell -NoProfile -Command "(Get-Date -Format yyyyMMdd_HHmmss)")
+BACKUP_FILE:=$(BACKUP_DIR)/django_$(BACKUP_TIMESTAMP).sql
 
 
 
 
 
 
-.PHONY: help makemigrations migrate swagger swagger-json swagger-v3 swagger-v3-json create-extension
+.PHONY: help makemigrations migrate swagger swagger-json swagger-v3 swagger-v3-json create-extension backup-db restore-db
 
 
 help:
@@ -25,6 +31,8 @@ help:
 	@echo "  make swagger-json - generate OpenAPI JSON schema"
 	@echo "  make swagger-v3  - generate readable v3 OpenAPI YAML schema"
 	@echo "  make swagger-v3-json - generate readable v3 OpenAPI JSON schema"
+	@echo "  make backup-db   - create PostgreSQL backup to BACKUP/db/"
+	@echo "  make restore-db RESTORE_FILE=... - restore PostgreSQL backup from file"
 
 
 
@@ -112,3 +120,17 @@ swagger-v3-json:
 
 create-extension:
 	$(DC) exec db sh -c 'psql -U "$${POSTGRES_USER:-postgres}" -d "$${POSTGRES_DB:-gis}" -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"'
+
+
+backup-db:
+	$(DC) run --rm web sh -c "mkdir -p $(BACKUP_DIR)"
+	$(DC) exec db pg_dump -U $(DB_USER) -d $(DB_NAME) > $(BACKUP_FILE)
+	@echo "Database backup created at $(BACKUP_FILE)"
+
+restore-db:
+ifndef RESTORE_FILE
+	$(error RESTORE_FILE is not set. Usage: make restore-db RESTORE_FILE=path/to/backup.sql)
+endif
+	$(DC) exec -i db psql -U $(DB_USER) -d $(DB_NAME) < $(RESTORE_FILE)
+	@echo "Database restored from $(RESTORE_FILE)"
+

@@ -111,7 +111,7 @@ class CommonErrorResponseFormatTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["status"], 400)
-        self.assertEqual(response.data["code"], "validation_error")
+        self.assertEqual(response.data["code"], "ERR_GENERIC_VALIDATION")
         self.assertEqual(response.data["message"], "Validation error.")
         self.assertIn("body", response.data["errors"])
 
@@ -120,13 +120,13 @@ class CommonErrorResponseFormatTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["status"], 400)
-        self.assertEqual(response.data["code"], "validation_error")
+        self.assertEqual(response.data["code"], "ERR_GENERIC_VALIDATION")
         self.assertEqual(response.data["message"], "Validation error.")
         self.assertEqual(
             response.data["errors"],
             {
                 "detail": {
-                    "code": "invalid",
+                    "code": "ERR_MISSING_TARGET_PARAMS",
                     "message": "Query parameters 'target_type' and 'target_id' are required.",
                 }
             },
@@ -141,7 +141,7 @@ class CommonErrorResponseFormatTests(TestCase):
             response.data,
             {
                 "status": 500,
-                "code": "server_error",
+                "code": "ERR_INTERNAL_SERVER_ERROR",
                 "message": "An internal server error occurred.",
                 "errors": {},
             },

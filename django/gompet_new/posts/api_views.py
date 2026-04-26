@@ -25,7 +25,7 @@ from drf_spectacular.utils import (
 class StandardizedErrorResponseMixin:
     """Return consistent error payloads for selected HTTP statuses."""
 
-    VALIDATION_ERROR_CODE = "validation_error"
+    VALIDATION_ERROR_CODE = "ERR_GENERIC_VALIDATION"
     VALIDATION_ERROR_MESSAGE = "Validation error."
 
     ERROR_PAYLOADS = {
@@ -42,7 +42,7 @@ class StandardizedErrorResponseMixin:
             "Resource not found.",
         ),
         status.HTTP_500_INTERNAL_SERVER_ERROR: (
-            "server_error",
+            "ERR_INTERNAL_SERVER_ERROR",
             "An internal server error occurred.",
         ),
     }

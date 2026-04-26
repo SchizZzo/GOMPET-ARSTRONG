@@ -6,6 +6,7 @@ import requests
 
 from django.core.files.base import ContentFile
 from rest_framework import serializers
+from rest_framework.exceptions import ErrorDetail
 from django.contrib.auth.password_validation import validate_password
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
@@ -95,7 +96,14 @@ class UserCreateSerializer(serializers.ModelSerializer):
         confirm_password = attrs.get("confirm_password")
 
         if password != confirm_password:
-            raise serializers.ValidationError({"confirm_password": "HasĹ‚a muszÄ… byÄ‡ takie same."})
+            raise serializers.ValidationError(
+                {
+                    "confirm_password": ErrorDetail(
+                        "HasĹ‚a muszÄ… byÄ‡ takie same.",
+                        code="ERR_PASSWORDS_NOT_MATCHING_REG",
+                    )
+                }
+            )
 
         return attrs
 
@@ -143,7 +151,10 @@ class UserUpdateSerializer(serializers.ModelSerializer):
                 continue
             if instance is not None and field in attrs and attrs[field] == getattr(instance, field):
                 continue
-            forbidden_updates[field] = "Only superusers can modify this field."
+            forbidden_updates[field] = ErrorDetail(
+                "Only superusers can modify this field.",
+                code="ERR_SUPERUSER_ONLY_FIELD",
+            )
 
         if forbidden_updates:
             raise serializers.ValidationError(forbidden_updates)
@@ -180,7 +191,14 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs.get("new_password") != attrs.get("confirm_password"):
-            raise serializers.ValidationError({"confirm_password": "HasĹ‚a muszÄ… byÄ‡ takie same."})
+            raise serializers.ValidationError(
+                {
+                    "confirm_password": ErrorDetail(
+                        "HasĹ‚a muszÄ… byÄ‡ takie same.",
+                        code="ERR_PASSWORDS_NOT_MATCHING_RESET",
+                    )
+                }
+            )
         return attrs
     
 
@@ -222,7 +240,12 @@ class AddressSerializer(serializers.ModelSerializer):
 
         if is_create and not attrs.get("city"):
             raise serializers.ValidationError(
-                {"city": "Pole city jest wymagane, gdy nie da siÄ™ go wyznaczyÄ‡ z location."}
+                {
+                    "city": ErrorDetail(
+                        "Pole city jest wymagane, gdy nie da siÄ™ go wyznaczyÄ‡ z location.",
+                        code="ERR_CITY_FIELD_REQUIRED",
+                    )
+                }
             )
 
         return attrs

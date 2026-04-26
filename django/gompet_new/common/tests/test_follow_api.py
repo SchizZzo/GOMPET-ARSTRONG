@@ -208,12 +208,12 @@ class FollowViewSetTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["status"], 400)
-        self.assertEqual(response.data["code"], "validation_error")
+        self.assertEqual(response.data["code"], "ERR_GENERIC_VALIDATION")
         self.assertEqual(response.data["message"], "Validation error.")
         self.assertEqual(
             response.data["errors"]["detail"],
             {
-                "code": "invalid",
+                "code": "ERR_TARGET_SCOPE_INVALID",
                 "message": "'target_type' must be users.organization or animals.animal.",
             },
         )

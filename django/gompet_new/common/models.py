@@ -82,7 +82,7 @@ class Comment(TimeStampedModel):
             {
                 "body": ValidationError(
                     f"Komentarz musi mieć minimum {self.MIN_BODY_LENGTH} znaki.",
-                    code="COMMENT_TOO_SHORT",
+                    code="ERR_COMMENT_TOO_SHORT",
                 )
             }
         )
@@ -131,7 +131,7 @@ class Comment(TimeStampedModel):
                 {
                     "rating": ValidationError(
                         "Użytkownik może wystawić tylko jedną ocenę dla tej organizacji.",
-                        code="COMMENT_RATING_ALREADY_EXISTS",
+                        code="ERR_SINGLE_RATING_ONLY",
                     )
                 }
             )

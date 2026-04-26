@@ -207,7 +207,7 @@ ORGANIZATION_ADDRESS_LIST_FILTER_PARAMETERS = [
 class StandardizedErrorResponseMixin:
     """Return consistent error payloads for selected HTTP statuses."""
 
-    VALIDATION_ERROR_CODE = "validation_error"
+    VALIDATION_ERROR_CODE = "ERR_GENERIC_VALIDATION"
     VALIDATION_ERROR_MESSAGE = "Validation error."
 
     ERROR_PAYLOADS = {
@@ -224,7 +224,7 @@ class StandardizedErrorResponseMixin:
             "Resource not found.",
         ),
         status.HTTP_500_INTERNAL_SERVER_ERROR: (
-            "server_error",
+            "ERR_INTERNAL_SERVER_ERROR",
             "An internal server error occurred.",
         ),
     }
@@ -411,6 +411,7 @@ class UserViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
             return self.validation_error_response({"detail": str(exc)})
 
         return Response(status=status.HTTP_200_OK, data={
+            "code": "SUCCESS_ACCOUNT_DELETED",
             "detail": "Konto zostało usunięte (dezaktywowane i zanonimizowane)."
         })
 
@@ -468,7 +469,10 @@ class DeleteMeView(StandardizedErrorResponseMixin, APIView):
             return self.validation_error_response({"detail": str(exc)})
 
         return Response(
-            {"detail": "Konto zostało usunięte (dezaktywowane i zanonimizowane)."},
+            {
+                "code": "SUCCESS_ACCOUNT_DELETED",
+                "detail": "Konto zostało usunięte (dezaktywowane i zanonimizowane).",
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -515,7 +519,10 @@ class PasswordResetRequestView(StandardizedErrorResponseMixin, APIView):
                 return self.server_error_response()
 
         return Response(
-            {"detail": "Jeśli konto istnieje, wysłaliśmy instrukcje resetu hasła."},
+            {
+                "code": "SUCCESS_PASSWORD_RESET_SENT",
+                "detail": "Jeśli konto istnieje, wysłaliśmy instrukcje resetu hasła.",
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -551,14 +558,22 @@ class PasswordResetConfirmView(StandardizedErrorResponseMixin, APIView):
         user = User.objects.filter(pk=user_id, is_deleted=False).first()
         if not user or not default_token_generator.check_token(user, token):
             return self.validation_error_response(
-                {"detail": "Nieprawidłowy lub wygasły token resetu hasła."}
+                {
+                    "detail": {
+                        "code": "ERR_INVALID_OR_EXPIRED_TOKEN",
+                        "message": "Nieprawidłowy lub wygasły token resetu hasła.",
+                    }
+                }
             )
 
         user.set_password(new_password)
         user.save(update_fields=["password"])
 
         return Response(
-            {"detail": "Hasło zostało zresetowane."},
+            {
+                "code": "SUCCESS_PASSWORD_RESET_COMPLETE",
+                "detail": "Hasło zostało zresetowane.",
+            },
             status=status.HTTP_200_OK,
         )
 

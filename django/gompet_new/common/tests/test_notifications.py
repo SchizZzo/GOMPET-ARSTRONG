@@ -10,7 +10,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from animals.models import Animal, Gender, Size
 from common.consumers import NotificationConsumer
-from common.models import Follow, Notification, Reaction, ReactionType
+from common.models import Comment, Follow, Notification, Reaction, ReactionType
 from common.notifications import (
     broadcast_user_notification,
     build_notification_payload,
@@ -157,6 +157,8 @@ class NotificationSignalTests(TestCase):
         self.assertEqual(payload["target_id"], self.animal.id)
         self.assertEqual(payload["actor"]["id"], self.liker.id)
         self.assertEqual(payload["verb"], "polubił(a)")
+        self.assertEqual(payload["code"], "NOTIF_LIKED_OBJECT")
+        self.assertEqual(payload["type"], "NOTIF_LIKED_OBJECT")
 
     @mock.patch("common.signals.broadcast_user_notification")
     def test_owner_like_is_not_notified(self, mocked_broadcast: mock.Mock) -> None:
@@ -189,6 +191,29 @@ class NotificationSignalTests(TestCase):
         self.assertEqual(payload["target_id"], self.post.id)
         self.assertEqual(payload["actor"]["id"], self.liker.id)
         self.assertEqual(payload["verb"], "polubił(a)")
+        self.assertEqual(payload["code"], "NOTIF_LIKED_OBJECT")
+        self.assertEqual(payload["type"], "NOTIF_LIKED_OBJECT")
+
+    @mock.patch("common.signals.broadcast_user_notification")
+    def test_comment_on_post_notifies_author(self, mocked_broadcast: mock.Mock) -> None:
+        Comment.objects.create(
+            user=self.liker,
+            content_type=self.post_content_type,
+            object_id=self.post.id,
+            body="Super post!",
+        )
+
+        notification = Notification.objects.get(recipient=self.owner)
+
+        mocked_broadcast.assert_called_once()
+        author_id, payload = mocked_broadcast.call_args.args
+        self.assertEqual(author_id, self.owner.id)
+        self.assertEqual(payload["id"], notification.id)
+        self.assertEqual(payload["target_id"], self.post.id)
+        self.assertEqual(payload["actor"]["id"], self.liker.id)
+        self.assertEqual(payload["verb"], "skomentował(a)")
+        self.assertEqual(payload["code"], "NOTIF_COMMENTED_OBJECT")
+        self.assertEqual(payload["type"], "NOTIF_COMMENTED_OBJECT")
 
 
 class NotificationApiTests(TestCase):
@@ -409,6 +434,9 @@ class FollowNotificationSignalTests(TestCase):
         self.assertEqual(notification.target_id, self.animal.id)
 
         mocked_broadcast.assert_called_once()
+        _, payload = mocked_broadcast.call_args.args
+        self.assertEqual(payload["code"], "NOTIF_STARTED_FOLLOWING")
+        self.assertEqual(payload["type"], "NOTIF_STARTED_FOLLOWING")
 
 
 class FollowPostNotificationSignalTests(TestCase):
@@ -460,3 +488,6 @@ class FollowPostNotificationSignalTests(TestCase):
         self.assertEqual(notification.target_id, self.animal.id)
 
         mocked_broadcast.assert_called_once()
+        _, payload = mocked_broadcast.call_args.args
+        self.assertEqual(payload["code"], "NOTIF_NEW_POST_FROM_FOLLOWED")
+        self.assertEqual(payload["type"], "NOTIF_NEW_POST_FROM_FOLLOWED")

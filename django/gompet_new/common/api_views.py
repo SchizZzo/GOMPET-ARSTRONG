@@ -25,7 +25,7 @@ from .serializers import (
 class StandardizedErrorResponseMixin:
     """Helper for explicit 400 responses built inside action methods."""
 
-    VALIDATION_ERROR_CODE = "validation_error"
+    VALIDATION_ERROR_CODE = "ERR_GENERIC_VALIDATION"
     VALIDATION_ERROR_MESSAGE = "Validation error."
 
     def _build_validation_error_payload(self, errors):
@@ -391,27 +391,47 @@ class ReactionViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
         if missing_params:
             missing_display = ", ".join(f"'{param}'" for param in missing_params)
             return self.validation_error_response(
-                {"detail": f"Query parameter(s) {missing_display} are required."}
+                {
+                    "detail": {
+                        "code": "ERR_MISSING_QUERY_PARAMS",
+                        "message": f"Query parameter(s) {missing_display} are required.",
+                    }
+                }
             )
 
         reaction_type_value = reaction_type_param.upper()
         if reaction_type_value not in ReactionType.values:
             return self.validation_error_response(
-                {"detail": "Invalid 'reaction_type'."}
+                {
+                    "detail": {
+                        "code": "ERR_QUERY_REACTION_TYPE_INVALID",
+                        "message": "Invalid 'reaction_type'.",
+                    }
+                }
             )
 
         try:
             reactable_content_type = resolve_content_type(reactable_type_param)
         except ContentType.DoesNotExist:
             return self.validation_error_response(
-                {"detail": "Invalid 'reactable_type'."}
+                {
+                    "detail": {
+                        "code": "ERR_QUERY_REACTABLE_TYPE_INVALID",
+                        "message": "Invalid 'reactable_type'.",
+                    }
+                }
             )
 
         try:
             reactable_id = int(reactable_id_param)
         except (TypeError, ValueError):
             return self.validation_error_response(
-                {"detail": "Invalid 'reactable_id'."}
+                {
+                    "detail": {
+                        "code": "ERR_QUERY_REACTABLE_ID_INVALID",
+                        "message": "Invalid 'reactable_id'.",
+                    }
+                }
             )
 
         if not request.user.is_authenticated:
@@ -448,7 +468,12 @@ class NotificationViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet)
         disallowed_fields = set(request.data.keys()) - {"is_read"}
         if disallowed_fields:
             return self.validation_error_response(
-                {"detail": "Only 'is_read' can be updated."}
+                {
+                    "detail": {
+                        "code": "ERR_ONLY_IS_READ_UPDATABLE",
+                        "message": "Only 'is_read' can be updated.",
+                    }
+                }
             )
 
         return super().partial_update(request, *args, **kwargs)
@@ -504,21 +529,36 @@ class FollowViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
 
         if target_type_param is None or target_id_param is None:
             return self.validation_error_response(
-                {"detail": "Query parameters 'target_type' and 'target_id' are required."}
+                {
+                    "detail": {
+                        "code": "ERR_MISSING_TARGET_PARAMS",
+                        "message": "Query parameters 'target_type' and 'target_id' are required.",
+                    }
+                }
             )
 
         try:
             target_content_type = resolve_content_type(target_type_param)
         except ContentType.DoesNotExist:
             return self.validation_error_response(
-                {"detail": "Invalid 'target_type'."}
+                {
+                    "detail": {
+                        "code": "ERR_TARGET_TYPE_INVALID",
+                        "message": "Invalid 'target_type'.",
+                    }
+                }
             )
 
         try:
             target_id = int(target_id_param)
         except (TypeError, ValueError):
             return self.validation_error_response(
-                {"detail": "Invalid 'target_id'."}
+                {
+                    "detail": {
+                        "code": "ERR_TARGET_ID_INVALID",
+                        "message": "Invalid 'target_id'.",
+                    }
+                }
             )
 
         follow_id = (
@@ -546,14 +586,24 @@ class FollowViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
 
         if target_type_param is None or target_id_param is None:
             return self.validation_error_response(
-                {"detail": "Query parameters 'target_type' and 'target_id' are required."}
+                {
+                    "detail": {
+                        "code": "ERR_MISSING_TARGET_PARAMS",
+                        "message": "Query parameters 'target_type' and 'target_id' are required.",
+                    }
+                }
             )
 
         try:
             target_content_type = resolve_content_type(target_type_param)
         except ContentType.DoesNotExist:
             return self.validation_error_response(
-                {"detail": "Invalid 'target_type'."}
+                {
+                    "detail": {
+                        "code": "ERR_TARGET_TYPE_INVALID",
+                        "message": "Invalid 'target_type'.",
+                    }
+                }
             )
 
         if (
@@ -561,14 +611,24 @@ class FollowViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
             target_content_type.model,
         ) not in {("users", "organization"), ("animals", "animal")}:
             return self.validation_error_response(
-                {"detail": "'target_type' must be users.organization or animals.animal."}
+                {
+                    "detail": {
+                        "code": "ERR_TARGET_SCOPE_INVALID",
+                        "message": "'target_type' must be users.organization or animals.animal.",
+                    }
+                }
             )
 
         try:
             target_id = int(target_id_param)
         except (TypeError, ValueError):
             return self.validation_error_response(
-                {"detail": "Invalid 'target_id'."}
+                {
+                    "detail": {
+                        "code": "ERR_TARGET_ID_INVALID",
+                        "message": "Invalid 'target_id'.",
+                    }
+                }
             )
 
         followers_count = Follow.objects.filter(

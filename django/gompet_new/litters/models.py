@@ -82,7 +82,12 @@ class Litter(models.Model):
         super().clean()
         if not (bool(self.owner) ^ bool(self.organization)):
             raise ValidationError(
-                {"__all__": _("Musisz wskazać dokładnie jedno z pól: „owner” lub „organization”.")}
+                {
+                    "__all__": ValidationError(
+                        _("Musisz wskazać dokładnie jedno z pól: „owner” lub „organization”."),
+                        code="ERR_LITTER_OWNER_OR_ORG_REQUIRED",
+                    )
+                }
             )
 
     def __str__(self) -> str:

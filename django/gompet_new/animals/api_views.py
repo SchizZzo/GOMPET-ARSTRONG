@@ -65,7 +65,7 @@ class FamilyTreeNodeSerializer(serializers.Serializer):
 class StandardizedErrorResponseMixin:
     """Return consistent error payloads for selected HTTP statuses."""
 
-    VALIDATION_ERROR_CODE = "validation_error"
+    VALIDATION_ERROR_CODE = "ERR_GENERIC_VALIDATION"
     VALIDATION_ERROR_MESSAGE = "Validation error."
 
     ERROR_PAYLOADS = {
@@ -82,7 +82,7 @@ class StandardizedErrorResponseMixin:
             "Resource not found.",
         ),
         status.HTTP_500_INTERNAL_SERVER_ERROR: (
-            "server_error",
+            "ERR_INTERNAL_SERVER_ERROR",
             "An internal server error occurred.",
         ),
     }
@@ -489,7 +489,10 @@ localhost/animals/animals/?size=MEDIUM
             if owned_animals >= 3:
                 raise serializers.ValidationError(
                     {
-                        "detail": "Użytkownik z rolą LIMITED może dodać maksymalnie 3 zwierzęta bez organizacji."
+                        "detail": {
+                            "code": "ERR_LIMITED_USER_ANIMAL_LIMIT",
+                            "message": "Użytkownik z rolą LIMITED może dodać maksymalnie 3 zwierzęta bez organizacji.",
+                        }
                     }
                 )
         save_kwargs = {}
@@ -578,7 +581,12 @@ localhost/animals/animals/?size=MEDIUM
         owner_override_requested = "owner" in self.request.data or "owner_id" in self.request.data
         if owner_override_requested and not self.request.user.is_superuser:
             raise serializers.ValidationError(
-                {"owner": "Only superusers can reassign animal owner."}
+                {
+                    "owner": {
+                        "code": "ERR_SUPERUSER_ONLY_OWNER_CHANGE",
+                        "message": "Only superusers can reassign animal owner.",
+                    }
+                }
             )
 
         if owner_override_requested:
@@ -591,7 +599,12 @@ localhost/animals/animals/?size=MEDIUM
                     owner = user_model.objects.get(pk=owner_id)
                 except (user_model.DoesNotExist, TypeError, ValueError) as exc:
                     raise serializers.ValidationError(
-                        {"owner": "Nieprawidłowy identyfikator właściciela."}
+                        {
+                            "owner": {
+                                "code": "ERR_INVALID_OWNER_ID",
+                                "message": "Nieprawidłowy identyfikator właściciela.",
+                            }
+                        }
                     ) from exc
             save_kwargs["owner"] = owner
 
