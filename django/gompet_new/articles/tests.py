@@ -243,9 +243,14 @@ class ArticleCategoryGroupsEndpointTests(TestCase):
         self.assertEqual(returned_values, expected_values)
 
         grouped = {item["value"]: item for item in response.data}
+        expected_group_ids = {
+            value: group_id
+            for group_id, (value, _) in enumerate(ArticleCategoryGroup.choices, start=1)
+        }
 
         for value, label in ArticleCategoryGroup.choices:
             self.assertIn(value, grouped)
+            self.assertEqual(grouped[value]["id"], expected_group_ids[value])
             self.assertEqual(grouped[value]["label"], label)
 
         self.assertEqual(
@@ -446,7 +451,7 @@ class ArticleCategoryGroupFilterOnArticlesTests(TestCase):
         items = self._extract_results(response.data)
         self.assertEqual(items, [])
 
-    def test_article_list_returns_categories_with_id_and_code(self):
+    def test_article_list_returns_categories_with_id_code_and_group(self):
         response = self.client.get(reverse("article-list"))
 
         self.assertEqual(response.status_code, 200)
@@ -457,5 +462,24 @@ class ArticleCategoryGroupFilterOnArticlesTests(TestCase):
         self.assertIn("categories", health_item)
         self.assertEqual(
             health_item["categories"],
-            [{"id": self.health_category.id, "code": self.health_category.code}],
+            [
+                {
+                    "id": self.health_category.id,
+                    "code": self.health_category.code,
+                    "group": self.health_category.group,
+                }
+            ],
+        )
+        self.assertEqual(
+            health_item["groups"],
+            [
+                {
+                    "id": next(
+                        group_id
+                        for group_id, (value, _) in enumerate(ArticleCategoryGroup.choices, start=1)
+                        if value == self.health_category.group
+                    ),
+                    "label": self.health_category.get_group_display(),
+                }
+            ],
         )

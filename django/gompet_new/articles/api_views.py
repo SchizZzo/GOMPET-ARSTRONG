@@ -459,6 +459,7 @@ class ArticleCategoryViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewS
 
 
 class ArticleCategoryGroupSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
     value = serializers.CharField()
     label = serializers.CharField()
     categories_count = serializers.IntegerField()
@@ -488,10 +489,11 @@ class ArticleCategoryGroupViewSet(viewsets.ViewSet):
 
         data = [
             {
+                "id": group_id,
                 "value": value,
                 "label": label,
                 "categories_count": grouped_counts.get(value, 0),
             }
-            for value, label in ArticleCategoryGroup.choices
+            for group_id, (value, label) in enumerate(ArticleCategoryGroup.choices, start=1)
         ]
         return Response(data)

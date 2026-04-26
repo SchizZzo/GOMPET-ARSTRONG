@@ -1,0 +1,35 @@
+- generic [ref=e2]:
+  - navigation "navbar" [ref=e3]:
+    - generic [ref=e4]:
+      - link "Django REST framework" [ref=e5] [cursor=pointer]:
+        - /url: https://www.django-rest-framework.org/
+      - list
+  - generic [ref=e6]:
+    - list [ref=e7]:
+      - listitem [ref=e8]:
+        - link "Api Root" [ref=e9] [cursor=pointer]:
+          - /url: /articles/
+      - listitem [ref=e10]:
+        - text: /
+        - link "Article Category Group List" [ref=e11] [cursor=pointer]:
+          - /url: /articles/category-groups/
+    - main "content" [ref=e12]:
+      - generic "request form":
+        - group [ref=e14]:
+          - generic [ref=e15]:
+            - link "GET" [ref=e16] [cursor=pointer]:
+              - /url: /articles/category-groups/
+            - button [ref=e17] [cursor=pointer]
+        - button "OPTIONS" [ref=e20] [cursor=pointer]
+      - main "main content" [ref=e21]:
+        - heading "Article Category Group List" [level=1] [ref=e23]
+        - generic:
+          - paragraph
+        - generic "request info" [ref=e24]:
+          - generic [ref=e25]:
+            - generic [ref=e26]: GET
+            - text: /articles/category-groups/
+        - generic "response info" [ref=e27]:
+          - generic [ref=e28]:
+            - generic [ref=e29]: "HTTP 200 OK Allow: GET, HEAD, OPTIONS Content-Type: application/json Vary: Accept"
+            - text: "[ { \"value\": \"basics\", \"label\": \"BASICS\", \"categories_count\": 7 }, { \"value\": \"by_species\", \"label\": \"BY_SPECIES\", \"categories_count\": 6 }, { \"value\": \"daily_care\", \"label\": \"DAILY_CARE\", \"categories_count\": 5 }, { \"value\": \"training\", \"label\": \"TRAINING\", \"categories_count\": 4 }, { \"value\": \"health\", \"label\": \"HEALTH\", \"categories_count\": 4 }, { \"value\": \"shopping\", \"label\": \"SHOPPING\", \"categories_count\": 5 }, { \"value\": \"lifestyle\", \"label\": \"LIFESTYLE\", \"categories_count\": 4 } ]"

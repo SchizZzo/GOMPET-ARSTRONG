@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
 from users.serializers import UserSerializer
-from .models import Article, ArticleCategory
+from .models import Article, ArticleCategory, ArticleCategoryGroup
 
 User = get_user_model()
 
@@ -36,6 +36,7 @@ class CategoryIdCodeRelatedField(serializers.PrimaryKeyRelatedField):
         return {
             "id": value.id,
             "code": value.code,
+            "group": value.group,
         }
 
 
@@ -51,6 +52,7 @@ class ArticleSerializer(serializers.ModelSerializer):
         required=False,
         allow_empty=True,
     )
+    groups = serializers.SerializerMethodField()
 
     author = UserSerializer(read_only=True)
 
@@ -65,6 +67,7 @@ class ArticleSerializer(serializers.ModelSerializer):
             "author",
 
             "categories",
+            "groups",
 
             "comments",
             "reactions",
@@ -74,6 +77,14 @@ class ArticleSerializer(serializers.ModelSerializer):
             "deleted_at",
         )
         read_only_fields = ("slug", "created_at", "updated_at", "deleted_at", "comments", "reactions")
+
+    def get_groups(self, obj):
+        present_groups = {category.group for category in obj.categories.all()}
+        return [
+            {"id": group_id, "label": label}
+            for group_id, (value, label) in enumerate(ArticleCategoryGroup.choices, start=1)
+            if value in present_groups
+        ]
 
 
     def create(self, validated_data):
