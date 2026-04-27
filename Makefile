@@ -134,3 +134,6 @@ endif
 	$(DC) exec -i db psql -U $(DB_USER) -d $(DB_NAME) < $(RESTORE_FILE)
 	@echo "Database restored from $(RESTORE_FILE)"
 
+fill_characteristics_board:
+	$(MANAGE) fill_characteristics_board
+
