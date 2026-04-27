@@ -12,6 +12,7 @@ from django.core.exceptions import ImproperlyConfigured
 
 from animals.models import Animal
 from common.models import Notification
+from users.models import Organization
 
 logger = logging.getLogger(__name__)
 
@@ -55,18 +56,38 @@ def broadcast_user_notification(user_id: int, payload: dict[str, Any]) -> bool:
 
 
 def _get_target_label(notification: Notification) -> str | None:
-    if notification.target_type != "animal":
-        return None
+    if notification.target_type == "animal":
+        try:
+            animal = Animal.objects.only("name").get(pk=notification.target_id)
+        except Animal.DoesNotExist:
+            return None
+        return animal.name
 
-    try:
-        animal = Animal.objects.only("name").get(pk=notification.target_id)
-    except Animal.DoesNotExist:
-        return None
+    if notification.target_type == "organization":
+        try:
+            organization = Organization.objects.only("name").get(pk=notification.target_id)
+        except Organization.DoesNotExist:
+            return None
+        return organization.name
 
-    return animal.name
+    return None
 
 
-def _get_animal_context(notification: Notification) -> dict[str, Any]:
+def _get_target_context(notification: Notification) -> dict[str, Any]:
+    if notification.target_type == "organization":
+        try:
+            organization = Organization.objects.only("id", "name", "email").get(pk=notification.target_id)
+        except Organization.DoesNotExist:
+            return {"target_owner": None, "target_organization": None}
+        return {
+            "target_owner": None,
+            "target_organization": {
+                "id": organization.id,
+                "name": organization.name,
+                "email": organization.email,
+            },
+        }
+
     if notification.target_type != "animal":
         return {"target_owner": None, "target_organization": None}
 
@@ -133,7 +154,7 @@ def build_notification_payload(
         "is_read": notification.is_read,
         "created_at": notification.created_at.isoformat(),
     }
-    payload.update(_get_animal_context(notification))
+    payload.update(_get_target_context(notification))
     if extra_payload:
         payload.update(extra_payload)
     return payload

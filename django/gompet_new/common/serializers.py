@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from animals.models import Animal
 from common.models import Comment, Follow, Notification, Reaction, ReactionType
+from users.models import Organization
 from users.serializers import UserSerializer
 
 
@@ -224,12 +225,18 @@ class NotificationSerializer(serializers.ModelSerializer):
         ]
 
     def get_target_label(self, obj: Notification) -> str | None:
-        if obj.target_type != "animal":
-            return None
+        if obj.target_type == "animal":
+            try:
+                animal = Animal.objects.only("name").get(pk=obj.target_id)
+            except Animal.DoesNotExist:
+                return None
+            return animal.name
 
-        try:
-            animal = Animal.objects.only("name").get(pk=obj.target_id)
-        except Animal.DoesNotExist:
-            return None
+        if obj.target_type == "organization":
+            try:
+                organization = Organization.objects.only("name").get(pk=obj.target_id)
+            except Organization.DoesNotExist:
+                return None
+            return organization.name
 
-        return animal.name
+        return None
