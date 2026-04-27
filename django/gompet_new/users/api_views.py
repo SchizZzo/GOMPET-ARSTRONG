@@ -1028,7 +1028,14 @@ class OrganizationMemberViewSet(StandardizedErrorResponseMixin, viewsets.ModelVi
             created_object_id=member.id,
         )
         broadcast_user_notification(
-            owner.id, build_notification_payload(notification)
+            owner.id,
+            build_notification_payload(
+                notification,
+                extra_payload={
+                    "code": "NOTIF_ORGANIZATION_INVITE_SENT",
+                    "type": "NOTIF_ORGANIZATION_INVITE_SENT",
+                },
+            ),
         )
 
     def perform_update(self, serializer):
@@ -1050,7 +1057,14 @@ class OrganizationMemberViewSet(StandardizedErrorResponseMixin, viewsets.ModelVi
                     created_object_id=member.id,
                 )
                 broadcast_user_notification(
-                    owner.id, build_notification_payload(notification)
+                    owner.id,
+                    build_notification_payload(
+                        notification,
+                        extra_payload={
+                            "code": "NOTIF_ORGANIZATION_INVITE_CONFIRMED",
+                            "type": "NOTIF_ORGANIZATION_INVITE_CONFIRMED",
+                        },
+                    ),
                 )
 
             if owner and owner.id == self.request.user.id and member.user:
@@ -1063,7 +1077,14 @@ class OrganizationMemberViewSet(StandardizedErrorResponseMixin, viewsets.ModelVi
                     created_object_id=member.id,
                 )
                 broadcast_user_notification(
-                    member.user.id, build_notification_payload(notification)
+                    member.user.id,
+                    build_notification_payload(
+                        notification,
+                        extra_payload={
+                            "code": "NOTIF_ORGANIZATION_INVITE_ACCEPTED",
+                            "type": "NOTIF_ORGANIZATION_INVITE_ACCEPTED",
+                        },
+                    ),
                 )
 
     def perform_destroy(self, instance):
@@ -1080,7 +1101,14 @@ class OrganizationMemberViewSet(StandardizedErrorResponseMixin, viewsets.ModelVi
                 created_object_id=member.id,
             )
             broadcast_user_notification(
-                recipient.id, build_notification_payload(notification)
+                recipient.id,
+                build_notification_payload(
+                    notification,
+                    extra_payload={
+                        "code": "NOTIF_ORGANIZATION_MEMBER_REMOVED",
+                        "type": "NOTIF_ORGANIZATION_MEMBER_REMOVED",
+                    },
+                ),
             )
         member.delete()
     
