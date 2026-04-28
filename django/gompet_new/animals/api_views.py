@@ -1294,6 +1294,23 @@ class AnimalFilterViewSet(StandardizedErrorResponseMixin, viewsets.ReadOnlyModel
     tags=["animal_characteristics", "animals_characteristics_new"],
     description="API for managing animal characteristics (boolean features)."
 )
+@extend_schema_view(
+    list=extend_schema(
+        summary="Lista charakterystyk zwierzat",
+        description="Zwraca liste charakterystyk. Opcjonalnie filtruje po gatunku.",
+        parameters=[
+            OpenApiParameter(
+                name="species",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Filtr po gatunku. Obsługuje label, nazwę lub ID gatunku. "
+                    "Wiele wartości oddziel przecinkiem, np. DOG,CAT."
+                ),
+            )
+        ],
+    )
+)
 class AnimalCharacteristicViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
     CRUD for AnimalCharacteristic
@@ -1303,7 +1320,9 @@ class AnimalCharacteristicViewSet(StandardizedErrorResponseMixin, viewsets.Model
     permission_classes = [OrganizationRolePermissions]
 
     def list(self, request, *args, **kwargs):
-        characteristics = Characteristics.objects.select_related("species").all().order_by("id")
+        characteristics = (
+            Characteristics.objects.prefetch_related("species").all().order_by("id")
+        )
 
         species_param = request.query_params.get("species")
         if species_param:
@@ -1312,9 +1331,9 @@ class AnimalCharacteristicViewSet(StandardizedErrorResponseMixin, viewsets.Model
             for value in species_values:
                 species_filter |= Q(species__label__iexact=value) | Q(species__name__iexact=value)
                 if value.isdigit():
-                    species_filter |= Q(species_id=int(value))
+                    species_filter |= Q(species__id=int(value))
             if species_filter:
-                characteristics = characteristics.filter(species_filter)
+                characteristics = characteristics.filter(species_filter).distinct()
 
         payload = [
             {
@@ -1323,14 +1342,12 @@ class AnimalCharacteristicViewSet(StandardizedErrorResponseMixin, viewsets.Model
                 "label": characteristic.label or Characteristics.normalize_label(
                     characteristic.characteristic
                 ),
-                "species": (
-                    characteristic.species.label
-                    if characteristic.species and characteristic.species.label
-                    else (
-                        Species.normalize_label(characteristic.species.name)
-                        if characteristic.species
-                        else None
-                    )
+                "species": next(
+                    (
+                        specie.label or Species.normalize_label(specie.name)
+                        for specie in sorted(characteristic.species.all(), key=lambda s: s.id)
+                    ),
+                    None,
                 ),
             }
             for characteristic in characteristics

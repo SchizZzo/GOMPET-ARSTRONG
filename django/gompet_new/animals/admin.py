@@ -1,5 +1,13 @@
 from django.contrib import admin
-from .models import Animal, AnimalCharacteristic, AnimalGallery, AnimalParent, Characteristics, AnimalsBreedGroups
+from .models import (
+    Animal,
+    AnimalCharacteristic,
+    AnimalGallery,
+    AnimalParent,
+    Characteristics,
+    CharacteristicsForSpecies,
+    AnimalsBreedGroups,
+)
 
 # Register your models here.
 class AnimalCharacteristicInline(admin.TabularInline):
@@ -13,6 +21,11 @@ class AnimalGalleryInline(admin.TabularInline):
 class AnimalParentInline(admin.TabularInline):
     model = AnimalParent
     fk_name = 'animal'
+    extra = 1
+
+
+class CharacteristicsForSpeciesInline(admin.TabularInline):
+    model = CharacteristicsForSpecies
     extra = 1
 
 
@@ -62,10 +75,26 @@ class AnimalCharacteristicAdmin(admin.ModelAdmin):
 
 @admin.register(Characteristics)
 class CharacteristicsAdmin(admin.ModelAdmin):
-    list_display = ('id', 'characteristic', 'label', 'species', 'description', 'created_at', 'updated_at')
+    list_display = (
+        'id',
+        'characteristic',
+        'label',
+        'species_list',
+        'description',
+        'created_at',
+        'updated_at',
+    )
     search_fields = ('characteristic', 'label')
     list_filter = ('species',)
     readonly_fields = ('label', 'created_at', 'updated_at', 'deleted_at')
+    inlines = [CharacteristicsForSpeciesInline]
+
+    @admin.display(description='species')
+    def species_list(self, obj):
+        return ", ".join(
+            species.label or species.name
+            for species in obj.species.all().order_by("id")
+        )
 
 
 @admin.register(AnimalsBreedGroups)

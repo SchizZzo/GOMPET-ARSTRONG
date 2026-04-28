@@ -316,12 +316,11 @@ class Characteristics(models.Model):
     id          = models.BigAutoField(primary_key=True)
     characteristic         = models.CharField(max_length=80, unique=True)
     label       = models.CharField(max_length=120, blank=True, default="", db_index=True)
-    species = models.ForeignKey(
+    species = models.ManyToManyField(
         Species,
-        on_delete=models.SET_NULL,
-        null=True,
+        through="CharacteristicsForSpecies",
+        related_name="characteristicsForSpecies",
         blank=True,
-        related_name="characteristics",
     )
     description = models.TextField(blank=True, null=True)
 
@@ -348,6 +347,27 @@ class Characteristics(models.Model):
     def save(self, *args, **kwargs):
         self.label = self.normalize_label(self.characteristic)
         super().save(*args, **kwargs)
+
+
+class CharacteristicsForSpecies(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    characteristics = models.ForeignKey(
+        Characteristics,
+        on_delete=models.CASCADE,
+        related_name="characteristics_for_species",
+    )
+    species = models.ForeignKey(
+        Species,
+        on_delete=models.CASCADE,
+        related_name="characteristics_for_species",
+    )
+
+    class Meta:
+        db_table = "characteristics_for_species"
+        unique_together = (("characteristics", "species"),)
+
+    def __str__(self) -> str:
+        return f"{self.characteristics_id}:{self.species_id}"
     
 
 class AnimalCharacteristic(models.Model):

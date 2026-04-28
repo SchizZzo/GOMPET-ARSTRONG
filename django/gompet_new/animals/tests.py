@@ -1103,10 +1103,8 @@ class AnimalCharacteristicsListEndpointTests(TestCase):
 
     def test_filters_characteristics_by_species_query_param(self):
         cat_species = Species.objects.create(name="Cat")
-        cat_characteristic = Characteristics.objects.create(
-            characteristic="usesLitterBox",
-            species=cat_species,
-        )
+        cat_characteristic = Characteristics.objects.create(characteristic="usesLitterBox")
+        cat_characteristic.species.add(cat_species)
 
         response = self.client.get("/animals/characteristics/?species=CAT")
 
