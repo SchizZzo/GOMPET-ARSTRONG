@@ -222,7 +222,6 @@ class MemberRole(models.TextChoices):
     VOLUNTEER = "VOLUNTEER", "Wolontariusz"
     MODERATOR = "MODERATOR", "Moderator"
     PARTNER   = "PARTNER",   "Partner"
-    FINANCE   = "FINANCE",   "Finanse"
     CONTENT   = "CONTENT",   "Twórca treści"
     VIEWER    = "VIEWER",    "Obserwator"
 
