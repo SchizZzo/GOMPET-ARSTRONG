@@ -14,7 +14,7 @@ services:
   
   nextjs:
     build:
-      context: ./FRONTEND/gomPet-main/gomPet-main
+      context: ./FRONTEND/gomPet-feature-filters-fix
       dockerfile: Dockerfile
     working_dir: /app
     restart: unless-stopped
@@ -26,7 +26,7 @@ services:
     ports:
       - "5001:5001"
     volumes:
-      - ./FRONTEND/gomPet-main/gomPet-main:/app
+      - ./FRONTEND/gomPet-feature-filters-fix:/app
       - /app/node_modules
       - /app/.next
     environment:

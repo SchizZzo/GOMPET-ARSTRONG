@@ -13,6 +13,8 @@ from rest_framework.response import Response
 from common.like_counter import resolve_content_type
 from common.models import Comment, Follow, Notification, Reaction, ReactionType
 from common.exceptions import normalize_validation_errors
+from posts.models import Post
+from users.models import MemberRole, OrganizationMember
 
 from .serializers import (
     CommentSerializer,
@@ -139,13 +141,104 @@ class CommentViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     """
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-    permission_classes = [permissions.DjangoModelPermissionsOrAnonReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def _resolve_comment_organization_ids(
+        self,
+        comment: Comment,
+        visited_comment_ids: set[int] | None = None,
+    ) -> set[int]:
+        organization_ids: set[int] = set()
+        visited_ids = visited_comment_ids or set()
+        if comment.id in visited_ids:
+            return organization_ids
+        visited_ids.add(comment.id)
+
+        if (
+            comment.content_type.app_label == "users"
+            and comment.content_type.model == "organization"
+        ):
+            organization_ids.add(comment.object_id)
+            return organization_ids
+
+        if (
+            comment.content_type.app_label == "users"
+            and comment.content_type.model == "user"
+        ):
+            member_org_ids = OrganizationMember.objects.filter(
+                user_id=comment.object_id,
+                invitation_confirmed=True,
+            ).values_list("organization_id", flat=True)
+            organization_ids.update(member_org_ids)
+            return organization_ids
+
+        if (
+            comment.content_type.app_label == "common"
+            and comment.content_type.model == "comment"
+        ):
+            parent_comment = (
+                Comment.objects.filter(pk=comment.object_id)
+                .select_related("content_type")
+                .first()
+            )
+            if parent_comment is None:
+                return organization_ids
+            return self._resolve_comment_organization_ids(
+                parent_comment,
+                visited_comment_ids=visited_ids,
+            )
+
+        if (
+            comment.content_type.app_label == "posts"
+            and comment.content_type.model == "post"
+        ):
+            post = (
+                Post.objects.select_related("animal__organization")
+                .only("id", "organization_id", "animal__organization_id")
+                .filter(pk=comment.object_id)
+                .first()
+            )
+            if post is None:
+                return organization_ids
+            if post.organization_id:
+                organization_ids.add(post.organization_id)
+
+            animal_organization_id = getattr(post.animal, "organization_id", None)
+            if animal_organization_id:
+                organization_ids.add(animal_organization_id)
+            return organization_ids
+
+        content_object = comment.content_object
+        if content_object is None:
+            return organization_ids
+        organization_id = getattr(content_object, "organization_id", None)
+        if organization_id:
+            organization_ids.add(organization_id)
+
+        organization = getattr(content_object, "organization", None)
+        organization_pk = getattr(organization, "id", None)
+        if organization_pk:
+            organization_ids.add(organization_pk)
+
+        return organization_ids
 
     def _can_manage_comment(self, comment: Comment) -> bool:
         user = self.request.user
         if not user or not user.is_authenticated:
             return False
-        return user.is_superuser or comment.user_id == user.id
+        if user.is_superuser or comment.user_id == user.id:
+            return True
+
+        organization_ids = self._resolve_comment_organization_ids(comment)
+        if not organization_ids:
+            return False
+
+        return OrganizationMember.objects.filter(
+            user_id=user.id,
+            organization_id__in=organization_ids,
+            invitation_confirmed=True,
+            role__in=[MemberRole.MODERATOR, MemberRole.OWNER],
+        ).exists()
 
     def get_queryset(self):
         """
@@ -190,7 +283,7 @@ class CommentViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
         comment = serializer.instance
         if not self._can_manage_comment(comment):
             raise PermissionDenied("You do not have permission to modify this comment.")
-        serializer.save()
+        serializer.save(user=comment.user)
 
     def perform_destroy(self, instance):
         if not self._can_manage_comment(instance):
