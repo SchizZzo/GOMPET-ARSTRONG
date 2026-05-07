@@ -1,8 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
-from users.models import Organization, OrganizationMember, Species, UserRole
-from users.role_permissions import ROLE_PERMISSIONS
+from users.models import MemberRole, Organization, OrganizationMember, Species, UserRole
 
 from .permissions import OrganizationRolePermissions
 from .models import (
@@ -526,17 +525,10 @@ localhost/animals/animals/?size=MEDIUM
     )
     def assignment_options(self, request, *args, **kwargs):
         """Return assignable targets for animal creation (self + member organizations)."""
-        add_animal_permission = "animals.add_animal"
-        roles_with_add_animal = {
-            role.value
-            for role, permissions_for_role in ROLE_PERMISSIONS.items()
-            if add_animal_permission in permissions_for_role
-        }
-
         memberships = (
             OrganizationMember.objects.filter(
                 user=request.user,
-                role__in=roles_with_add_animal,
+                role__in=[MemberRole.OWNER, MemberRole.STAFF],
             )
             .select_related("organization")
             .order_by("organization__name")

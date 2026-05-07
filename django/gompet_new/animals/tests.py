@@ -570,7 +570,7 @@ class AnimalAssignmentOptionsTests(TestCase):
         self.assertEqual(org_option["organization_id"], self.organization.id)
         self.assertEqual(org_option["owner_id"], self.organization.user_id)
 
-    def test_excludes_organizations_without_add_animal_permission(self):
+    def test_excludes_organizations_for_roles_other_than_owner_or_staff(self):
         readonly_owner = get_user_model().objects.create_user(
             email="owner-viewer@example.com",
             password="testpass",
@@ -588,6 +588,23 @@ class AnimalAssignmentOptionsTests(TestCase):
             organization=readonly_organization,
             role=MemberRole.VIEWER,
         )
+        moderator_owner = get_user_model().objects.create_user(
+            email="owner-moderator@example.com",
+            password="testpass",
+            first_name="Moderator",
+            last_name="Owner",
+        )
+        moderator_organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Moderator Org",
+            email="moderator@example.com",
+            user=moderator_owner,
+        )
+        OrganizationMember.objects.create(
+            user=self.user,
+            organization=moderator_organization,
+            role=MemberRole.MODERATOR,
+        )
 
         self.client.force_authenticate(user=self.user)
         response = self.client.get(self.url)
@@ -600,6 +617,7 @@ class AnimalAssignmentOptionsTests(TestCase):
         }
         self.assertIn(self.organization.id, organization_ids)
         self.assertNotIn(readonly_organization.id, organization_ids)
+        self.assertNotIn(moderator_organization.id, organization_ids)
 
 
 class AnimalErrorResponseFormatTests(TestCase):
