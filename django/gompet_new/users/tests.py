@@ -1296,6 +1296,23 @@ class UserErrorResponseFormatTests(TestCase):
         self.assertIn("code", response.data["errors"]["password"][0])
         self.assertIn("message", response.data["errors"]["password"][0])
 
+    def test_400_registration_missing_required_field_has_code(self):
+        response = self.client.post(
+            "/users/users/",
+            {
+                "email": "missing-first-name@example.com",
+                "password": "StrongPass123!",
+                "confirm_password": "StrongPass123!",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["status"], 400)
+        self.assertEqual(response.data["code"], "ERR_GENERIC_VALIDATION")
+        self.assertIn("first_name", response.data["errors"])
+        self.assertIn("code", response.data["errors"]["first_name"][0])
+
     def test_400_manual_error_payload_format(self):
         response = self.client.post(
             "/users/auth/password-reset/confirm/",

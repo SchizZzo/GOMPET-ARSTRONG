@@ -354,6 +354,14 @@ class UserViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            return self.validation_error_response(serializer.errors)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
     @staticmethod
     def _can_manage_user(actor, target) -> bool:
         if not actor or not actor.is_authenticated:
@@ -679,6 +687,14 @@ class OrganizationViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
         return Response(serializer.data)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            return self.validation_error_response(serializer.errors)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
 
     def perform_create(self, serializer):
