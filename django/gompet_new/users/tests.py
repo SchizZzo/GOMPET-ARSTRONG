@@ -1254,6 +1254,27 @@ class UserErrorResponseFormatTests(TestCase):
         self.assertEqual(response.data["message"], "Validation error.")
         self.assertIn("confirm_password", response.data["errors"])
 
+    def test_401_login_error_payload_includes_invalid_credentials_code(self):
+        response = self.client.post(
+            "/users/auth/token/",
+            {
+                "email": self.user.email,
+                "password": "wrong-password",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(
+            response.data,
+            {
+                "status": 401,
+                "code": "ERR_INVALID_LOGIN_CREDENTIALS",
+                "message": "Invalid email or password.",
+                "errors": {},
+            },
+        )
+
     def test_400_password_validation_error_includes_per_error_code(self):
         response = self.client.post(
             "/users/users/",

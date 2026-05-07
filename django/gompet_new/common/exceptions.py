@@ -42,6 +42,26 @@ def _build_error_payload(status_code: int) -> dict:
         "errors": {},
     }
 
+def _build_custom_unauthorized_payload(code: str, message: str) -> dict:
+    return {
+        "status": status.HTTP_401_UNAUTHORIZED,
+        "code": code,
+        "message": message,
+        "errors": {},
+    }
+
+
+def _extract_error_code(value):
+    if isinstance(value, ErrorDetail):
+        return getattr(value, "code", None)
+    if isinstance(value, dict):
+        nested = value.get("code")
+        if nested:
+            return nested
+    if isinstance(value, (list, tuple)) and value:
+        return _extract_error_code(value[0])
+    return None
+
 
 def _is_preformatted_error_object(value) -> bool:
     return (
@@ -118,6 +138,16 @@ def standardized_exception_handler(exc, context):
 
     if response.status_code == status.HTTP_400_BAD_REQUEST:
         response.data = _build_validation_error_payload(response.data)
+    elif response.status_code == status.HTTP_401_UNAUTHORIZED:
+        detail = response.data.get("detail") if isinstance(response.data, dict) else None
+        detail_code = _extract_error_code(detail)
+        if detail_code == "no_active_account":
+            response.data = _build_custom_unauthorized_payload(
+                "ERR_INVALID_LOGIN_CREDENTIALS",
+                "Invalid email or password.",
+            )
+        else:
+            response.data = _build_error_payload(status.HTTP_401_UNAUTHORIZED)
     elif response.status_code in ERROR_PAYLOADS:
         response.data = _build_error_payload(response.status_code)
 
