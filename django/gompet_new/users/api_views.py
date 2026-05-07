@@ -993,12 +993,12 @@ class OrganizationMemberViewSet(StandardizedErrorResponseMixin, viewsets.ModelVi
 
         organization_id_confirmed = self.request.query_params.get("organization-id-confirmed")
         if organization_id_confirmed:
-            is_owner = OrganizationMember.objects.filter(
+            can_view_members = OrganizationMember.objects.filter(
                 organization_id=organization_id_confirmed,
                 user=user,
-                role=MemberRole.OWNER,
+                role__in=[MemberRole.OWNER, MemberRole.PARTNER],
             ).exists()
-            if not is_owner:
+            if not can_view_members:
                 return queryset.none()
             queryset = queryset.filter(organization_id=organization_id_confirmed, invitation_confirmed=True)
 

@@ -237,3 +237,21 @@ class LitterPermissionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         litter.refresh_from_db()
         self.assertEqual(litter.owner_id, self.other_owner.id)
+
+    def test_staff_can_update_organization_litter_when_owner_is_set(self) -> None:
+        litter = Litter.objects.create(
+            title="Org litter with owner",
+            owner=self.owner,
+            organization=self.organization,
+        )
+        self.client.force_authenticate(user=self.member)
+
+        response = self.client.patch(
+            reverse("litter-detail", args=[litter.id]),
+            {"title": "Updated by staff"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        litter.refresh_from_db()
+        self.assertEqual(litter.title, "Updated by staff")

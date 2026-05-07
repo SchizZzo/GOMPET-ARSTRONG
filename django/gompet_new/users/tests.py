@@ -669,6 +669,32 @@ class OrganizationMemberPermissionTests(TestCase):
         self.member_membership.refresh_from_db()
         self.assertTrue(self.member_membership.invitation_confirmed)
 
+    def test_partner_can_list_confirmed_members_by_organization(self):
+        partner_user = User.objects.create_user(
+            email="org-partner@example.com",
+            password="secret",
+            first_name="Partner",
+            last_name="Org",
+        )
+        OrganizationMember.objects.create(
+            user=partner_user,
+            organization=self.organization,
+            role=MemberRole.PARTNER,
+            invitation_confirmed=True,
+        )
+        self.member_membership.invitation_confirmed = True
+        self.member_membership.save(update_fields=["invitation_confirmed"])
+
+        self.client.force_authenticate(user=partner_user)
+        response = self.client.get(
+            f"/users/organization-members/?organization-id-confirmed={self.organization.id}"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        returned_user_ids = {item["user"]["id"] for item in response.data}
+        self.assertIn(self.owner.id, returned_user_ids)
+        self.assertIn(self.member_user.id, returned_user_ids)
+
 
 class OrganizationMembershipCheckViewTests(TestCase):
     def setUp(self):

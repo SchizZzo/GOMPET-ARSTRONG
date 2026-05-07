@@ -91,13 +91,13 @@ class _LitterAccessMixin:
             return False
         if user.is_superuser:
             return True
-        if litter.owner_id:
-            return litter.owner_id == user.id
         if litter.organization_id:
             return (
                 litter.organization.user_id == user.id
                 or self._is_organization_member(user, litter.organization_id)
             )
+        if litter.owner_id:
+            return litter.owner_id == user.id
         return False
 
 
