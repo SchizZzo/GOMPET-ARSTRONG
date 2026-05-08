@@ -270,6 +270,33 @@ class PostOrganizationOwnershipAPITests(APITestCase):
         post.refresh_from_db()
         self.assertEqual(post.content, "Updated by content author")
 
+    def test_content_author_can_delete_own_organization_post(self):
+        content_member = get_user_model().objects.create_user(
+            email="post-org-content-delete@example.com",
+            password="password123",
+            first_name="Post",
+            last_name="ContentDelete",
+        )
+        OrganizationMember.objects.create(
+            user=content_member,
+            organization=self.organization,
+            role=MemberRole.CONTENT,
+            invitation_confirmed=True,
+        )
+        grant_post_permissions(content_member, "add_post", "change_post")
+
+        post = Post.objects.create(
+            content="Content member deletable post",
+            author=content_member,
+            organization=self.organization,
+        )
+
+        self.client.force_authenticate(user=content_member)
+        response = self.client.delete(reverse("post-detail", args=[post.id]))
+
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Post.objects.filter(id=post.id).exists())
+
 
 class PostFeedAPITests(APITestCase):
     def setUp(self):

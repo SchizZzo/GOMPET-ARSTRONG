@@ -7,6 +7,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import DjangoModelPermissionsOrAnonReadOnly, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from animals.models import Animal
+
 from common.models import Follow
 from users.models import Organization, OrganizationMember
 from .models import Post
@@ -99,7 +100,6 @@ POST_LIST_FILTER_PARAMETERS = [
     ),
 ]
 
-
 @extend_schema(
     tags=["posts", "posts_organizations", "posts_animals"],
     description="API endpoint to list and create posts."
@@ -173,6 +173,11 @@ class PostViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     permission_classes = [
         DjangoModelPermissionsOrAnonReadOnly,
     ] # KaÄąÄ˝dy moÄąÄ˝e czytaĂ„â€ˇ, ale tworzyĂ„â€ˇ/edytowaĂ„â€ˇ tylko zalogowani
+
+    def get_permissions(self):
+        if self.action == "destroy":
+            return [IsAuthenticated()]
+        return super().get_permissions()
 
     def _ensure_user_can_modify_animal(self, serializer):
         user = self.request.user
