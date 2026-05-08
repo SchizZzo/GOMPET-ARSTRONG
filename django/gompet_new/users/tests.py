@@ -1250,8 +1250,8 @@ class UserErrorResponseFormatTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["status"], 400)
-        self.assertEqual(response.data["code"], "ERR_GENERIC_VALIDATION")
-        self.assertEqual(response.data["message"], "Validation error.")
+        self.assertEqual(response.data["code"], "ERR_INVALID_REGISTRATION_DATA")
+        self.assertEqual(response.data["message"], "Registration validation error.")
         self.assertIn("confirm_password", response.data["errors"])
 
     def test_401_login_error_payload_includes_invalid_credentials_code(self):
@@ -1290,7 +1290,7 @@ class UserErrorResponseFormatTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["status"], 400)
-        self.assertEqual(response.data["code"], "ERR_GENERIC_VALIDATION")
+        self.assertEqual(response.data["code"], "ERR_INVALID_REGISTRATION_DATA")
         self.assertIn("password", response.data["errors"])
         self.assertTrue(len(response.data["errors"]["password"]) > 0)
         self.assertIn("code", response.data["errors"]["password"][0])
@@ -1309,9 +1309,33 @@ class UserErrorResponseFormatTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["status"], 400)
-        self.assertEqual(response.data["code"], "ERR_GENERIC_VALIDATION")
+        self.assertEqual(response.data["code"], "ERR_INVALID_REGISTRATION_DATA")
         self.assertIn("first_name", response.data["errors"])
         self.assertIn("code", response.data["errors"]["first_name"][0])
+
+    def test_400_registration_duplicate_email_has_dedicated_code(self):
+        response = self.client.post(
+            "/users/users/",
+            {
+                "email": self.user.email,
+                "first_name": "Duplicate",
+                "last_name": "Email",
+                "password": "StrongPass123!",
+                "confirm_password": "StrongPass123!",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["status"], 400)
+        self.assertEqual(response.data["code"], "ERR_EMAIL_ALREADY_EXISTS")
+        self.assertEqual(response.data["message"], "Email already exists.")
+        self.assertIn("email", response.data["errors"])
+        self.assertIn("code", response.data["errors"]["email"][0])
+        self.assertEqual(
+            response.data["errors"]["email"][0]["code"],
+            "ERR_EMAIL_ALREADY_EXISTS",
+        )
 
     def test_400_manual_error_payload_format(self):
         response = self.client.post(

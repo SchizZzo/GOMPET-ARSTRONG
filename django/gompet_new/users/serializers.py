@@ -113,6 +113,16 @@ class UserCreateSerializer(serializers.ModelSerializer):
             validated_data["last_name"] = ""
         return User.objects.create_user(**validated_data)
 
+    def validate_email(self, value):
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError(
+                ErrorDetail(
+                    "Uzytkownik z takim adresem email juz istnieje.",
+                    code="ERR_EMAIL_ALREADY_EXISTS",
+                )
+            )
+        return value
+
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     """Serializer do aktualizacji danych uĹĽytkownika."""

@@ -340,6 +340,10 @@ class UserViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
 
     """
     queryset = User.objects.filter(is_deleted=False)
+    REGISTRATION_VALIDATION_ERROR_CODE = "ERR_INVALID_REGISTRATION_DATA"
+    REGISTRATION_VALIDATION_ERROR_MESSAGE = "Registration validation error."
+    REGISTRATION_EMAIL_EXISTS_ERROR_CODE = "ERR_EMAIL_ALREADY_EXISTS"
+    REGISTRATION_EMAIL_EXISTS_ERROR_MESSAGE = "Email already exists."
     
 
     def get_serializer_class(self):
@@ -357,7 +361,28 @@ class UserViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid():
-            return self.validation_error_response(serializer.errors)
+            email_errors = serializer.errors.get("email", [])
+            has_email_exists_error = any(
+                getattr(error, "code", None) == self.REGISTRATION_EMAIL_EXISTS_ERROR_CODE
+                for error in email_errors
+            )
+            return Response(
+                {
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "code": (
+                        self.REGISTRATION_EMAIL_EXISTS_ERROR_CODE
+                        if has_email_exists_error
+                        else self.REGISTRATION_VALIDATION_ERROR_CODE
+                    ),
+                    "message": (
+                        self.REGISTRATION_EMAIL_EXISTS_ERROR_MESSAGE
+                        if has_email_exists_error
+                        else self.REGISTRATION_VALIDATION_ERROR_MESSAGE
+                    ),
+                    "errors": normalize_validation_errors(serializer.errors),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
