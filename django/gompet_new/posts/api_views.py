@@ -215,6 +215,11 @@ class PostViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet):
         serializer.save()
 
     def perform_update(self, serializer):
+        # Allow post authors to edit their own posts regardless of current
+        # organization membership state.
+        if serializer.instance.author_id == self.request.user.id:
+            serializer.save()
+            return
         self._ensure_user_can_modify_animal(serializer)
         serializer.save()
 

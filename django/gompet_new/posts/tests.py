@@ -232,6 +232,44 @@ class PostOrganizationOwnershipAPITests(APITestCase):
             ).exists()
         )
 
+    def test_content_author_can_update_own_organization_post(self):
+        content_member = get_user_model().objects.create_user(
+            email="post-org-content@example.com",
+            password="password123",
+            first_name="Post",
+            last_name="Content",
+        )
+        OrganizationMember.objects.create(
+            user=content_member,
+            organization=self.organization,
+            role=MemberRole.CONTENT,
+            invitation_confirmed=True,
+        )
+        grant_post_permissions(content_member, "add_post", "change_post")
+
+        post = Post.objects.create(
+            content="Content member original post",
+            author=content_member,
+            organization=self.organization,
+        )
+
+        # Simulate membership becoming unconfirmed; author should still edit own post.
+        OrganizationMember.objects.filter(
+            user=content_member,
+            organization=self.organization,
+        ).update(invitation_confirmed=False)
+
+        self.client.force_authenticate(user=content_member)
+        response = self.client.patch(
+            reverse("post-detail", args=[post.id]),
+            {"content": "Updated by content author"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        post.refresh_from_db()
+        self.assertEqual(post.content, "Updated by content author")
+
 
 class PostFeedAPITests(APITestCase):
     def setUp(self):
