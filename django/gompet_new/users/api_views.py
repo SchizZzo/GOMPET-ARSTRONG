@@ -944,6 +944,24 @@ class OrganizationMemberViewSet(StandardizedErrorResponseMixin, viewsets.ModelVi
             return True
         return self._is_self_confirmation_request(membership)
 
+    def _is_admin_role_change_restricted(self, membership: OrganizationMember) -> bool:
+        payload_keys = set(self.request.data.keys())
+        if "role" not in payload_keys:
+            return False
+
+        actor_is_admin = OrganizationMember.objects.filter(
+            organization_id=membership.organization_id,
+            user=self.request.user,
+            role=MemberRole.ADMIN,
+            invitation_confirmed=True,
+        ).exists()
+        if not actor_is_admin:
+            return False
+
+        is_self_target = membership.user_id == self.request.user.id
+        is_owner_target = membership.role == MemberRole.OWNER
+        return is_self_target or is_owner_target
+
     def _can_delete_membership(self, membership: OrganizationMember) -> bool:
         if self._is_organization_owner(membership.organization_id):
             return True
@@ -984,11 +1002,15 @@ class OrganizationMemberViewSet(StandardizedErrorResponseMixin, viewsets.ModelVi
         membership = self.get_object()
         if not self._can_update_membership(membership):
             return self.forbidden_response()
+        if self._is_admin_role_change_restricted(membership):
+            return self.forbidden_response()
         return super().update(request, *args, **kwargs)
 
     def partial_update(self, request, *args, **kwargs):
         membership = self.get_object()
         if not self._can_update_membership(membership):
+            return self.forbidden_response()
+        if self._is_admin_role_change_restricted(membership):
             return self.forbidden_response()
         return super().partial_update(request, *args, **kwargs)
 

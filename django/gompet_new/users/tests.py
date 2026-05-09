@@ -697,6 +697,69 @@ class OrganizationMemberPermissionTests(TestCase):
         self.assertIn(self.member_user.id, returned_user_ids)
 
 
+class OrganizationMemberAdminRoleRestrictionTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.admin_user = User.objects.create_superuser(
+            email="org-admin-restrict@example.com",
+            password="secret",
+            first_name="Admin",
+            last_name="Restrict",
+        )
+        self.owner = User.objects.create_user(
+            email="org-owner-restrict@example.com",
+            password="secret",
+            first_name="Owner",
+            last_name="Restrict",
+        )
+        self.organization = Organization.objects.create(
+            type=OrganizationType.SHELTER,
+            name="Admin Restrict Shelter",
+            email="admin-restrict-shelter@example.com",
+            image="",
+            phone="",
+            user=self.owner,
+        )
+        self.owner_membership = OrganizationMember.objects.create(
+            user=self.owner,
+            organization=self.organization,
+            role=MemberRole.OWNER,
+            invitation_confirmed=True,
+        )
+        self.admin_membership = OrganizationMember.objects.create(
+            user=self.admin_user,
+            organization=self.organization,
+            role=MemberRole.ADMIN,
+            invitation_confirmed=True,
+        )
+
+    def test_admin_cannot_change_own_role(self):
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.patch(
+            f"/users/organization-members/{self.admin_membership.id}/",
+            {"role": MemberRole.STAFF},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.admin_membership.refresh_from_db()
+        self.assertEqual(self.admin_membership.role, MemberRole.ADMIN)
+
+    def test_admin_cannot_change_owner_role(self):
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.patch(
+            f"/users/organization-members/{self.owner_membership.id}/",
+            {"role": MemberRole.STAFF},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.owner_membership.refresh_from_db()
+        self.assertEqual(self.owner_membership.role, MemberRole.OWNER)
+
+
 class OrganizationMembershipCheckViewTests(TestCase):
     def setUp(self):
         self.client = APIClient()
