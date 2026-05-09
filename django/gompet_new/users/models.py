@@ -224,6 +224,7 @@ class MemberRole(models.TextChoices):
     PARTNER   = "PARTNER",   "Partner"
     CONTENT   = "CONTENT",   "Twórca treści"
     VIEWER    = "VIEWER",    "Obserwator"
+    ADMIN     = "ADMIN",     "Administrator"
 
 
 # ────────────────────────────────────────────────────────────────────

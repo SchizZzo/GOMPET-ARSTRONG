@@ -36,6 +36,7 @@ from .models import (
 )
 from .services import CannotDeleteUser, delete_user_account
 from .serializers import Base64ImageField
+from .role_permissions import ROLE_PERMISSIONS
 
 User = get_user_model()
 
@@ -965,6 +966,23 @@ class OrganizationMemberRoleListViewTests(TestCase):
         moderator_role = next((item for item in roles if item["label"] == "MODERATOR"), None)
         self.assertIsNotNone(moderator_role)
         self.assertIsInstance(moderator_role["value"], int)
+
+    def test_returns_admin_role(self):
+        response = self.client.get("/users/organization-member-roles/")
+
+        self.assertEqual(response.status_code, 200)
+        roles = response.data["roles"]
+        admin_role = next((item for item in roles if item["label"] == "ADMIN"), None)
+        self.assertIsNotNone(admin_role)
+        self.assertIsInstance(admin_role["value"], int)
+
+
+class OrganizationMemberRolePermissionsTests(TestCase):
+    def test_admin_permissions_match_owner_permissions(self):
+        self.assertEqual(
+            ROLE_PERMISSIONS[MemberRole.ADMIN],
+            ROLE_PERMISSIONS[MemberRole.OWNER],
+        )
 
 
 class SpeciesViewSetTests(TestCase):
