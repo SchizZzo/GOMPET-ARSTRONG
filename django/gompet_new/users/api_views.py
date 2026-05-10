@@ -686,6 +686,10 @@ class OrganizationViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet)
     serializer_class = OrganizationSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, OrganizationRolePermissions]
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
+    ORGANIZATION_VALIDATION_ERROR_CODE = "ERR_INVALID_ORGANIZATION_DATA"
+    ORGANIZATION_VALIDATION_ERROR_MESSAGE = "Organization validation error."
+    ORGANIZATION_CONFLICT_ERROR_CODE = "ERR_ORGANIZATION_ALREADY_EXISTS"
+    ORGANIZATION_CONFLICT_ERROR_MESSAGE = "Organization with given name or email already exists."
 
 
     def get_serializer_class(self):
@@ -716,7 +720,29 @@ class OrganizationViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet)
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid():
-            return self.validation_error_response(serializer.errors)
+            name_errors = serializer.errors.get("name", [])
+            email_errors = serializer.errors.get("email", [])
+            has_conflict_error = any(
+                getattr(error, "code", None) == "unique"
+                for error in [*name_errors, *email_errors]
+            )
+            return Response(
+                {
+                    "status": status.HTTP_400_BAD_REQUEST,
+                    "code": (
+                        self.ORGANIZATION_CONFLICT_ERROR_CODE
+                        if has_conflict_error
+                        else self.ORGANIZATION_VALIDATION_ERROR_CODE
+                    ),
+                    "message": (
+                        self.ORGANIZATION_CONFLICT_ERROR_MESSAGE
+                        if has_conflict_error
+                        else self.ORGANIZATION_VALIDATION_ERROR_MESSAGE
+                    ),
+                    "errors": normalize_validation_errors(serializer.errors),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
