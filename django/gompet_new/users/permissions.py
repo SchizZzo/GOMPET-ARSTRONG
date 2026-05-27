@@ -122,23 +122,30 @@ class OrganizationRolePermissions(BasePermission):
                 if animal is not None and hasattr(animal, "organization"):
                     return animal.organization
 
-        organization_id = (
+        organization_lookup = (
             request.data.get("organization")
             if hasattr(request, "data")
             else None
         )
-        if organization_id is None and hasattr(request, "data"):
-            organization_id = request.data.get("organization_id")
-        organization_id = organization_id or request.query_params.get("organization-id")
-        organization_id = organization_id or request.query_params.get("organization")
-        if organization_id in ("", "null", "None"):
-            organization_id = None
-        if organization_id is not None:
+        if organization_lookup is None and hasattr(request, "data"):
+            organization_lookup = request.data.get("organization_id")
+        organization_lookup = organization_lookup or request.query_params.get("organization-id")
+        organization_lookup = organization_lookup or request.query_params.get("organization")
+        if organization_lookup in ("", "null", "None"):
+            organization_lookup = None
+        if organization_lookup is not None:
+            lookup_id = None
             try:
-                organization_id = int(organization_id)
+                lookup_id = int(organization_lookup)
             except (TypeError, ValueError):
-                return None
-            return Organization.objects.filter(pk=organization_id).first()
+                lookup_id = None
+
+            organization = None
+            if lookup_id is not None:
+                organization = Organization.objects.filter(pk=lookup_id).first()
+            if organization is None:
+                organization = Organization.objects.filter(slug=organization_lookup).first()
+            return organization
 
         animal_id = None
         if hasattr(request, "data"):

@@ -365,6 +365,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
             "id",
             "type",
             "name",
+            "slug",
             "email",
             "image",
             "phone",
@@ -379,7 +380,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
             # "species",
             # "breeding_type",
         ]
-        read_only_fields = ('user',)      # <- nie przyjmujemy ownera z request body
+        read_only_fields = ("user", "slug")
 
     def create(self, validated_data):
         address_data = validated_data.pop("address")
@@ -431,6 +432,7 @@ class OrganizationCreateSerializer(serializers.ModelSerializer):
             "id",
             "type",
             "name",
+            "slug",
             "email",
             "image",
             "phone",
@@ -438,6 +440,7 @@ class OrganizationCreateSerializer(serializers.ModelSerializer):
             "rating",
             "address",
         ]
+        read_only_fields = ("slug",)
 
     def validate(self, attrs):
         return attrs
@@ -462,6 +465,7 @@ class OrganizationUpdateSerializer(serializers.ModelSerializer):
             "id",
             "type",
             "name",
+            "slug",
             "email",
             "image",
             "phone",
@@ -469,6 +473,7 @@ class OrganizationUpdateSerializer(serializers.ModelSerializer):
             "rating",
             "address",
         ]
+        read_only_fields = ("slug",)
 
     def update(self, instance, validated_data):
         address_data = validated_data.pop("address", None)

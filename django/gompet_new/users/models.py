@@ -5,6 +5,7 @@ from django.db import models
 from django.db import models
 from django.core.validators import RegexValidator
 from django.utils import timezone
+from django.utils.text import slugify
 from django.contrib.auth.models import (
     AbstractBaseUser,
     PermissionsMixin,
@@ -238,6 +239,7 @@ class Organization(models.Model):
     id          = models.BigAutoField(primary_key=True)
     type        = models.CharField(max_length=20, choices=OrganizationType.choices)
     name        = models.CharField(max_length=255, unique=True)
+    slug        = models.SlugField(unique=True, blank=True)
     email       = models.EmailField(unique=True)
     image       = models.ImageField(
         upload_to="organizations/images/",
@@ -271,6 +273,38 @@ class Organization(models.Model):
     def __str__(self) -> str:      # czytelne w adminie / shellu
         return self.name
     
+    def save(self, *args, **kwargs):
+        name_changed = False
+        if self.pk:
+            existing = type(self).objects.filter(pk=self.pk).only("name").first()
+            if existing and existing.name != self.name:
+                name_changed = True
+
+        slug_changed = False
+        if not self.slug or name_changed:
+            self.slug = self._generate_unique_slug()
+            slug_changed = True
+
+        if slug_changed and kwargs.get("update_fields") is not None:
+            update_fields = list(kwargs["update_fields"])
+            if "slug" not in update_fields:
+                update_fields.append("slug")
+            kwargs["update_fields"] = update_fields
+
+        super().save(*args, **kwargs)
+
+    def _generate_unique_slug(self) -> str:
+        base_slug = slugify(self.name or "organization", allow_unicode=True) or "organization"
+        slug = base_slug
+        qs = type(self).objects
+
+        suffix = 2
+        while qs.filter(slug=slug).exclude(pk=self.pk).exists():
+            slug = f"{base_slug}-{suffix}"
+            suffix += 1
+
+        return slug
+
     
 
     # Soft-delete helper

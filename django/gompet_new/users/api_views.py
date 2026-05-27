@@ -5,6 +5,7 @@ from django.contrib.gis.measure import D
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
+from django.http import Http404
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from drf_spectacular.utils import (
@@ -639,9 +640,9 @@ class OrganizationViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet)
     --------------------
     - **GET /organizations/** – pobranie listy organizacji (wymaga uwierzytelnienia)  
     - **POST /organizations/** – utworzenie nowej organizacji, przypisując bieżącego użytkownika jako właściciela  
-    - **GET /organizations/{id}/** – szczegóły konkretnej organizacji  
-    - **PUT /organizations/{id}/**, **PATCH /organizations/{id}/** – aktualizacja danych  
-    - **DELETE /organizations/{id}/** – usunięcie organizacji
+    - **GET /organizations/{id_or_slug}/** – szczegóły konkretnej organizacji  
+    - **PUT /organizations/{id_or_slug}/**, **PATCH /organizations/{id_or_slug}/** – aktualizacja danych  
+    - **DELETE /organizations/{id_or_slug}/** – usunięcie organizacji
 
     Uwagi dotyczące tworzenia (POST)
     --------------------------------
@@ -690,6 +691,31 @@ class OrganizationViewSet(StandardizedErrorResponseMixin, viewsets.ModelViewSet)
     ORGANIZATION_VALIDATION_ERROR_MESSAGE = "Organization validation error."
     ORGANIZATION_CONFLICT_ERROR_CODE = "ERR_ORGANIZATION_ALREADY_EXISTS"
     ORGANIZATION_CONFLICT_ERROR_MESSAGE = "Organization with given name or email already exists."
+
+    def get_object(self):
+        queryset = self.filter_queryset(self.get_queryset())
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs.get(lookup_url_kwarg)
+
+        if lookup_value is None:
+            return super().get_object()
+
+        organization = None
+        try:
+            lookup_id = int(lookup_value)
+        except (TypeError, ValueError):
+            lookup_id = None
+
+        if lookup_id is not None:
+            organization = queryset.filter(pk=lookup_id).first()
+        if organization is None:
+            organization = queryset.filter(slug=lookup_value).first()
+
+        if organization is None:
+            raise Http404
+
+        self.check_object_permissions(self.request, organization)
+        return organization
 
 
     def get_serializer_class(self):
